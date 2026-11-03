@@ -39,8 +39,8 @@ Claude Code kişisel skill'leri `~/.claude/skills/` klasöründen okur.
 **Klasör yoksa ya da boşsa:**
 
 ```
-git clone <repo-adresi> ~/.claude/skills                    # Mac
-git clone <repo-adresi> "%USERPROFILE%\.claude\skills"      # Windows
+git clone https://github.com/Cerhantes/DersNotuYardimcisi.git ~/.claude/skills                    # Mac
+git clone https://github.com/Cerhantes/DersNotuYardimcisi.git "%USERPROFILE%\.claude\skills"      # Windows
 ```
 
 **Klasörde başka skill'lerin varsa** (`git clone` dolu klasöre yazmaz):
@@ -48,7 +48,7 @@ git clone <repo-adresi> "%USERPROFILE%\.claude\skills"      # Windows
 ```
 cd ~/.claude/skills
 git init
-git remote add origin <repo-adresi>
+git remote add origin https://github.com/Cerhantes/DersNotuYardimcisi.git
 git pull origin main
 ```
 
