@@ -1,0 +1,9 @@
+# Yalnız kendi skill'lerimiz repoda
+/*
+!/.gitignore
+!/README.md
+!/ders-notu/
+!/formul-kagidi/
+!/tekrar-notu/
+__pycache__/
+*.pyc
