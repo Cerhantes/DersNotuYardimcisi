@@ -23,7 +23,7 @@ Belge şu parçalardan oluşur, bu sırayla:
 5. **Problem çözme**: çözüm sırası kutusu + kaynaktaki her çözümlü problemin özeti tablosu (problem no · konu · yol ve sonuç); bir problem çok sonuç veriyorsa (ör. tüm büyüklükler tablosu) sonuçların **tamamı** ayrı tablo.
 6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi.
 7. **Formül özeti** tablosu.
-8. **Kendini Sına — kısa cevaplı**: kaynaktaki soruların hepsi, **cevabıyla**. Sayısal cevaplar `py` ile hesaplanıp doğrulanır.
+8. **Kendini Sına — kısa cevaplı**: kaynaktaki soruların hepsi, **cevabıyla**. Sayısal cevaplar Python ile hesaplanıp doğrulanır.
 
 Diğer kurallar:
 - Dil Türkçe; ondalık ayırıcı virgül. Eğilim gösterimi: `↑` artar, `↓` azalır, `→` sonuç/sebep zinciri.
@@ -32,33 +32,39 @@ Diğer kurallar:
 
 ## Ortam (Windows / Mac / Linux)
 
-- Python komutu **`py`**; her komutta `PYTHONIOENCODING=utf-8`, `py -W ignore`.
-- **Mac/Linux:** aşağıdaki bütün komutlarda `py` yerine `python3` yaz (`python3 -m pip install ...`, `PYTHONPATH=... python3 -W ignore ...`).
-- Paketler: `py -m pip install pymupdf reportlab pillow matplotlib`.
-- Yazı tipleri (`fontlar.py` otomatik seçer): metin Calibri → Carlito → DejaVu Sans; matematik Cambria → DejaVu Serif. Mac'te Office yoksa Calibri ile birebir aynı düzen için `brew install --cask font-carlito`; kurulmazsa DejaVu kullanılır, sayfa sayısı ~%10 artar (uyarı basılır).
+Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tipleri aşağıdaki adımla hazır olur.
+
+- `SK` = bu skill yüklenirken en üstte yazan **Base directory** yolu (skill `~/.claude/skills` altında da, plugin önbelleğinde de olabilir; yolu varsayma).
+- **İşe başlarken bir kez** Python ortamını hazırla:
+  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../ortak/kur.ps1"`
+  - Mac/Linux: `bash "$SK/../ortak/kur.sh"`
+- Ortam hazırsa bu adım 1–2 sn sürer. İlk seferde Python ve paketleri indirir (1–3 dk, yönetici hakkı istemez, sistem Python'una dokunmaz); bu sürenin başında kullanıcıya haber ver.
+- Çıktının son satırı `PY=<yol>`. Aşağıdaki komutlardaki `$PY` bu yoldur; sistemdeki `py`/`python` kullanılmaz. Betik `KURULUM BAŞARISIZ` derse mesajı kullanıcıya ilet.
+- Her komutta `PYTHONIOENCODING=utf-8` ve `$PY -W ignore`. Komutlar Bash sözdizimindedir; yalnız PowerShell varsa `$env:PYTHONPATH="..."; & $PY ...` biçimine çevir.
+- Yazı tipleri repoda gömülüdür (metin Carlito, matematik DejaVu Serif), kurulmaz.
 
 ## Konum bağımsızlığı
 
-- Tüm yollar **mutlak**: kaynak `B`, skill `SK=~/.claude/skills/tekrar-notu`, çalışma klasörü `<work>` = oturum scratchpad'i varsa `<scratch>/tn-<konu>`, yoksa `$TEMP/tekrar-notu/<konu>`. cwd'ye hiçbir şey yazılmaz.
+- Tüm yollar **mutlak**: kaynak `B`, skill `SK`, çalışma klasörü `<work>` = oturum scratchpad'i varsa `<scratch>/tn-<konu>`, yoksa `$TEMP/tekrar-notu/<konu>`. cwd'ye hiçbir şey yazılmaz.
 - Son PDF kaynağın klasörüne (`dirname $B`) kopyalanır; kullanıcı başka yer söylerse oraya.
 
 ## Akış
 
 0. **Yalnızca kaynak yolunu iste** (verilmediyse). Ders adı/konu/sayfa sorma; kaynaktan çıkar. Birden çok kaynak verilebilir → her biri için 1–9 ayrı.
-1. **Kaynağı çıkar**: `py -W ignore $SK/scripts/kaynak.py $B <work>` → künye, içindekiler, `metin.txt`, `fig/*.png`, `figs.json`, `figsheet*.png`.
+1. **Kaynağı çıkar**: `$PY -W ignore $SK/scripts/kaynak.py $B <work>` → künye, içindekiler, `metin.txt`, `fig/*.png`, `figs.json`, `figsheet*.png`.
    - Şekil başlığı farklı biçimdeyse (`Fig 4-1`, `Figure 3.2`) `--cap` regex'ini uyarla.
-   - **Şekil bulunamadıysa** (kaynak bir ders kitabı ve şekilleri vektör çizimse): `~/.claude/skills/ders-notu` skill'inin `detect_figs.py` + `crop_figs.py` adımlarıyla `<work>/figs.json` ve `<work>/fig/` üret (aynı biçim).
+   - **Şekil bulunamadıysa** (kaynak bir ders kitabı ve şekilleri vektör çizimse): `$SK/../ders-notu` skill'inin `detect_figs.py` + `crop_figs.py` adımlarıyla `<work>/figs.json` ve `<work>/fig/` üret (aynı biçim).
 2. **Temas sayfalarının hepsini `Read` ile aç**: her şekil doğru numarada ve tam mı (başlıksız görseller listesine de bak).
 3. **Metnin tamamını oku** (`Read`, parça parça, hiçbir sayfa atlanmadan). Yazmadan önce envanter çıkar: bölümler; her bölümdeki sayılı listeler; denklem numaraları; tablo numaraları; şekil numaraları; çözümlü örnek/problemler; sorular.
 4. **İçerik betiğini yaz**: `<work>/tekrar.py`. Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_tekrar_notu.py`'yi baştan sona oku, aynı yapıyı izle. Örnek kaynaktan bağımsız genel bir konudur; içerik kaynaktan gelir. API aşağıda.
    - **Uzun kaynak (> ~40 sayfa):** `metin.txt`'yi ~300 satırlık parçalarla oku; her parçayı okur okumaz o bölümlerin içeriğini `<work>/p01.py`, `p02.py`… dosyalarına **Write aracıyla** yaz (ilk parça `start(...)` ve `d.cover(...)` içerir, son parça `d.make()` ile biter), en sonda `cat p*.py > tekrar.py`. Bash heredoc ile Python yazma — Türkçe kesme işaretli metinde tırnaklar kırılır.
-5. **Derle**: `PYTHONPATH=$SK/scripts py -W ignore <work>/tekrar.py <work>/out.pdf <work>`
-6. **Kapsam denetimi**: `py -W ignore $SK/scripts/kapsam.py $B <work>/out.pdf --from <ilk içerik sayfası>`
+5. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/tekrar.py <work>/out.pdf <work>`
+6. **Kapsam denetimi**: `$PY -W ignore $SK/scripts/kapsam.py $B <work>/out.pdf --from <ilk içerik sayfası>`
    - Denklem / Tablo / Şekil numarası eksikse → ekle (şekil görsel olarak konmadıysa en azından atıfla anılmalı).
    - "bilgi — HER BİRİNE BAK" listesindeki her satırı oku; bilgi taşıyorsa nota ekle. Hedef: bu listede yalnız bilerek dışarıda bırakılmış öğeler kalması.
    - "ara hesap" listesi: çözümün **sonucu** notta varsa bırak; sonuç yoksa ekle.
    - 5–6'yı liste temizlenene kadar tekrarla.
-7. **Düzen denetimi**: `py -W ignore $SK/scripts/duzen.py <work>/out.pdf <work>` → şüpheli satırlar + `rv_*.png`.
+7. **Düzen denetimi**: `$PY -W ignore $SK/scripts/duzen.py <work>/out.pdf <work>` → şüpheli satırlar + `rv_*.png`.
    - Şüpheli satırların gerçek hata türleri: yalnız kalan `↑.` ya da tek kelime; kelime/sayı ortasından bölünmüş tablo hücresi (`83–86 HR | A`, `4000–500 | 0`); `HAM ALT ÇİZGİ` (`F_c` S()'den geçmemiş); `HAM İŞARETLEME` (`&amp;`).
    - Yanlış alarm: bilerek `<br/>` ile bölünmüş başlık, yan yana birleşik okunan tablo hücreleri (`246698`), tek hücreli `—`.
    - Sonra **bütün** `rv_*.png` görüntülerini aç: içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
@@ -106,4 +112,4 @@ Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` →
 | Bölüm başlığı sayfa sonunda tek kaldı | `d.h2(..., need=12–14)` |
 | Kapsam denetiminde çözümlü problem değerleri eksik | Problemin tüm sonuçları ayrı tabloyla verilmeli, yalnız seçilmiş birkaçı değil |
 | `kaynak.py` hiç şekil bulmadı | Başlık biçimi farklı (`--cap`) ya da şekiller vektör → ders-notu skill'inin detect/crop adımları |
-| `python` bulunamadı / `UnicodeEncodeError` | `py` kullan / `PYTHONIOENCODING=utf-8` |
+| `ModuleNotFoundError` / `python` bulunamadı / `UnicodeEncodeError` | Ortam bölümündeki kurulum betiğinin verdiği `$PY` ile çalıştır / `PYTHONIOENCODING=utf-8` |

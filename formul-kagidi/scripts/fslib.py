@@ -12,7 +12,7 @@
         fig='sema_adi', cap='şekil açıklaması')
     d.make()
 
-Çalıştırma: PYTHONPATH=<skill>/scripts py -W ignore icerik.py <cikti.pdf> <work>
+Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore icerik.py <cikti.pdf> <work>
 Şemalar <work>/dg/<ad>.png içinde aranır (dglib.save bunları oraya yazar).
 """
 import os, re, sys, hashlib, warnings, matplotlib
@@ -34,16 +34,17 @@ from reportlab.platypus import Paragraph as _P
 plt.rcParams.update({'mathtext.fontset': 'cm'})
 
 # ---------------------------------------------------------------- yazı tipleri
-# Body = Calibri/Carlito/DejaVu Sans, Math = Cambria/Caladea/DejaVu Serif (Windows, Mac, Linux) — bkz. fontlar.py
+# Body = Carlito (repoda), Math = DejaVu Serif (matplotlib) — bkz. fontlar.py
 import fontlar
 FONTS = fontlar.kaydet()
 _body, _math = pdfmetrics.getFont('Body'), pdfmetrics.getFont('Math')
 _BODY_CM, _MATH_CM = _body.face.charToGlyph, _math.face.charToGlyph
+_SYM_CM = pdfmetrics.getFont('Sym').face.charToGlyph
 _missing = set()
 
 
 def _fix_glyphs(t):
-    """Metin yazı tipinde olmayan karakterleri (∛ ≫ ∝ ≈ √ ...) matematik yazı tipine geçirir."""
+    """Metin yazı tipinde olmayan karakterleri (∛ ≫ ∝ ≈ √ ...) matematik ya da yedek yazı tipine geçirir."""
     out = []
     for s in re.split(r'(<[^>]+>|&#?\w+;)', t):
         if not s or s[0] in '<&':
@@ -54,11 +55,13 @@ def _fix_glyphs(t):
                 out.append(ch)
             elif o in _MATH_CM:
                 out.append('<font name="Math">%s</font>' % ch)
+            elif o in _SYM_CM:
+                out.append('<font name="Sym">%s</font>' % ch)
             else:
                 out.append(ch)
                 if ch not in _missing:
                     _missing.add(ch)
-                    print('UYARI: "%s" (U+%04X) iki yazı tipinde de yok, kutu görünecek' % (ch, o), file=sys.stderr)
+                    print('UYARI: "%s" (U+%04X) hiçbir yazı tipinde yok, kutu görünecek' % (ch, o), file=sys.stderr)
     return ''.join(out)
 
 
@@ -115,7 +118,7 @@ def eq_img(tex, fs=12.5):
 
 
 def sym(s):
-    """'T_1' -> Cambria italik T<sub>1</sub>. Virgülle birden çok: 'T_1, T_2'. Biçim: taban[_alt][^üst]."""
+    """'T_1' -> matematik yazı tipinde italik T<sub>1</sub>. Virgülle birden çok: 'T_1, T_2'. Biçim: taban[_alt][^üst]."""
     def one(tok):
         m = re.match(r'^([^_^]+)(?:_([^_^]+))?(?:\^([^_^]+))?$', tok)
         if not m:

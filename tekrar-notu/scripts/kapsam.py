@@ -1,6 +1,6 @@
 """Atlanan detay denetimi: kaynaktaki numaralı öğeler ve sayısal değerler tekrar notunda var mı?
 
-py -W ignore kapsam.py <kaynak.pdf> <out.pdf> [--from SAYFA] [--to SAYFA]
+python -W ignore kapsam.py <kaynak.pdf> <out.pdf> [--from SAYFA] [--to SAYFA]
 
 Raporlar:
   1) Denklem numaraları  '(8.12)'         — notta numarasıyla geçmeli

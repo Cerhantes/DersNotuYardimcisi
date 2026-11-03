@@ -19,11 +19,16 @@ Bir ders kitabı PDF'inin verilen sayfa aralığından, konuyu **sıfırdan öğ
 
 ## Ortam (Windows / Mac / Linux)
 
-- **Mac/Linux:** aşağıdaki bütün komutlarda `py` yerine `python3` yaz (`python3 -m pip install ...`, `PYTHONPATH=... python3 -W ignore ...`).
+Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tipleri aşağıdaki adımla hazır olur.
 
-- Python komutu **`py`** (`python` Microsoft Store kısayoluna düşer). Türkçe çıktı için her komutta `PYTHONIOENCODING=utf-8`, uyarılar için `py -W ignore`.
-- Gerekli paketler: `py -m pip install pymupdf reportlab pypdf pillow matplotlib`
-- Yazı tipleri (`fontlar.py` otomatik seçer): metin Calibri → Carlito → DejaVu Sans; matematik Cambria → DejaVu Serif. Mac'te Office yoksa Calibri ile birebir aynı düzen için `brew install --cask font-carlito`; kurulmazsa DejaVu kullanılır, sayfa sayısı ~%10 artar (uyarı basılır).
+- `SK` = bu skill yüklenirken en üstte yazan **Base directory** yolu (skill `~/.claude/skills` altında da, plugin önbelleğinde de olabilir; yolu varsayma).
+- **İşe başlarken bir kez** Python ortamını hazırla:
+  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../ortak/kur.ps1"`
+  - Mac/Linux: `bash "$SK/../ortak/kur.sh"`
+- Ortam hazırsa bu adım 1–2 sn sürer. İlk seferde Python ve paketleri indirir (1–3 dk, yönetici hakkı istemez, sistem Python'una dokunmaz); bu sürenin başında kullanıcıya haber ver.
+- Çıktının son satırı `PY=<yol>`. Aşağıdaki komutlardaki `$PY` bu yoldur; sistemdeki `py`/`python` kullanılmaz. Betik `KURULUM BAŞARISIZ` derse mesajı kullanıcıya ilet.
+- Her komutta `PYTHONIOENCODING=utf-8` ve `$PY -W ignore`. Komutlar Bash sözdizimindedir; yalnız PowerShell varsa `$env:PYTHONPATH="..."; & $PY ...` biçimine çevir.
+- Yazı tipleri repoda gömülüdür (metin Carlito, matematik DejaVu Serif), kurulmaz.
 
 ## Konum bağımsızlığı
 
@@ -35,33 +40,33 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 - Ders belgesi (DUB/izlence) kitabın klasöründe ve üst klasöründe aranır, cwd'de değil.
 - Kitap cwd'nin dışındaysa dosya erişimi için izin istenebilir. Bu normal, yolu değiştirmeye gerek yok.
 
-`SK=~/.claude/skills/ders-notu` ve `B=<kitap.pdf, mutlak yol>` olarak:
+`B=<kitap.pdf, mutlak yol>` olarak:
 
 ## Akış
 
 0. **Başlangıç: sadece kaynak yolunu iste.** Kullanıcı kitabın yolunu vermediyse tek soru sor: kitabın PDF yolu. Ders adı, konu, sayfa aralığı sorma; bunlar kitaptan çıkar. (Yol tırnaklı, `~`, `Masaüstü` gibi verilebilir; `Masaüstü` = `~/Desktop`. Dosya bulunamazsa `ls` ile yakın adları göster.)
 1. **Kitabı tanı**
-   `py -W ignore $SK/scripts/book_info.py $B` → künye (başlık, yazar), PDF ↔ basılı sayfa farkı, bölümler ve PDF sayfa aralıkları, şekil başlığı/etiket yazı tipleri.
+   `$PY -W ignore $SK/scripts/book_info.py $B` → künye (başlık, yazar), PDF ↔ basılı sayfa farkı, bölümler ve PDF sayfa aralıkları, şekil başlığı/etiket yazı tipleri.
    - Kullanıcı konuyu bir ders belgesine atıfla verirse (ör. "DUB'de ilk vizeye kadar", "izlencedeki 3. hafta") kitabın klasöründe ve üst klasöründe o belgeyi ara (`*DUB*`, `*izlence*`, `*syllabus*`; .docx ise `word/document.xml`'den metni çıkar), haftalık konu listesini kitabın alt bölümleriyle eşle ve raporda bu eşlemeyi söyle.
    - Kullanıcı mesajında konu/sayfa aralığı zaten varsa doğrudan onu kullan. Yoksa bölüm listesini (ad + PDF aralığı) kısa bir tablo olarak göster ve hangi bölüm(ler)in istendiğini sor (`AskUserQuestion`, çok seçimli; uzun listede en olası 3–4 bölüm + "Other"). Alt bölüm gerekirse `--toc-depth 2/3`.
    - Yer imi yoksa kitabın kendi "Contents" sayfasını `extract_text.py` ile oku, basılı numaralara ofseti ekle.
    - Yazı tipi çıktısından `detect_figs.py` bayraklarını belirle: başlık satırları kalın bir yazı tipiyle başlıyorsa varsayılan `--cap-font` yeter, değilse o yazı tipini ver. Şekil etiketleri gövde metninden **farklı** bir yazı tipindeyse (ör. Helvetica'ya karşı Sabon) `--label-font <o yazı tipi>` ver (daha temiz); aynıysa varsayılan `auto` kalsın. Başlık "Şekil 3-2", "Fig 4.1" gibi farklı biçimdeyse `--cap` regex'ini uyarla.
    - Künyeden Doc'un `source` satırını ve kapaktaki kaynak paragrafını kur; ders/kapak adı konunun Türkçesi olur.
 2. **Metni çıkar ve ofseti doğrula**
-   `py -W ignore $SK/scripts/extract_text.py $B <ilk> <son> <work>/metin.txt`
+   `$PY -W ignore $SK/scripts/extract_text.py $B <ilk> <son> <work>/metin.txt`
    Basılı sayfa numaralarıyla book_info'daki farkı doğrula. Aralık bir bölümün ortasında başlıyor ya da bitiyorsa raporda hangi alt bölümleri kapsadığını söyle.
 3. **Metnin tamamını oku** (`Read` ile, parça parça). İçeriği yazmadan önce tüm aralığı oku; şekil numaralarını ve denklemleri listele.
 4. **Şekilleri tespit et**
-   `py -W ignore $SK/scripts/detect_figs.py $B <work> <ilk> <son> [1. adımdaki bayraklar]`
+   `$PY -W ignore $SK/scripts/detect_figs.py $B <work> <ilk> <son> [1. adımdaki bayraklar]`
 5. **Kes ve gözle kontrol et**
-   `py -W ignore $SK/scripts/crop_figs.py $B <work> [--cap-above]` → `<work>/sheet_*.png` temas sayfalarının **hepsini** `Read` ile aç. Kümeler her başlığa otomatik atanır (en yakın küme + aynı satır/sütundaki alt şekiller); kitapta başlık şeklin üstündeyse `--cap-above` ver. `UYARI` satırları kontrol edilecek sayfaları gösterir. Tipik hatalar ve düzeltmeleri:
+   `$PY -W ignore $SK/scripts/crop_figs.py $B <work> [--cap-above]` → `<work>/sheet_*.png` temas sayfalarının **hepsini** `Read` ile aç. Kümeler her başlığa otomatik atanır (en yakın küme + aynı satır/sütundaki alt şekiller); kitapta başlık şeklin üstündeyse `--cap-above` ver. `UYARI` satırları kontrol edilecek sayfaları gösterir. Tipik hatalar ve düzeltmeleri:
    - Küme yanlış şekle gitmiş / alt şekil eksik → `split.json`: `{"225": {"5.6": [0], "5.7": [1, 2]}}` (küme sırası det.json'daki sıradır).
    - Kesime gövde metni, denklem veya başlık girmiş, ya da şeklin bir parçası dışarıda kalmış → `over.json`: `{"5.18": [255, [x0, y0, x1, y1]]}`. Koordinatları det.json kümelerinden ve `page.get_text('dict')` satır kutularından türet.
    - Hatalar çoksa (ör. etiketler kesik ya da her şekle metin giriyor) önce 1. adımdaki bayrakları gözden geçir (`--label-font`, `--label-len`, `--pad`).
    Düzeltip `crop_figs.py`'yi yeniden çalıştır; temas sayfaları temiz olana kadar tekrarla.
 6. **İçerik betiğini yaz** (`<work>/<konu>.py`). Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_ders_notu.py`'yi baştan sona oku, aynı kalıbı izle. Örnek kitaptan bağımsız genel bir konudur; içerik, künye ve numaralar 1. adımdan ve kitaptan gelir. API aşağıda.
-7. **Derle**: `PYTHONPATH=$SK/scripts py -W ignore <work>/<konu>.py <work>/out.pdf <work>`
-8. **Sayfa düzenini gözle kontrol et**: `py $SK/scripts/sheets.py <work>/out.pdf <work>/rv` → `rv_*.png` sayfalarının hepsini aç. Şüpheli sayfayı tek başına yüksek çözünürlükte render edip bak. Kontrol listesi: içindekiler tek sayfa mı, şekil kendi paragrafıyla aynı sayfada mı, sayfa sonunda yalnız başlık/yarım kutu var mı, büyük boşluk var mı, denklemlerde kutucuk (eksik glif) var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`; görürsen o metin `d.p` dışında bir yolla eklenmiştir).
+7. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/<konu>.py <work>/out.pdf <work>`
+8. **Sayfa düzenini gözle kontrol et**: `$PY $SK/scripts/sheets.py <work>/out.pdf <work>/rv` → `rv_*.png` sayfalarının hepsini aç. Şüpheli sayfayı tek başına yüksek çözünürlükte render edip bak. Kontrol listesi: içindekiler tek sayfa mı, şekil kendi paragrafıyla aynı sayfada mı, sayfa sonunda yalnız başlık/yarım kutu var mı, büyük boşluk var mı, denklemlerde kutucuk (eksik glif) var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`; görürsen o metin `d.p` dışında bir yolla eklenmiştir).
 9. **Kopyala ve raporla**: PDF'leri kitabın klasörüne (`dirname $B`, ya da kullanıcının söylediği yere) kopyala, `ls` ile doğrula. Son mesajda yolları, sayfa sayılarını, PDF ↔ kitap sayfa eşlemesini ve kapsanan bölümleri açıkça yaz ve işin bittiğini söyle.
 
 ## notlib API (`from notlib import *`)
@@ -88,14 +93,14 @@ Metin reportlab paragraf işaretlemesi kullanır: `<b>`, `<i>`, `<sub>`, `<super
 
 | Belirti | Neden / Çözüm |
 |---|---|
-| `python` bulunamadı / Microsoft Store açılıyor | `py` kullan |
+| `ModuleNotFoundError` / `python` bulunamadı | Sistem Python'u kullanılmış; Ortam bölümündeki kurulum betiğinin verdiği `$PY` ile çalıştır |
 | `UnicodeEncodeError` konsola yazarken | `PYTHONIOENCODING=utf-8` |
 | Yanlış sayfalar okundu | Kullanıcı numarası PDF numarasıdır; betikler 1 tabanlı alır, indeks = no − 1. Bölüm aralıkları book_info.py'den (zaten PDF numarası) |
 | Hiç şekil bulunmadı | Başlık biçimi farklı (`--cap`) ya da başlık kalın değil (`--cap-font`); book_info.py'nin yazı tipi çıktısına bak |
 | Şekil etiketleri kesimin dışında | Etiket yazı tipi `--label-font`'a uymuyor; `auto` kullan ya da doğru yazı tipini ver, uzun etiketler için `--label-len` artır |
 | Şekil yanlış numarayla kesildi | Metin içi "Fig. 5.7" atfı başlık sanıldı; `--cap-font` kalın yazı tipini eşlemeli |
 | `UYARI denklem tek satıra sığmadı` | Denklemi iki `d.eq` satırına böl (ikinci satırın numarası `''`) veya kısalt; kutu içinde iki `d.beq` kullan |
-| Denklemde/metinde boş kutu | Calibri'de olmayan glif (∛ ∝ ≃ vb.). `notlib.Paragraph` bunları Cambria'ya çevirir; yeni bir sembol eklediysen listeye ekle. Glif kontrolü: `reportlab.pdfbase.ttfonts.TTFontFile(...).charToGlyph` |
+| Denklemde/metinde boş kutu | Carlito'da olmayan glif (∛ ∝ ≃ vb.). `notlib.Paragraph` bunları otomatik olarak matematik ya da yedek yazı tipine çevirir; hiçbirinde yoksa `UYARI` basar, simgeyi değiştir |
 | İçindekiler iki sayfaya taştı | İçerik betiğinde `ss['toc1']`/`ss['toc2']` fontSize/leading'i küçült (ör. 9.6/11 ve 8.4/9.4; satır dolgusu notlib'de zaten 1 pt) veya küçük alt başlıkları `h2` yerine `h3` yap (h3 içindekilere girmez). İki bölümlük uzun notlarda ~55 girdi sınırdır |
 | İçindekilerde sayfa numaraları yanlış/boş | `d.make()` (multiBuild) kullan, `build` değil; içerik betiğinde `build` adlı değişken/fonksiyon tanımlama |
 | Başlık sayfa sonunda yalnız, şekli/tablosu sonraki sayfada | Artık otomatik (`fig`/`table`/`end_keep` önceki başlıkları kendi bloğuna alır); hâlâ oluyorsa araya başka öğe girmiştir → `h1(..., need=...)` / `h2(..., need=...)` büyüt |

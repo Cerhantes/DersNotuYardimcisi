@@ -11,9 +11,9 @@
         save(fig, 'kesit')                  # -> <work>/dg/kesit.png, içerik betiğinde fig='kesit'
 
     if __name__ == '__main__':
-        run(kesit, ...)                     # ya da yalnızca bir tanesi: py semalar.py <work> kesit
+        run(kesit, ...)                     # ya da yalnızca bir tanesi: python semalar.py <work> kesit
 
-Çalıştırma: PYTHONPATH=<skill>/scripts py -W ignore semalar.py <work> [şema_adı ...]
+Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore semalar.py <work> [şema_adı ...]
 """
 import os, sys
 import numpy as np, matplotlib

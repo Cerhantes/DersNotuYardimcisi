@@ -1,6 +1,6 @@
 # Sayfalardaki şekil bölgelerini (vektör çizim + gömülü resim + şekil etiketleri) kümeler ve
 # şekil başlıklarını ("FIGURE 5.3 ..." gibi) bulur. Çıktı: <work>/det.json
-# Kullanım: py -W ignore detect_figs.py <kitap.pdf> <work> <ilk> <son> [--cap REGEX] [--label-font REGEX]
+# Kullanım: python -W ignore detect_figs.py <kitap.pdf> <work> <ilk> <son> [--cap REGEX] [--label-font REGEX]
 #   <ilk>/<son>: PDF sayfa numaraları (1'den başlar).
 #   --cap: başlık satırını tanıyan regex (varsayılan FIGURE/Figure/Fig./Şekil + numara)
 #   --cap-font: başlığın ilk parçasının yazı tipi (metin içi 'Fig. 5.7' atıflarını elemek için kalın olmalı)

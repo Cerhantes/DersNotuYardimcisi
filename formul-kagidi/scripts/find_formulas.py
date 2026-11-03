@@ -1,6 +1,6 @@
 """Kaynak PDF'i tanıtır, metni çıkarır ve formül adaylarını listeler.
 
-Kullanım: py -W ignore find_formulas.py <kaynak.pdf> <work> [ilk son] [--toc-depth N]
+Kullanım: python -W ignore find_formulas.py <kaynak.pdf> <work> [ilk son] [--toc-depth N]
   ilk/son : PDF görüntüleyici sayfa numaraları (1 tabanlı, dahil); verilmezse yalnızca künye + içindekiler yazılır.
 Çıktı (aralık verildiyse):
   <work>/metin.txt          sayfa işaretli tam metin  (===== PDF sayfa N)

@@ -57,7 +57,7 @@ Sayı başlıkta yazılır ve listenin **tamamı** verilir. Ezber gerektiren kı
 - **Kaynak sorularına kısa yanıtlar**: `B(['<b>n.m</b> yanıt.', ...])`. Kısa yanıtlı iki soru tek maddede birleşebilir.
 - **"Neyi Değiştirirsem Ne Olur?"**: ilk sütun `'Değişiklik'` (`'Kalınlık L ↑'`), sonra etkilenen büyüklükler, son sütun `'Diğer'`. Hücreler `↑ ↓ ↓↓ —`, kısa neden parantezde.
 - **Formül Özeti**: `['Konu', 'Bağıntı']`, genişlik `[0.24, 0.76]`; aynı konudaki bağıntılar `;` ile tek hücrede.
-- **Kendini Sına — Kısa Cevaplı**: `B(['<b>1.</b> Soru? Kısa cevap → hesap → <b>sonuç</b>.', ...])`. Sayısal cevaplar `py` ile hesaplanıp doğrulanır.
+- **Kendini Sına — Kısa Cevaplı**: `B(['<b>1.</b> Soru? Kısa cevap → hesap → <b>sonuç</b>.', ...])`. Sayısal cevaplar Python ile hesaplanıp doğrulanır.
   Kaynakta olmayan ek sorular `d.h3('Ek sorular')` altında ve raporda "benim eklediklerim" olarak belirtilir.
 
 ## Kapak

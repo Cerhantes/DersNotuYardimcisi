@@ -1,8 +1,12 @@
 # Yalnız kendi skill'lerimiz repoda
 /*
 !/.gitignore
+!/.gitattributes
 !/README.md
 !/LICENSE
+!/.claude-plugin/
+!/.github/
+!/ortak/
 !/ders-notu/
 !/formul-kagidi/
 !/tekrar-notu/

@@ -1,6 +1,6 @@
 # Kitabı tanır: künye, içindekiler (PDF sayfa numaralarıyla), PDF ↔ basılı sayfa farkı ve
 # şekil başlığı / şekil etiketi yazı tipleri (detect_figs.py bayrakları için öneri).
-# Kullanım: py -W ignore book_info.py <kitap.pdf> [--toc-depth 2] [--sample 40]
+# Kullanım: python -W ignore book_info.py <kitap.pdf> [--toc-depth 2] [--sample 40]
 import pymupdf as fitz, re, argparse, collections
 
 ap = argparse.ArgumentParser()

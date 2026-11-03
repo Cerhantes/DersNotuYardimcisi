@@ -1,6 +1,6 @@
 """Kaynak PDF'ten metin + şekil çıkarır.
 
-py -W ignore kaynak.py <kaynak.pdf> <work> [--cap REGEX]
+python -W ignore kaynak.py <kaynak.pdf> <work> [--cap REGEX]
 
 Çıktılar:
   <work>/metin.txt        her sayfa '===== SAYFA n =====' ile; Read ile parça parça okunur

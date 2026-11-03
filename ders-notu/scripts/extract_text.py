@@ -1,5 +1,5 @@
 # Kitaptan sayfa aralığının metnini çıkarır ve PDF sayfa no ↔ kitap sayfa no farkını gösterir.
-# Kullanım: py -W ignore extract_text.py <kitap.pdf> <ilk> <son> <cikti.txt>
+# Kullanım: python -W ignore extract_text.py <kitap.pdf> <ilk> <son> <cikti.txt>
 # <ilk>/<son>: PDF görüntüleyicideki sayfa numaraları (1'den başlar, dahil).
 import pymupdf as fitz, sys
 

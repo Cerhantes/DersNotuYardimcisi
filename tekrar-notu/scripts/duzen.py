@@ -1,6 +1,6 @@
 """Derlenmiş tekrar notunda satır kırılması hatalarını tarar + sayfa temas görüntüleri üretir.
 
-py -W ignore duzen.py <out.pdf> <work>
+python -W ignore duzen.py <out.pdf> <work>
 
 Konsola, son satırı tek kelime / çok kısa olan metin blokları yazılır (sayfa | önceki satır sonu | son satır).
 Gerçek hata türleri:  '↑.' gibi yalnız ok, kelime ortasından bölünmüş tablo hücresi ('83–86 HR' | 'A',

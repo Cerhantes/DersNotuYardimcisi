@@ -1,4 +1,4 @@
-# Claude Code skill'leri: ders notu, tekrar notu, formül kağıdı
+# Ders Notu Yardımcısı
 
 Ders kitabı ya da ders notu PDF'lerinden Türkçe çalışma materyali (PDF) üreten üç [Claude Code](https://claude.com/claude-code) skill'i.
 
@@ -10,64 +10,58 @@ Ders kitabı ya da ders notu PDF'lerinden Türkçe çalışma materyali (PDF) ü
 | `tekrar-notu` | Ders notu ya da kitaptan madde madde, hiçbir ayrıntıyı atlamayan tekrar özeti |
 | `formul-kagidi` | Şemalarla desteklenmiş, her terimi adlandırılmış formül kağıdı |
 
-Kullanım: Claude Code'da `/ders-notu`, `/tekrar-notu` ya da `/formul-kagidi` yaz ya da "şu kitaptan ders notu çıkar" de. Skill yalnızca PDF'in yolunu sorar.
-
 ## Kurulum
 
-### 1. Python ve paketler
+Tek gereken Claude Code. Claude Code'a şunu yaz:
 
-| | Windows | Mac |
-|---|---|---|
-| Python | [python.org](https://www.python.org/downloads/) kurulumu (`py` komutu gelir) | `brew install python` (`python3`) |
-| Paketler | `py -m pip install reportlab pymupdf pypdf pillow matplotlib numpy` | `python3 -m pip install reportlab pymupdf pypdf pillow matplotlib numpy` |
+> https://github.com/Cerhantes/DersNotuYardimcisi skill'lerini kur
 
-### 2. Yazı tipi (yalnız Mac)
-
-PDF'ler Calibri yazı tipiyle dizilir. Windows'ta Calibri hazır gelir. Mac'te Microsoft Office kuruluysa
-Office'in içinden otomatik bulunur. Office yoksa Calibri ile birebir aynı ölçülerdeki açık kaynak Carlito'yu kur:
+Ya da kendin kurmak istersen Claude Code içinde şu iki komutu çalıştır:
 
 ```
-brew install --cask font-carlito
+/plugin marketplace add Cerhantes/DersNotuYardimcisi
+/plugin install ders-notu-yardimcisi@ders-notu-yardimcisi
 ```
 
-Kurmazsan da çalışır: matplotlib ile gelen DejaVu kullanılır, PDF'ler ~%10 uzun çıkar.
+Ardından `/reload-plugins` yaz ya da Claude Code'u yeniden başlat.
 
-### 3. Skill'leri indir
+Python, paketler ve yazı tipleri için bir şey yapman gerekmez. İlk kullanımda skill eksikleri kendisi kurar (1–3 dakika, yönetici şifresi istemez). Bilgisayarda Python yoksa onu da indirir. Yazı tipleri repoyla birlikte gelir.
 
-Claude Code kişisel skill'leri `~/.claude/skills/` klasöründen okur.
+## Kullanım
 
-**Klasör yoksa ya da boşsa:**
+Claude Code'da "şu kitaptan ders notu çıkar", "bu nottan tekrar özeti çıkar" ya da "formül kağıdı hazırla" de. Skill yalnızca PDF'in yolunu sorar.
 
-```
-git clone https://github.com/Cerhantes/DersNotuYardimcisi.git ~/.claude/skills                    # Mac
-git clone https://github.com/Cerhantes/DersNotuYardimcisi.git "%USERPROFILE%\.claude\skills"      # Windows
-```
+Komutla başlatmak için: `/ders-notu-yardimcisi:ders-notu`, `/ders-notu-yardimcisi:tekrar-notu`, `/ders-notu-yardimcisi:formul-kagidi`.
 
-**Klasörde başka skill'lerin varsa** (`git clone` dolu klasöre yazmaz):
+## Güncelleme ve kaldırma
 
 ```
-cd ~/.claude/skills
-git init
-git remote add origin https://github.com/Cerhantes/DersNotuYardimcisi.git
-git pull origin main
+claude plugin marketplace update ders-notu-yardimcisi
+claude plugin update ders-notu-yardimcisi@ders-notu-yardimcisi
 ```
 
-`.gitignore` yalnız bu üç skill'i takip eder. Klasördeki diğer skill'lerine dokunulmaz.
+Kendiliğinden güncellensin istersen: `/plugin` → Marketplaces → `ders-notu-yardimcisi` → Enable auto-update.
 
-Ardından Claude Code'u yeniden başlat.
+Kaldırmak için `claude plugin uninstall ders-notu-yardimcisi@ders-notu-yardimcisi` çalıştır ve Python ortamının durduğu `~/.claude/ders-notu-yardimcisi` klasörünü sil. Sistemdeki Python'a dokunulmaz.
 
-## Güncelleme
+## Claude için kurulum talimatı
 
-```
-cd ~/.claude/skills && git pull
-```
+Kullanıcı bu repodan kurulum isterse:
+
+1. `claude plugin marketplace add Cerhantes/DersNotuYardimcisi`
+2. `claude plugin install ders-notu-yardimcisi@ders-notu-yardimcisi --scope user`
+3. Python ortamını şimdiden hazırla. Bu iki komutu, kurulan plugin'in kök klasöründen çalıştır (`claude plugin list --json` çıktısındaki `installPath`):
+   - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File ortak/kur.ps1`
+   - Mac/Linux: `bash ortak/kur.sh`
+
+   Son satır `PY=<yol>` ise ortam hazırdır. Bu betik Python yoksa [uv](https://docs.astral.sh/uv/) ile indirir; elle Python ya da paket kurma.
+4. Kullanıcıya `/reload-plugins` yazmasını ya da Claude Code'u yeniden başlatmasını söyle.
 
 ## Notlar
 
-- `tekrar-notu`, kaynakta şekil bulamazsa `ders-notu`'nun şekil kırpma betiklerini kullanır. İkisini birlikte kur.
-- Her skill'in `USLUP.md` dosyası üslup rehberidir. `examples/` klasöründeki betikler kitaptan bağımsız, genel bir konuyu (ısı iletimi) işleyen
-  kalıp örnekleridir; kitap olmadan da derlenir (`examples/` içindeki her dosyanın başında çalıştırma satırı var).
+- Üç skill birlikte kurulur: `tekrar-notu`, `ders-notu`'nun şekil kırpma betiklerini kullanır; hepsi `ortak/` klasörünü paylaşır.
+- Her skill'in `USLUP.md` dosyası üslup rehberidir. `examples/` klasöründeki betikler kitaptan bağımsız, genel bir konuyu (ısı iletimi) işleyen kalıp örnekleridir; kitap olmadan da derlenir.
 
 ## Lisans
 
-MIT — bkz. [LICENSE](LICENSE).
+Kod MIT, bkz. [LICENSE](LICENSE). `ortak/fonts/` içindeki Carlito yazı tipi SIL Open Font License 1.1 ile dağıtılır, bkz. [OFL.txt](ortak/fonts/OFL.txt).

@@ -2,7 +2,7 @@
 ders adı, kaynak satırı, kapsam ve formüller her seferinde verilen kaynaktan gelir. Kurallar için ../USLUP.md.
 Kalıp: kart = bir kavram · her formül: etiket + formül + (kaynaktaki no) + terimler + ► kısa not ·
 sabit/tipik değer tablosu kartın içinde · sağ sütunda sembolleri gösteren şema · "Uygulama:" satırı.
-Çalıştırma: PYTHONPATH=<skill>/scripts py -W ignore ornek_kagit.py <cikti.pdf> <work>
+Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore ornek_kagit.py <cikti.pdf> <work>
 (önce ornek_semalar.py <work> çalışmış olmalı)
 """
 import sys

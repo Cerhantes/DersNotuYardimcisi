@@ -1,6 +1,6 @@
 """Derlenen formül kağıdını (ya da kaynaktaki bir sayfayı) gözden geçirmek için PNG üretir.
 
-Kullanım: py -W ignore review.py <pdf> <work> [dpi] [--pages 3,5]
+Kullanım: python -W ignore review.py <pdf> <work> [dpi] [--pages 3,5]
   <work>/rv<n>.png   her sayfa (varsayılan 100 dpi; Read ile tek tek aç)
   <work>/rv_ov.png   tüm sayfaların küçük önizlemesi (sayfa dengesi / boşluk kontrolü)
 --pages: yalnızca bu sayfalar (1 tabanlı); kaynak PDF'te karmaşık bir denklemi görmek için de kullanılır.

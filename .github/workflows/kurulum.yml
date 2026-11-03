@@ -1,0 +1,48 @@
+# Kurulum betiklerini ve örnek PDF'leri Windows, Mac ve Linux'ta sınar.
+name: kurulum
+on: [push, workflow_dispatch]
+
+jobs:
+  sina:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        uv: ['', '1']   # '1' = Python'u olmayan makine: uv ile kur
+    env:
+      DERS_NOTU_UV: ${{ matrix.uv }}
+      PYTHONIOENCODING: utf-8
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kur
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            powershell -NoProfile -ExecutionPolicy Bypass -File ortak/kur.ps1 | tee kur.log
+          else
+            bash ortak/kur.sh | tee kur.log
+          fi
+          tail -1 kur.log | grep '^PY='
+          tail -1 kur.log | tr -d '\r' >> "$GITHUB_ENV"
+
+      - name: Hazır ortamda hızlı dönüş
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            powershell -NoProfile -ExecutionPolicy Bypass -File ortak/kur.ps1 | tee kur2.log
+          else
+            bash ortak/kur.sh | tee kur2.log
+          fi
+          test "$(wc -l < kur2.log)" -eq 1
+
+      - name: Örnekleri derle
+        run: |
+          mkdir -p out/dn out/tn out/fk
+          PYTHONPATH=ders-notu/scripts "$PY" -W ignore ders-notu/examples/ornek_ders_notu.py out/dn.pdf out/dn
+          PYTHONPATH=tekrar-notu/scripts "$PY" -W ignore tekrar-notu/examples/ornek_tekrar_notu.py out/tn.pdf out/tn
+          PYTHONPATH=formul-kagidi/scripts "$PY" -W ignore formul-kagidi/examples/ornek_semalar.py out/fk
+          PYTHONPATH=formul-kagidi/scripts "$PY" -W ignore formul-kagidi/examples/ornek_kagit.py out/fk.pdf out/fk
+          test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf

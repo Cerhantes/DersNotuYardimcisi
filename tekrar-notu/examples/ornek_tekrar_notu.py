@@ -3,7 +3,7 @@ semboller tablosu, bölüm iskeleti (tanım → madde/formül/tablo/şekil → �
 kısa yanıtlar, eğilim tablosu, formül özeti, Kendini Sına. Kurallar için ../USLUP.md.
 Gerçek notta konu, künye, numaralar ve her bilgi kullanıcının kaynağından gelir.
 
-Çalıştırma: PYTHONPATH=<skill>/scripts py -W ignore ornek_tekrar_notu.py <cikti.pdf> <work>
+Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore ornek_tekrar_notu.py <cikti.pdf> <work>
 <work>'te figs.json yoksa gri yer tutucu şekiller üretilir (gerçek akışta kaynak.py üretir).
 """
 import sys, os, json

@@ -1,6 +1,6 @@
 # det.json'daki kümelerden şekilleri 220 dpi PNG olarak keser, figs.json yazar ve kontrol için
 # temas sayfaları (contact sheet) üretir.
-# Kullanım: py -W ignore crop_figs.py <kitap.pdf> <work> [--cap-above]
+# Kullanım: python -W ignore crop_figs.py <kitap.pdf> <work> [--cap-above]
 #   --cap-above: kitapta şekil başlığı şeklin ÜSTÜNDE (varsayılan: altında ya da yanında)
 # Kümeler otomatik seçilir (pick()): her küme en yakın başlığa atanır; başlıktan şekle doğru olmayan
 # taraftaki kümeler cezalandırılır. Seçim en yakın kümeden başlar, ona bitişik (≤25 pt) ya da aynı

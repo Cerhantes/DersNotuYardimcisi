@@ -2,7 +2,7 @@
 - profil : ölçülü kesit + üzerinde sembollerle eğri (T_1, T_2, L, q) — semboller formüllerdekiyle aynı
 - devre  : iki katmanlı duvar + eşdeğer ısıl devre (R_1, R_2, T_i)
 - kalinlik: eğilim grafiği (Q ∝ 1/L) + üzerinde okunan iki nokta
-Çalıştırma: PYTHONPATH=<skill>/scripts py -W ignore ornek_semalar.py <work>
+Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore ornek_semalar.py <work>
 """
 import sys
 from dglib import *

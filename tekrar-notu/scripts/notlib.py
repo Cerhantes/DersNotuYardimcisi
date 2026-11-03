@@ -1,4 +1,4 @@
-import json, os
+import json, os, re, sys
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -13,7 +13,7 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 # Ders notu PDF altyapısı (reportlab). İçerik betiği: from notlib import *  ->  d = Doc(...); d.h1(...); d.p(...); d.fig(...); d.make()
 
-# Body = Calibri/Carlito/DejaVu Sans, Math = Cambria/Caladea/DejaVu Serif (Windows, Mac, Linux) — bkz. fontlar.py
+# Body = Carlito (repoda), Math = DejaVu Serif (matplotlib) — bkz. fontlar.py
 import fontlar
 FONTS = fontlar.kaydet()
 
@@ -73,10 +73,36 @@ class _BP(_P):
             return []
         return _P.split(self, aW, s * lead + 0.01)
 
+_BODY_CM = pdfmetrics.getFont('Body').face.charToGlyph
+_MATH_CM = pdfmetrics.getFont('Math').face.charToGlyph
+_SYM_CM = pdfmetrics.getFont('Sym').face.charToGlyph
+_missing = set()
+
+
+def _fix_glyphs(t):
+    """Metin yazı tipinde olmayan karakterleri (∛ ∝ ′ ≪ ...) matematik ya da yedek yazı tipine geçirir."""
+    out = []
+    for s in re.split(r'(<[^>]+>|&#?\w+;)', t):
+        if not s or s[0] in '<&':
+            out.append(s); continue
+        for ch in s:
+            o = ord(ch)
+            if o in _BODY_CM or ch.isspace():
+                out.append(ch)
+            elif o in _MATH_CM:
+                out.append('<font name="Math">%s</font>' % ch)
+            elif o in _SYM_CM:
+                out.append('<font name="Sym">%s</font>' % ch)
+            else:
+                out.append(ch)
+                if ch not in _missing:
+                    _missing.add(ch)
+                    print('UYARI: "%s" (U+%04X) hiçbir yazı tipinde yok, kutu görünecek' % (ch, o), file=sys.stderr)
+    return ''.join(out)
+
+
 def Paragraph(t, *a, **k):
-    for c in '∛∝≃∇≪≫≲':
-        t = t.replace(c, '<font name="Math">%s</font>' % c)
-    return _BP(t, *a, **k)
+    return _BP(_fix_glyphs(t), *a, **k)
 
 
 class Doc(BaseDocTemplate):
