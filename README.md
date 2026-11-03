@@ -67,3 +67,7 @@ cd ~/.claude/skills && git pull
 - `tekrar-notu`, kaynakta şekil bulamazsa `ders-notu`'nun şekil kırpma betiklerini kullanır. İkisini birlikte kur.
 - Her skill'in `USLUP.md` dosyası üslup rehberidir. `examples/` klasöründeki betikler kitaptan bağımsız, genel bir konuyu (ısı iletimi) işleyen
   kalıp örnekleridir; kitap olmadan da derlenir (`examples/` içindeki her dosyanın başında çalıştırma satırı var).
+
+## Lisans
+
+MIT — bkz. [LICENSE](LICENSE).
