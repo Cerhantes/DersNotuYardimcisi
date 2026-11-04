@@ -150,7 +150,7 @@ YUNAN = {'alpha': 'α', 'beta': 'β', 'gamma': 'γ', 'delta': 'δ', 'epsilon': '
          'theta': 'θ', 'kappa': 'κ', 'lambda': 'λ', 'mu': 'μ', 'nu': 'ν', 'xi': 'ξ', 'pi': 'π', 'rho': 'ρ', 'sigma': 'σ',
          'tau': 'τ', 'phi': 'φ', 'varphi': 'φ', 'chi': 'χ', 'psi': 'ψ', 'omega': 'ω', 'Gamma': 'Γ', 'Delta': 'Δ',
          'Theta': 'Θ', 'Lambda': 'Λ', 'Pi': 'Π', 'Sigma': 'Σ', 'Phi': 'Φ', 'Psi': 'Ψ', 'Omega': 'Ω'}
-SABIT = {'π'}   # sabit, büyüklük değil: adlandırılması ya da şemada görünmesi beklenmez
+SABIT = {'π', 'Δ', 'Σ'}   # sabit ya da işlem, büyüklük değil: adlandırılması ya da şemada görünmesi beklenmez
 _TOK = re.compile(r'\\([A-Za-z]+)|([A-Za-zΑ-Ωα-ω])')
 
 
@@ -159,7 +159,7 @@ def _semboller(tex):
     t = tex.replace('\u0307', '').replace('ϕ', 'φ')
     t = re.sub(r'_\{?\\mathrm\{(\w+)\}\}?', r'_{\1}', t)     # D_{\mathrm{ort}} -> D_{ort}
     t = re.sub(r'\\mathrm\{[^{}]*\}', ' ', t)                # MRR gibi adlar ve birimler
-    t = re.sub(r'\{d(?=\\)', '{', t)                         # \frac{d\tau}{d\phi}: türev işareti sembol değil
+    t = re.sub(r'frac\{d([^{}]*)\}\{d([^{}]*)\}', r'frac{\1}{\2}', t)   # dT/dx: türev işareti sembol değil
     bul, i = set(), 0
     while True:
         m = _TOK.search(t, i)

@@ -36,7 +36,7 @@ d.card('2 · Düzlem Duvar ve Isıl Direnç (thermal resistance)', [
     E(r'R=\frac{L}{k\,A},\qquad Q=\frac{\Delta T}{R}', '(3.2)',
       terms(('R', 'ısıl direnç (K/W)'), ('ΔT', 'sıcaklık farkı (K)')), label='İletim direnci',
       note='Ohm yasası benzeri: ΔT ↔ gerilim, Q ↔ akım.'),
-    E(r'R_{\mathrm{taş}}=\frac{1}{h\,A}', '(3.3)', terms(('h', 'taşınım katsayısı (W/m²·K)')), label='Yüzeydeki taşınım direnci'),
+    E(r'R_{\mathrm{taş}}=\frac{1}{h\,A}', '(3.3)', terms(('R_taş', 'taşınım direnci (K/W)'), ('h', 'taşınım katsayısı (W/m²·K)')), label='Yüzeydeki taşınım direnci'),
     '<b>Uygulama:</b> 10 m², 20 cm tuğla (k = 0,7), ΔT = 20 °C → Q = 0,7 × 10 × 20/0,2 = 700 W; kalınlık 10 cm olsaydı 1400 W.',
 ], fig='kalinlik', figw=0.40, cap='Q ∝ 1/L: kalınlık iki katı → ısı kaybı yarı.')
 
