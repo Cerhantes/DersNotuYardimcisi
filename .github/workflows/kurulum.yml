@@ -41,8 +41,8 @@ jobs:
       - name: Örnekleri derle
         run: |
           mkdir -p out/dn out/tn out/fk
-          PYTHONPATH=ders-notu/scripts "$PY" -W ignore ders-notu/examples/ornek_ders_notu.py out/dn.pdf out/dn
-          PYTHONPATH=tekrar-notu/scripts "$PY" -W ignore tekrar-notu/examples/ornek_tekrar_notu.py out/tn.pdf out/tn
-          PYTHONPATH=formul-kagidi/scripts "$PY" -W ignore formul-kagidi/examples/ornek_semalar.py out/fk
-          PYTHONPATH=formul-kagidi/scripts "$PY" -W ignore formul-kagidi/examples/ornek_kagit.py out/fk.pdf out/fk
+          PYTHONPATH=skills/ders-notu/scripts "$PY" -W ignore skills/ders-notu/examples/ornek_ders_notu.py out/dn.pdf out/dn
+          PYTHONPATH=skills/tekrar-notu/scripts "$PY" -W ignore skills/tekrar-notu/examples/ornek_tekrar_notu.py out/tn.pdf out/tn
+          PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_semalar.py out/fk
+          PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_kagit.py out/fk.pdf out/fk
           test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf

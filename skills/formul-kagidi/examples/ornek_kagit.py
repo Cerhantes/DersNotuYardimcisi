@@ -11,7 +11,7 @@ from fslib import *
 d = Sheet(sys.argv[1], sys.argv[2], 'ISI İLETİMİ – FORMÜL KAĞIDI',
           'Ders adı · Kapsam: Bölüm n.1–n.4 (Fourier yasası, düzlem duvar, ısıl direnç) · '
           'Denklem numaraları kaynaktakiyle aynıdır',
-          'Isı İletimi – Formül Kağıdı', 'Yazar, Kitap Adı, Bölüm n', color='#1F3A5F')
+          'Isı İletimi – Formül Kağıdı', 'Yazar, Kitap Adı, Bölüm n')
 E = d.E
 
 # 1 ─ Fourier yasası

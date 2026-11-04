@@ -15,16 +15,16 @@
 
 Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore semalar.py <work> [şema_adı ...]
 """
-import os, sys
+import json, os, sys
 import numpy as np, matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Arc, Circle, FancyArrowPatch, Rectangle, Ellipse, Wedge
 
 plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 9, 'mathtext.fontset': 'cm'})
-BLUE, RED, GRN, ORG, NAVY, GREY = '#2E6DB4', '#C0504D', '#2E8B57', '#E08A00', '#1F3A5F', '#777777'
+BLUE, RED, GRN, ORG, KOYU, GREY = '#2E6DB4', '#C0504D', '#2E8B57', '#E08A00', '#37474F', '#777777'
 # Dolgu renkleri: katı/gövde, akışkan/1. katman, 2. malzeme/katman, açık bölge
-FILL_GREY, FILL_ORANGE, FILL_BLUE, FILL_LILAC = '#D9D9D9', '#F6D7A7', '#A9C4E4', '#F2ECF7'
+FILL_GREY, FILL_ORANGE, FILL_BLUE, FILL_ACIK = '#D9D9D9', '#F6D7A7', '#A9C4E4', '#EEF3EF'
 
 OUT = None
 
@@ -36,6 +36,10 @@ def init(work):
 
 def save(fig, name):
     assert OUT, 'önce init(<work>) çağır'
+    # fslib, formüldeki açılar şemada var mı diye bu yazı kaydına bakar
+    yazi = [t.get_text() for t in fig.findobj(matplotlib.text.Text) if t.get_text().strip()]
+    with open(os.path.join(OUT, name + '.yazi.json'), 'w', encoding='utf-8') as f:
+        json.dump(yazi, f, ensure_ascii=False)
     fig.savefig(os.path.join(OUT, name + '.png'), dpi=300, bbox_inches='tight', pad_inches=0.04, facecolor='white')
     plt.close(fig)
     print('şema:', os.path.join(OUT, name + '.png'))

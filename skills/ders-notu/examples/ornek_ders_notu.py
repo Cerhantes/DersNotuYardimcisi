@@ -35,7 +35,7 @@ d.cover([
 ], [
     'Not, konuyu hiç bilmeyen birinin sırayla okuyarak öğrenebileceği şekilde kurgulanmıştır: önce <b>ısının neden ve nasıl aktığı</b>, '
     'sonra <b>tek bir duvardan geçen ısının hesabı</b>, en sonunda da <b>katmanlı duvarlar ve yalıtım</b> anlatılır.',
-    'Mavi kutular <b>tanımları</b>, turuncu kutular <b>mutlaka bilinmesi gerekenleri</b>, yeşil kutular <b>çözümlü örnekleri</b>, mor kutular ise '
+    'Mavi kutular <b>tanımları</b>, turuncu kutular <b>mutlaka bilinmesi gerekenleri</b>, yeşil kutular <b>çözümlü örnekleri</b>, konu renginde kutular ise '
     '<b>bölüm özetlerini</b> içerir. Şekillerdeki İngilizce etiketlerin Türkçe karşılıkları her şeklin altında verilmiştir.',
 ])
 

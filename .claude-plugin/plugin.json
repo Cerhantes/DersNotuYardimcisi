@@ -1,0 +1,7 @@
+{
+  "name": "ders-notu-yardimcisi",
+  "description": "Ders kitabı ve ders notu PDF'lerinden Türkçe ders notu, tekrar notu ve formül kağıdı üretir.",
+  "author": { "name": "Cerhantes" },
+  "repository": "https://github.com/Cerhantes/DersNotuYardimcisi",
+  "license": "MIT"
+}

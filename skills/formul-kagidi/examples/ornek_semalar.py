@@ -16,8 +16,8 @@ def profil():
     ax.plot([1.0, 2.6], [2.1, 0.7], color=RED, lw=1.8)                       # doğrusal sıcaklık profili
     ax.text(0.92, 2.1, r'$T_1$', color=RED, fontsize=11, ha='right', va='center')
     ax.text(2.68, 0.7, r'$T_2$', color=RED, fontsize=11, ha='left', va='center')
-    arrow(ax, (1.35, 0.5), (2.25, 0.5), c=NAVY, lw=1.4)               # etiket eğrinin dışında, boş bölgede
-    ax.text(1.8, 0.6, r'$q$', color=NAVY, fontsize=11, ha='center', va='bottom')
+    arrow(ax, (1.35, 0.5), (2.25, 0.5), c=KOYU, lw=1.4)               # etiket eğrinin dışında, boş bölgede
+    ax.text(1.8, 0.6, r'$q$', color=KOYU, fontsize=11, ha='center', va='bottom')
     dim(ax, (1.0, 0.0), (2.6, 0.0), '', c=GRN); ax.text(1.8, -0.12, r'$L$', color=GRN, fontsize=11, ha='center', va='top')
     ax.text(0.45, 2.45, 'sıcak yüz', fontsize=7, ha='center'); ax.text(3.15, 2.45, 'soğuk yüz', fontsize=7, ha='center')
     arrow(ax, (1.8, 2.75), (2.4, 2.75), c=GREY, lw=0.9, ms=7); ax.text(2.48, 2.75, r'$x$', fontsize=10, va='center')
@@ -43,7 +43,7 @@ def devre():
     ax.text(1.1, y - 0.2, r'$R_1$', fontsize=10, ha='center', va='top'); ax.text(2.1, y - 0.2, r'$R_2$', fontsize=10, ha='center', va='top')
     for x, lab in [(0.3, r'$T_1$'), (1.6, r'$T_i$'), (2.9, r'$T_2$')]:
         ax.plot(x, y, 'o', color=RED, ms=3); ax.text(x, y + 0.16, lab, color=RED, fontsize=9, ha='center', va='bottom')
-    arrow(ax, (2.95, y), (3.35, y), c=NAVY, lw=1.2, ms=8); ax.text(3.15, y + 0.1, r'$Q$', color=NAVY, fontsize=10, ha='center', va='bottom')
+    arrow(ax, (2.95, y), (3.35, y), c=KOYU, lw=1.2, ms=8); ax.text(3.15, y + 0.1, r'$Q$', color=KOYU, fontsize=10, ha='center', va='bottom')
     ax.set_xlim(0, 3.5); ax.set_ylim(0.0, 3.1); ax.set_aspect('equal'); ax.axis('off')
     save(fig, 'devre')
 
@@ -51,7 +51,7 @@ def devre():
 def kalinlik():
     fig, ax = plt.subplots(figsize=(3.2, 2.2))
     L = np.linspace(0.05, 0.4, 100); Q = 0.7 * 10 * 20 / L
-    ax.plot(L * 100, Q, color=NAVY, lw=1.8)
+    ax.plot(L * 100, Q, color=KOYU, lw=1.8)
     for l in (0.1, 0.2):
         q = 0.7 * 10 * 20 / l
         ax.plot(l * 100, q, 'o', color=RED, ms=4)

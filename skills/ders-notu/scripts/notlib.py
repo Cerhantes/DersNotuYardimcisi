@@ -13,18 +13,20 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 # Ders notu PDF altyapısı (reportlab). İçerik betiği: from notlib import *  ->  d = Doc(...); d.h1(...); d.p(...); d.fig(...); d.make()
 
-# Body = Carlito (repoda), Math = DejaVu Serif (matplotlib) — bkz. fontlar.py
+# Yazı tipi ve renk teması ortak/ klasöründe (bkz. ortak/fontlar.py, ortak/tema.py)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'ortak'))
 import fontlar
+from tema import Tema
 FONTS = fontlar.kaydet()
 
-NAVY = colors.HexColor('#1F3A5F')
-ACC = colors.HexColor('#C0504D')
 GREY = colors.HexColor('#555555')
+KOYU = colors.HexColor('#333333')
+CIZGI = colors.HexColor('#BBBBBB')
 BOXES = {
     'tanim':  ('#E8F0FA', '#2E6DB4', 'TANIM'),
     'onemli': ('#FFF3E0', '#E08A00', 'ÖNEMLİ'),
     'ornek':  ('#EAF6EC', '#2E8B57', 'ÇÖZÜMLÜ ÖRNEK'),
-    'ozet':   ('#F2ECF7', '#7A4FA0', 'ÖZET'),
+    'ozet':   (None, None, 'ÖZET'),   # o anki konunun rengi
     'ipucu':  ('#EEF6F8', '#2A8A9E', 'İPUCU / SEZGİ'),
     'terim':  ('#F5F5F5', '#777777', 'ŞEKİLDEKİ TERİMLER'),
 }
@@ -38,9 +40,9 @@ FH = PAGE_H - TM - BM
 ss = {}
 ss['body'] = ParagraphStyle('body', fontName='Body', fontSize=10.8, leading=15, alignment=TA_JUSTIFY, spaceAfter=5)
 ss['bullet'] = ParagraphStyle('bullet', parent=ss['body'], leftIndent=16, bulletIndent=5, spaceAfter=2.5)
-ss['h1'] = ParagraphStyle('h1', fontName='Body-B', fontSize=17, leading=21, textColor=NAVY, spaceBefore=6, spaceAfter=8, keepWithNext=1)
-ss['h2'] = ParagraphStyle('h2', fontName='Body-B', fontSize=13.5, leading=17, textColor=NAVY, spaceBefore=9, spaceAfter=4, keepWithNext=1)
-ss['h3'] = ParagraphStyle('h3', fontName='Body-B', fontSize=11.5, leading=15, textColor=ACC, spaceBefore=6, spaceAfter=2, keepWithNext=1)
+ss['h1'] = ParagraphStyle('h1', fontName='Body-B', fontSize=17, leading=21, textColor=KOYU, spaceBefore=6, spaceAfter=8, keepWithNext=1)
+ss['h2'] = ParagraphStyle('h2', fontName='Body-B', fontSize=13.5, leading=17, textColor=KOYU, spaceBefore=9, spaceAfter=4, keepWithNext=1)
+ss['h3'] = ParagraphStyle('h3', fontName='Body-B', fontSize=11.5, leading=15, textColor=KOYU, spaceBefore=6, spaceAfter=2, keepWithNext=1)
 ss['cap'] = ParagraphStyle('cap', fontName='Body', fontSize=9.3, leading=12, textColor=GREY, alignment=TA_JUSTIFY)
 ss['eq'] = ParagraphStyle('eq', fontName='Math', fontSize=12, leading=17, alignment=TA_CENTER)
 ss['eqn'] = ParagraphStyle('eqn', fontName='Body', fontSize=10, leading=17, alignment=2, textColor=GREY)
@@ -106,9 +108,10 @@ def Paragraph(t, *a, **k):
 
 
 class Doc(BaseDocTemplate):
-    def __init__(self, out, title, subtitle, header, work, source):
+    def __init__(self, out, title, subtitle, header, work, source, renk=None):
         """out: çıktı PDF; header: sayfa üstü sol yazı; work: crop_figs.py çalışma klasörü (figs.json + fig/);
-        source: sayfa üstü sağ yazı, ör. 'Kaynak: <Yazar>, <Kitap adı>'"""
+        source: sayfa üstü sağ yazı, ör. 'Kaynak: <Yazar>, <Kitap adı>';
+        renk: tema.PALET'ten bir ad = tek renkli belge; None = her h1 sıradaki rengi alır"""
         super().__init__(out, pagesize=A4, leftMargin=LM, rightMargin=RM, topMargin=TM, bottomMargin=BM,
                          title=title, author='Ders notu – ' + source)
         self.header, self.source, self.work = header, source, work
@@ -119,17 +122,28 @@ class Doc(BaseDocTemplate):
         self.story = []
         self.title_, self.subtitle = title, subtitle
         self._hn = 0
+        self.tema = Tema(title, renk)
+        self._kapak = (colors.HexColor(self.tema.ana), colors.HexColor(self.tema.zemin))
+
+    @property
+    def ana(self):
+        return self.tema.ana
+
+    def _renkli(self, ad):
+        """ss[ad] stilinin o anki konu rengindeki kopyası."""
+        return ParagraphStyle('%s-%s' % (ad, self.ana), parent=ss[ad], textColor=colors.HexColor(self.ana))
 
     # ---------- page decorations ----------
     def _cover(self, c, d):
         c.saveState()
-        c.setFillColor(NAVY); c.rect(0, PAGE_H - 9 * cm, PAGE_W, 9 * cm, fill=1, stroke=0)
-        c.setFillColor(ACC); c.rect(0, PAGE_H - 9.25 * cm, PAGE_W, 0.25 * cm, fill=1, stroke=0)
+        ana, zemin = self._kapak
+        c.setFillColor(zemin); c.rect(0, PAGE_H - 9 * cm, PAGE_W, 9 * cm, fill=1, stroke=0)
+        c.setFillColor(ana); c.rect(0, PAGE_H - 9.15 * cm, PAGE_W, 0.15 * cm, fill=1, stroke=0)
         c.restoreState()
 
     def _page(self, c, d):
         c.saveState()
-        c.setStrokeColor(NAVY); c.setLineWidth(0.6)
+        c.setStrokeColor(CIZGI); c.setLineWidth(0.6)
         c.line(LM, PAGE_H - 1.5 * cm, PAGE_W - RM, PAGE_H - 1.5 * cm)
         c.setFont('Body', 8.5); c.setFillColor(GREY)
         c.drawString(LM, PAGE_H - 1.3 * cm, self.header)
@@ -154,9 +168,9 @@ class Doc(BaseDocTemplate):
     def cover(self, lines, contents):
         s = self.story
         s.append(Spacer(1, 1.2 * cm))
-        s.append(Paragraph(self.title_, ParagraphStyle('ct', fontName='Body-B', fontSize=30, leading=36, textColor=colors.white)))
+        s.append(Paragraph(self.title_, ParagraphStyle('ct', fontName='Body-B', fontSize=30, leading=36, textColor=self._kapak[0])))
         s.append(Spacer(1, 0.4 * cm))
-        s.append(Paragraph(self.subtitle, ParagraphStyle('cs', fontName='Body', fontSize=15, leading=20, textColor=colors.white)))
+        s.append(Paragraph(self.subtitle, ParagraphStyle('cs', fontName='Body', fontSize=15, leading=20, textColor=KOYU)))
         s.append(Spacer(1, 4.3 * cm))
         for l in lines:
             s.append(Paragraph(l, ParagraphStyle('cl', parent=ss['body'], fontSize=11.5, leading=16, alignment=TA_LEFT)))
@@ -164,7 +178,7 @@ class Doc(BaseDocTemplate):
         self.box('ipucu', contents, title='BU NOTU NASIL KULLANMALISIN?')
         s.append(NextPageTemplate('main'))
         s.append(PageBreak())
-        s.append(Paragraph('İçindekiler', ss['h1']))
+        s.append(Paragraph('İçindekiler', self._renkli('h1')))
         toc = TableOfContents(); toc.levelStyles = [ss['toc1'], ss['toc2']]
         toc.dotsMinLevel = 0
         # reportlab varsayılanı her satıra 3+3 pt dolgu ekler; tek sayfaya sığması için daralt
@@ -177,18 +191,19 @@ class Doc(BaseDocTemplate):
     def _hp(self, txt, st, lvl):
         p = Paragraph(txt, st); p._toc = lvl; return p
 
-    def h1(self, t, newpage=False, need=9):
+    def h1(self, t, newpage=False, need=9, renk=None):
+        self.tema.sonraki(renk)
         if newpage: self.story.append(PageBreak())
         else: self.story.append(CondPageBreak(need * cm))
-        self.story.append(self._hp(t, ss['h1'], 0))
+        self.story.append(self._hp(t, self._renkli('h1'), 0))
 
     def h2(self, t, need=6):
         self.story.append(CondPageBreak(need * cm))
-        self.story.append(self._hp(t, ss['h2'], 1))
+        self.story.append(self._hp(t, self._renkli('h2'), 1))
 
     def h3(self, t):
         self.story.append(CondPageBreak(3.5 * cm))
-        self.story.append(Paragraph(t, ss['h3']))
+        self.story.append(Paragraph(t, self._renkli('h3')))
 
     def p(self, *ts):
         for t in ts: self.story.append(Paragraph(t, ss['body']))
@@ -219,6 +234,7 @@ class Doc(BaseDocTemplate):
 
     def _boxflow(self, kind, body, title=None):
         bg, fg, lab = BOXES[kind]
+        if kind == 'ozet': bg, fg = self.tema.zemin, self.ana
         inner = [Paragraph('<font color="%s">%s</font>' % (fg, title or lab), ss['boxt'])]
         for b in (body if isinstance(body, list) else [body]):
             if isinstance(b, str): inner.append(Paragraph(b, ss['boxb']))
@@ -249,7 +265,7 @@ class Doc(BaseDocTemplate):
         h = w * hpt / wpt
         if h > maxh: h = maxh; w = h * wpt / hpt
         img = Image(os.path.join(self.work, 'fig', num + '.png'), width=w, height=h)
-        capt = '<b><font color="#1F3A5F">Şekil %s</font></b> – %s' % (num, cap)
+        capt = '<b><font color="%s">Şekil %s</font></b> – %s' % (self.ana, num, cap)
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
         ct = Table([[img], [Paragraph(capt, ss['cap'])]], colWidths=[min(FW, max(w + 20, 12 * cm))])
         ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
@@ -282,13 +298,13 @@ class Doc(BaseDocTemplate):
             data.append([Paragraph(str(c), st) for c in r])
         if widths: widths = [w * FW for w in widths]
         t = Table(data, colWidths=widths, repeatRows=1)
-        sty = [('BACKGROUND', (0, 0), (-1, 0), NAVY), ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#AAAAAA')),
+        sty = [('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(self.ana)), ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#AAAAAA')),
                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]
         for i in range(1, len(rows)):
-            if i % 2 == 0: sty.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F0F4F9')))
+            if i % 2 == 0: sty.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor(self.tema.zemin)))
         t.setStyle(TableStyle(sty))
         fl = [Spacer(1, 3)]
-        if title: fl.append(Paragraph('<b><font color="#1F3A5F">%s</font></b>' % title, ss['cap']))
+        if title: fl.append(Paragraph('<b><font color="%s">%s</font></b>' % (self.ana, title), ss['cap']))
         fl += [Spacer(1, 2)]
         th = t.wrap(FW, FH)[1]
         if th <= FH / 3:      # kısa tablo: tek parça

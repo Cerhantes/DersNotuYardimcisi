@@ -8,7 +8,7 @@ Betikleri yazmadan önce bu dosyayı ve `examples/ornek_semalar.py` ile `example
 
 - Başlık: `'KONU – FORMÜL KAĞIDI'` (büyük harf).
 - Alt satır, ` · ` ile ayrılmış: ders adı · kapsam (`Bölüm 5` ya da `ilk vize: Bölüm 5.1–5.6` + parantezde konu adları) · `Denklem numaraları kaynaktakiyle aynıdır`.
-- Kart başlık rengi (`color=`) konuya göre sakin bir ton; tek PDF içinde tek renk.
+- Bant ve kart başlıkları açık zemin üstüne ana renkte metindir; her kart sıradaki rengi alır (bkz. SKILL.md, Renk).
 
 ## Kart
 
@@ -27,7 +27,7 @@ Betikleri yazmadan önce bu dosyayı ve `examples/ornek_semalar.py` ile `example
 - Her kartın sağında bir şema. Türler: **ölçülü kesit** (boyutlar `dim` ile, semboller formüldekiyle aynı), **eğri üzerinde semboller**
   (faz/profil/akış diyagramı), **eğilim grafiği** (orantı formülü + okunan 1–2 nokta), **karşılaştırma çubukları**.
 - Sembol etiketleri mathtext ve formüldekiyle **aynı yazım** (`r'$T_1$'`), 10–11 pt; açıklama yazıları Türkçe, küçük harf, 6,5–8,5 pt.
-- Renk anlamı tutarlı: büyüklük çizgisi/eğri `RED` ya da `NAVY`, ölçüler `GRN`, akış/vektör `NAVY`, yardımcı çizgiler `GREY` (kesikli/noktalı).
+- Renk anlamı tutarlı: büyüklük çizgisi/eğri `RED` ya da `BLUE`, ölçüler `GRN`, akış/vektör `KOYU`, yardımcı çizgiler `GREY` (kesikli/noktalı).
 - Etiketler hiçbir çizginin, okun ya da başka etiketin **üstünde değil**: eğrinin ucunun yanına (`ha='left'`), okun üstüne/altına, gerekirse noktalı kılavuz çizgiyle dışarı.
 - Eksen sayıları gereksizse kaldır (`set_xticks([])`); eğilim grafiğinde eksen adları birimiyle (`'kalınlık L (cm)'`).
 - Şema altyazısı (`cap=`): şemanın **gösterdiği sonuç**, tek cümle (`'Q ∝ 1/L: kalınlık iki katı → ısı kaybı yarı.'`).

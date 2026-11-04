@@ -14,7 +14,7 @@ def kaydet(body='Body', math='Math'):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.lib.fonts import addMapping
 
-    fonts = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'ortak', 'fonts')
+    fonts = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
     mpl = os.path.join(matplotlib.get_data_path(), 'fonts', 'ttf')
     for ad, klasor, dosya in (
         (body, fonts, 'Carlito-Regular.ttf'), (body + '-B', fonts, 'Carlito-Bold.ttf'),

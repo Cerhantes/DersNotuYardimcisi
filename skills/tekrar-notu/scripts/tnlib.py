@@ -22,9 +22,9 @@ _work = None
 sub2 = None
 
 
-def start(out, work, title, header, source, subtitle='Tekrar Notu — konu konu bilmen gerekenler'):
+def start(out, work, title, header, source, subtitle='Tekrar Notu — konu konu bilmen gerekenler', renk=None):
     """title: kapak (BÜYÜK HARF); header: sayfa üstü sol, ör. 'Isı İletimi – Tekrar Notu'; source: sayfa üstü sağ.
-    work: kaynak.py çıktısı (figs.json, fig/*.png)."""
+    work: kaynak.py çıktısı (figs.json, fig/*.png). renk: tema.PALET'ten ad = tek renk; None = her h1 sıradaki renk."""
     global d, _work, sub2
     ss['body'].fontSize, ss['body'].leading = 10.3, 13.6
     ss['bullet'].fontSize, ss['bullet'].leading, ss['bullet'].spaceAfter = 10.3, 13.6, 1.8
@@ -34,7 +34,7 @@ def start(out, work, title, header, source, subtitle='Tekrar Notu — konu konu 
     sub2 = ParagraphStyle('sub2', parent=ss['bullet'], leftIndent=30, bulletIndent=19)
     _work = work
     # header canvas'a düz metin olarak yazılır: &amp; değil & kullan
-    d = Doc(out, title, subtitle, header, work, source.replace('&amp;', '&'))
+    d = Doc(out, title, subtitle, header, work, source.replace('&amp;', '&'), renk=renk)
     globals()['d'] = d
     return d
 
@@ -102,7 +102,7 @@ def F2(a, b, capa, capb, h=150):
         wpt, hpt = rc[2] - rc[0], rc[3] - rc[1]
         w = min(h * wpt / hpt, FW / 2 - 14)
         cells.append(Image(os.path.join(_work, 'fig', num + '.png'), width=w, height=w * hpt / wpt))
-        caps.append(Paragraph('<b><font color="#1F3A5F">Şekil %s</font></b> – %s' % (num, S(cap)), ss['cap']))
+        caps.append(Paragraph('<b><font color="%s">Şekil %s</font></b> – %s' % (d.ana, num, S(cap)), ss['cap']))
     t = Table([cells, caps], colWidths=[FW / 2, FW / 2])
     t.setStyle(TableStyle([('ALIGN', (0, 0), (-1, 0), 'CENTER'), ('VALIGN', (0, 0), (-1, 0), 'BOTTOM'),
                            ('VALIGN', (0, 1), (-1, 1), 'TOP'),

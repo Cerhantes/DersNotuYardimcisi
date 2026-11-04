@@ -15,7 +15,7 @@
 Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore icerik.py <cikti.pdf> <work>
 Şemalar <work>/dg/<ad>.png içinde aranır (dglib.save bunları oraya yazar).
 """
-import os, re, sys, hashlib, warnings, matplotlib
+import json, os, re, sys, hashlib, warnings, matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from PIL import Image as PImage
@@ -34,13 +34,16 @@ from reportlab.platypus import Paragraph as _P
 plt.rcParams.update({'mathtext.fontset': 'cm'})
 
 # ---------------------------------------------------------------- yazı tipleri
-# Body = Carlito (repoda), Math = DejaVu Serif (matplotlib) — bkz. fontlar.py
+# Yazı tipi ve renk teması ortak/ klasöründe (bkz. ortak/fontlar.py, ortak/tema.py)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'ortak'))
 import fontlar
+from tema import Tema, acik
 FONTS = fontlar.kaydet()
 _body, _math = pdfmetrics.getFont('Body'), pdfmetrics.getFont('Math')
 _BODY_CM, _MATH_CM = _body.face.charToGlyph, _math.face.charToGlyph
 _SYM_CM = pdfmetrics.getFont('Sym').face.charToGlyph
 _missing = set()
+_ANA = '#333333'   # o anki kartın rengi
 
 
 def _fix_glyphs(t):
@@ -66,22 +69,24 @@ def _fix_glyphs(t):
 
 
 def Paragraph(t, *a, **k):
+    # Küçük yazıda alt simge alttaki satıra binmesin
+    t = t.replace('<sub>', '<sub rise="1.6" size="6.2">').replace('@ANA@', _ANA)
     return _P(_fix_glyphs(t), *a, **k)
 
 
 # ---------------------------------------------------------------- düzen ve stiller
-NAVY = colors.HexColor('#1F3A5F'); ACC = colors.HexColor('#C0504D'); GREY = colors.HexColor('#555555')
+GREY = colors.HexColor('#555555'); KOYU = colors.HexColor('#333333'); CIZGI = colors.HexColor('#BBBBBB')
 PAGE_W, PAGE_H = A4
 LM = RM = 1.4 * cm; TM, BM = 1.9 * cm, 1.5 * cm
 FW = PAGE_W - LM - RM
 FH = PAGE_H - TM - BM
 
-st_title = ParagraphStyle('t', fontName='Body-B', fontSize=20, leading=24, textColor=colors.white)
-st_sub = ParagraphStyle('s', fontName='Body', fontSize=10, leading=13, textColor=colors.white)
-st_card = ParagraphStyle('c', fontName='Body-B', fontSize=11.5, leading=14, textColor=colors.white)
-st_terms = ParagraphStyle('tm', fontName='Body', fontSize=8.3, leading=10.4, textColor=colors.HexColor('#444444'))
+st_title = ParagraphStyle('t', fontName='Body-B', fontSize=20, leading=24)
+st_sub = ParagraphStyle('s', fontName='Body', fontSize=10, leading=13, textColor=KOYU)
+st_card = ParagraphStyle('c', fontName='Body-B', fontSize=11.5, leading=14)
+st_terms = ParagraphStyle('tm', fontName='Body', fontSize=8.3, leading=11, textColor=colors.HexColor('#444444'))
 st_note = ParagraphStyle('n', fontName='Body', fontSize=8.6, leading=11, textColor=colors.HexColor('#7A3B00'))
-st_lab = ParagraphStyle('l', fontName='Body-B', fontSize=8.6, leading=11, textColor=NAVY, spaceAfter=1.5)
+st_lab = ParagraphStyle('l', fontName='Body-B', fontSize=8.6, leading=11, spaceAfter=1.5)
 st_num = ParagraphStyle('nm', fontName='Body', fontSize=8, leading=10, textColor=GREY, alignment=2)
 st_cap = ParagraphStyle('cp', fontName='Body-I', fontSize=7.6, leading=9.2, textColor=GREY, alignment=TA_CENTER)
 st_cell = ParagraphStyle('cl', fontName='Body', fontSize=8.2, leading=10)
@@ -133,12 +138,30 @@ def sym(s):
 
 def terms(*pairs):
     """terms(('q', 'ısı akısı'), ('L', 'kalınlık (m)')) -> 'q: ısı akısı · L: ...'"""
-    return ' · '.join('<font color="#1F3A5F">%s</font>: %s' % (sym(a), b) for a, b in pairs)
+    return ' · '.join('<font color="@ANA@">%s</font>: %s' % (sym(a), b) for a, b in pairs)
+
+
+AC_TEX = {'alpha': 'α', 'beta': 'β', 'theta': 'θ', 'phi': 'φ', 'varphi': 'φ', 'psi': 'ψ'}
+
+
+def _acilar(metin):
+    """Metindeki açı sembolleri (LaTeX ya da Unicode): α β θ φ ψ."""
+    bul = {AC_TEX[m] for m in re.findall(r'\\(alpha|beta|theta|varphi|phi|psi)\b', metin)}
+    return bul | (set(metin) & set(AC_TEX.values())) | ({'φ'} if 'ϕ' in metin else set())
+
+
+def _numaralar(n):
+    """'(8.4–8.5)' -> {'8.4', '8.5'}; aralıkların ara numaraları da."""
+    b = re.findall(r'(\d+)\.(\d+)', n or '')
+    if len(b) == 2 and b[0][0] == b[1][0]:
+        return {'%s.%d' % (b[0][0], k) for k in range(int(b[0][1]), int(b[1][1]) + 1)}
+    return {'%s.%s' % x for x in b}
 
 
 # ---------------------------------------------------------------- belge
 class Sheet(BaseDocTemplate):
-    def __init__(self, out, work, title, subtitle, header, source, color='#1F3A5F'):
+    def __init__(self, out, work, title, subtitle, header, source, renk=None):
+        """renk: tema.PALET'ten bir ad = tek renkli kağıt; None = her kart sıradaki rengi alır."""
         global _EQD
         _EQD = os.path.join(work, 'eq'); os.makedirs(_EQD, exist_ok=True)
         self.dg = os.path.join(work, 'dg')
@@ -148,21 +171,25 @@ class Sheet(BaseDocTemplate):
         fr = Frame(LM, BM, FW, FH, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
         self.addPageTemplates([PageTemplate('p', [fr], onPage=self._page)])
         self.story = []
-        self.col = colors.HexColor(color)
+        self.work, self._nums = work, set()
+        self.tema = Tema(title, renk)
         self._title()
 
     def _page(self, c, d):
-        c.saveState(); c.setStrokeColor(NAVY); c.setLineWidth(0.6)
+        c.saveState(); c.setStrokeColor(CIZGI); c.setLineWidth(0.6)
         c.line(LM, PAGE_H - 1.25 * cm, PAGE_W - RM, PAGE_H - 1.25 * cm)
-        c.setFont('Body-B', 8.5); c.setFillColor(NAVY); c.drawString(LM, PAGE_H - 1.07 * cm, self.header)
+        c.setFont('Body-B', 8.5); c.setFillColor(KOYU); c.drawString(LM, PAGE_H - 1.07 * cm, self.header)
         c.setFont('Body', 8); c.setFillColor(GREY); c.drawRightString(PAGE_W - RM, PAGE_H - 1.07 * cm, self.source)
         c.line(LM, 1.05 * cm, PAGE_W - RM, 1.05 * cm)
         c.drawCentredString(PAGE_W / 2, 0.6 * cm, 'Sayfa %d' % d.page)
         c.restoreState()
 
     def _title(self):
-        t = Table([[Paragraph(self.title_, st_title)], [Paragraph(self.subtitle, st_sub)]], colWidths=[FW])
-        t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), NAVY), ('LINEBELOW', (0, -1), (-1, -1), 3, ACC),
+        ana = colors.HexColor(self.tema.ana)
+        t = Table([[Paragraph(self.title_, ParagraphStyle('t2', parent=st_title, textColor=ana))],
+                   [Paragraph(self.subtitle, st_sub)]], colWidths=[FW])
+        t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(self.tema.zemin)),
+                               ('LINEBELOW', (0, -1), (-1, -1), 2, ana),
                                ('LEFTPADDING', (0, 0), (-1, -1), 12), ('TOPPADDING', (0, 0), (-1, 0), 9),
                                ('BOTTOMPADDING', (0, -1), (-1, -1), 9)]))
         self.story += [t, Spacer(1, 8)]
@@ -178,20 +205,31 @@ class Sheet(BaseDocTemplate):
             return fig
         return os.path.join(self.dg, fig + '.png')
 
-    def card(self, title, items, fig=None, cap=None, figw=0.40, figmaxh=5.6 * cm):
+    def card(self, title, items, fig=None, cap=None, figw=0.40, figmaxh=5.6 * cm, renk=None):
         """Bir kavramın kartı. items: E(...) blokları, str (not satırı) ya da flowable (ör. d.tbl(...) elemanları).
-        fig: şema adı (<work>/dg/ad.png) | png yolu | flowable listesi (tablo, P(...)) | None (tam genişlik)."""
+        fig: şema adı (<work>/dg/ad.png) | png yolu | flowable listesi (tablo, P(...)) | None (tam genişlik).
+        renk: bu kartın rengi (tema.PALET); None = sıradaki. Başlığında '(devam)' olan kart öncekinin rengini korur."""
+        global _ANA
+        if '(devam)' not in title or renk:
+            self.tema.sonraki(renk)
+        _ANA = self.tema.ana
+        col = colors.HexColor(_ANA)
+        for f in list(items) + (fig if isinstance(fig, list) else []):
+            self._boya(f, col)
+        self._sema_denetimi(title, items, fig)
+        lab_st = ParagraphStyle('l-%s' % _ANA, parent=st_lab, textColor=col)
         lw = FW * (1 - figw) if fig is not None else FW
         left = []
         for it in items:
             if isinstance(it, tuple) and it and it[0] == 'eq':
                 _, p, w, h, n, tm, lab, note, tex = it
+                self._nums |= _numaralar(n)
                 avail = lw - 12 - 1.6 * cm
                 sc = min(1.0, avail / w)
                 if sc < 0.8:
                     print('UYARI: formül %%%d küçültüldü, iki satıra böl ya da fs düşür: %s' % (sc * 100, tex[:70]),
                           file=sys.stderr)
-                if lab: left.append(Paragraph(lab, st_lab))
+                if lab: left.append(Paragraph(lab, lab_st))
                 row = Table([[Image(p, width=w * sc, height=h * sc), Paragraph(n, st_num)]],
                             colWidths=[lw - 12 - 1.6 * cm, 1.6 * cm])
                 row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 4),
@@ -218,17 +256,18 @@ class Sheet(BaseDocTemplate):
             right = [Image(ip, width=w, height=h)]
             if cap: right += [Spacer(1, 2), Paragraph(cap, st_cap)]
             body.append(right)
-        hdr = Paragraph(title, st_card)
+        hdr = Paragraph(title, ParagraphStyle('c-%s' % _ANA, parent=st_card, textColor=col))
         cw = [lw, FW - lw] if fig is not None else [FW]
         data = [[hdr] + ([''] if fig is not None else []), body]
         t = Table(data, colWidths=cw)
-        sty = [('BACKGROUND', (0, 0), (-1, 0), self.col), ('SPAN', (0, 0), (-1, 0)),
-               ('BOX', (0, 0), (-1, -1), 0.8, self.col), ('VALIGN', (0, 1), (-1, -1), 'TOP'),
+        sty = [('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(self.tema.zemin)), ('SPAN', (0, 0), (-1, 0)),
+               ('LINEBELOW', (0, 0), (-1, 0), 1.2, col),
+               ('BOX', (0, 0), (-1, -1), 0.6, col), ('VALIGN', (0, 1), (-1, -1), 'TOP'),
                ('TOPPADDING', (0, 0), (-1, 0), 3), ('BOTTOMPADDING', (0, 0), (-1, 0), 4),
                ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-               ('TOPPADDING', (0, 1), (-1, -1), 5), ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FBFCFE'))]
+               ('TOPPADDING', (0, 1), (-1, -1), 5)]
         if fig is not None:
-            sty += [('VALIGN', (1, 1), (1, 1), 'MIDDLE'), ('LINEBEFORE', (1, 1), (1, 1), 0.4, colors.HexColor('#C8D3E0'))]
+            sty += [('VALIGN', (1, 1), (1, 1), 'MIDDLE'), ('LINEBEFORE', (1, 1), (1, 1), 0.4, CIZGI)]
         t.setStyle(TableStyle(sty))
         _, th = t.wrap(FW, FH)
         if th > FH:
@@ -236,18 +275,59 @@ class Sheet(BaseDocTemplate):
                              % (th, FH, re.sub('<[^>]+>', '', title)))
         self.story += [KeepTogether([t]), Spacer(1, 9)]
 
+    @staticmethod
+    def _boya(f, col):
+        """d.tbl çıktısı kart çağrısından önce kurulur; rengini kart belirler."""
+        if isinstance(f, Table) and getattr(f, '_tablo_rengi', None):
+            sty = [('BACKGROUND', (0, 0), (-1, 0), col)]
+            sty += [('BACKGROUND', (0, i), (-1, i), colors.HexColor(acik(_ANA, 0.92))) for i in range(2, f._nrows, 2)]
+            f.setStyle(TableStyle(sty))
+        elif isinstance(f, _P) and getattr(f, '_tablo_rengi', None):
+            for parca in f.frags:
+                parca.textColor = col
+
+    def _sema_denetimi(self, title, items, fig):
+        """Kartın formüllerindeki açılar şemada gösterilmiyorsa uyarır (dglib şema yazılarını kaydeder)."""
+        if not isinstance(fig, str):
+            return
+        kayit = os.path.splitext(self._fig_path(fig))[0] + '.yazi.json'
+        if not os.path.exists(kayit):
+            return
+        with open(kayit, encoding='utf-8') as f:
+            yazi = ' '.join(json.load(f))
+        tex = ' '.join(it[8] for it in items if isinstance(it, tuple) and it and it[0] == 'eq')
+        eksik = _acilar(tex) - _acilar(yazi)
+        if eksik:
+            print('UYARI: "%s" kartının şeması (%s) formüldeki açıyı göstermiyor: %s'
+                  % (re.sub('<[^>]+>', '', title), fig, ' '.join(sorted(eksik))), file=sys.stderr)
+
+    def _kapsam_denetimi(self):
+        """<work>/metin.txt içinde geçip kağıda girmeyen denklem numaralarını raporlar."""
+        yol = os.path.join(self.work, 'metin.txt')
+        if not os.path.exists(yol):
+            return
+        with open(yol, encoding='utf-8') as f:
+            kaynak = set(re.findall(r'\((\d+\.\d+)\)', f.read()))
+        bolumler = {n.split('.')[0] for n in self._nums}   # (0.15) gibi parantez içi sayılar elenir
+        kaynak = {n for n in kaynak if n.split('.')[0] in bolumler}
+        eksik = sorted(kaynak - self._nums, key=lambda s: [int(x) for x in s.split('.')])
+        print('KAPSAM: kaynakta geçip kağıtta olmayan denklemler: %s' % (', '.join(eksik) or 'yok'))
+
     def tbl(self, rows, widths, title=None):
         """Sabitler / tipik değerler tablosu; ilk satır başlık. Liste döndürür: items'a `+ d.tbl(...)` ile ekle
         ya da fig=d.tbl(...) ile sağ sütuna koy."""
         data = [[Paragraph(str(c), st_cellh if i == 0 else st_cell) for c in r] for i, r in enumerate(rows)]
         t = Table(data, colWidths=widths)
-        sty = [('BACKGROUND', (0, 0), (-1, 0), NAVY), ('GRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#AAAAAA')),
+        sty = [('GRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#AAAAAA')),
                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 1.5),
                ('BOTTOMPADDING', (0, 0), (-1, -1), 2), ('LEFTPADDING', (0, 0), (-1, -1), 3)]
-        for i in range(2, len(rows), 2): sty.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F0F4F9')))
         t.setStyle(TableStyle(sty))
+        t._tablo_rengi = True
         out = []
-        if title: out.append(Paragraph('<b>%s</b>' % title, ParagraphStyle('tt', parent=st_terms, textColor=NAVY)))
+        if title:
+            b = Paragraph('<b>%s</b>' % title, ParagraphStyle('tt', parent=st_terms))
+            b._tablo_rengi = True
+            out.append(b)
         out.append(t)
         return out
 
@@ -256,4 +336,5 @@ class Sheet(BaseDocTemplate):
 
     def make(self):
         self.build(self.story)
+        self._kapsam_denetimi()
         print('ok', self.filename, 'sayfa:', self.page)

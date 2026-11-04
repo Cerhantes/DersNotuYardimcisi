@@ -34,7 +34,7 @@ d.cover([
 ], [
     'Bu not yeniden öğretmek için değil, <b>tekrar</b> için yazıldı: her başlıkta bilmen gereken her bilgi madde madde, '
     'formüller numaralarıyla, eğilimler oklarla (↑ artar, ↓ azalır, → sonuç) verildi.',
-    'Turuncu kutular sınavda en çok sorulan / karıştırılan noktalar, mavi kutular tanımlar, mor kutular bölüm sonu '
+    'Turuncu kutular sınavda en çok sorulan / karıştırılan noktalar, mavi kutular tanımlar, konu renginde kutular bölüm sonu '
     'hızlı kontrol listesidir. Sonda tüm "neyi değiştirirsem ne olur" eğilimleri tek tabloda, problem sonuçları ve '
     'Kendini Sına sorularının cevapları vardır.',
 ])

@@ -21,12 +21,15 @@ Formül kağıdı **not değildir**: anlatım paragrafı, tarihçe, yöntem tan�
 4. Formül türetilmiş biçimleri de içerir: problemde gereken **ters çözülmüş biçim** (ör. `L = k A ΔT / Q`), **oran formu** (sabit bilinmeden çözüm), sık kullanılan özel durum (ör. küre için V/A = D/6).
 5. **Sağ sütunda şema**: formüldeki sembolleri (aynı yazımla) üzerinde gösteren kesit, vektör çizimi, diyagram ya da eğilim grafiği. Şema gerekmeyen kartta sağ sütuna sabitler tablosu ya da kısa kutu konur; ikisi de yoksa kart tam genişlik.
 6. **Sabitler / tipik değerler tabloları** (kaynaktaki tablolar, numarasıyla) ilgili kartın içinde.
+   Kitabın sayısal veri tabloları da buraya girer (ör. deneysel açı/kuvvet verileri).
 7. Son kart: **hesap sırası ve birimler** (hangi büyüklükten hangisine gidilir, birim dönüşümleri) — konu sayısal problem içeriyorsa.
 
 Diğer kurallar:
 - Dil Türkçe; terimin İngilizcesi kart başlığında ve gerektiğinde parantezde. Ondalık ayırıcı virgül (mathtext'te `0{,}5`).
 - Birden fazla konu istenirse her biri **ayrı PDF**: `<kaynağın klasörü>\<Konu>_Formul_Kagidi.pdf`.
 - Kullanıcı sayfa numarası verirse bunlar **PDF görüntüleyici numarasıdır**.
+- **Eksiksizlik:** her bileşen kuvvet/büyüklük hem ana büyüklük ve açısıyla (`F_s = R cos(φ+β−α)`) hem ölçülen büyüklüklerle (`F_s = F_c cos φ − F_t sin φ`) yazılır. Problemde bilinmeyen olabilecek her büyüklüğün ters çözümü (`β = α + arctan(F_t/F_c)`) verilir. Metinde açıkça yazılmayıp kitabın şeklinden okunan bağıntılar da girer; numara yerine `(Şek. n)` yazılır.
+- **Şema, formülle aynı şeyi gösterir:** karttaki formüllerde geçen **her açı** şemada yayla ve aynı sembolle işaretlenir (yalnız `β − α` değil, `β` ve `α` da ayrı ayrı). Şema oranları gerçek bağıntılardan hesaplanır, göz kararı çizilmez.
 - Formüller kaynakta olduğu gibi alınır; uydurma katsayı/değer yazılmaz. Kaynakta olmayan ama problemde gerekli bir yardımcı bağıntı eklenirse (ör. V = πDN) numarasız bırakılır.
 
 ## Ortam (Windows / Mac / Linux)
@@ -35,12 +38,21 @@ Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tiple
 
 - `SK` = bu skill yüklenirken en üstte yazan **Base directory** yolu (skill `~/.claude/skills` altında da, plugin önbelleğinde de olabilir; yolu varsayma).
 - **İşe başlarken bir kez** Python ortamını hazırla:
-  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../ortak/kur.ps1"`
-  - Mac/Linux: `bash "$SK/../ortak/kur.sh"`
+  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../../ortak/kur.ps1"`
+  - Mac/Linux: `bash "$SK/../../ortak/kur.sh"`
 - Ortam hazırsa bu adım 1–2 sn sürer. İlk seferde Python ve paketleri indirir (1–3 dk, yönetici hakkı istemez, sistem Python'una dokunmaz); bu sürenin başında kullanıcıya haber ver.
 - Çıktının son satırı `PY=<yol>`. Aşağıdaki komutlardaki `$PY` bu yoldur; sistemdeki `py`/`python` kullanılmaz. Betik `KURULUM BAŞARISIZ` derse mesajı kullanıcıya ilet.
 - Her komutta `PYTHONIOENCODING=utf-8` ve `$PY -W ignore`. Komutlar Bash sözdizimindedir; yalnız PowerShell varsa `$env:PYTHONPATH="..."; & $PY ...` biçimine çevir.
 - Yazı tipleri repoda gömülüdür (metin Carlito, matematik DejaVu Serif), kurulmaz. Formüller matplotlib mathtext (Computer Modern) ile çizilir.
+
+## Renk
+
+Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otomatik çalışır, içerik betiğinde renk yazmak gerekmez.
+
+- Renkler yalnız `ortak/tema.py`'deki paletten gelir: `petrol kiremit yesil hardal mavi kirmizi turkuaz zeytin`. Mor ve lacivert palette yoktur, hex renk yazma.
+- Zeminler açık, başlıklar ana renkte metindir; koyu dolgulu bant kullanma.
+- Her kart sıradaki rengi alır; başlığında `(devam)` olan kart öncekinin rengini korur. Konuya uyan rengi seçmek için `d.card(..., renk='yesil')`; tüm kağıdı tek renk yapmak için `Sheet(..., renk='petrol')`.
+
 
 ## Konum bağımsızlığı
 
@@ -62,20 +74,21 @@ Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tiple
    - **Derlemeye geçmeden `_kontrol.png`'yi `Read` ile aç.** Bakılacaklar: etiket bir okun, eğrinin ya da başka etiketin üstünde mi · yazı kesik mi · semboller formüldekiyle aynı mı. Düzeltip yalnızca o şemayı yeniden çiz (`... semalar.py <work> sema_adi`) ve kontrol görüntüsüne yeniden bak.
    - Yerleşim kuralı: sembol etiketleri ok/vektör alanının ve eğrilerin **dışına**, boş bölgeye konur (eğrinin uç noktasının yanına `ha='left'`); ölçü okları (`dim`) gövdeden ayrı bir şeritte durur.
 5. **İçerik betiğini yaz**: `<work>/kagit.py` (kalıp için `$SK/examples/ornek_kagit.py`'yi baştan sona oku; API aşağıda). Örnekler kaynaktan bağımsız genel bir konudur; içerik kaynaktan gelir.
-6. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kagit.py <work>/out.pdf <work>`. Stderr'deki `UYARI` satırlarını gider (küçülen formül → böl, eksik glif → başka simge).
-7. **Gözle kontrol et**: `$PY -W ignore $SK/scripts/review.py <work>/out.pdf <work>` → önce `rv_ov.png` (sayfa dengesi), sonra **her** `rv<n>.png`. Kontrol listesi: her sembol adlandırılmış mı · formüller okunaklı mı (çok küçülen yok) · numaralar kaynakla aynı mı · şema kartıyla aynı yükseklikte mi, sembolleri formülle aynı mı · sayfa altlarında yarım sayfalık boşluk var mı (kart sırasını değiştir: büyük kartın ardından sığan küçük kart; ya da `figmaxh`/`figw` ayarla) · kutu (eksik glif) var mı.
-8. **Kopyala ve raporla**: PDF'leri `dirname $B`'ye kopyala, `ls` ile doğrula. Son mesajda yolları, sayfa sayılarını, kapsanan bölümleri/denklem aralığını ve kartların listesini yaz.
+6. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kagit.py <work>/out.pdf <work>`. Stderr'deki `UYARI` satırlarını gider (küçülen formül → böl, eksik glif → başka simge, `şeması ... açıyı göstermiyor` → açıyı şemaya ekle; yalnız eğilim grafiğinde bilerek geçilebilir).
+   - `KAPSAM:` satırındaki her denklem numarası için karar ver: karta ekle ya da kapsam dışıysa raporda nedenini yaz. Kaynağın çözümlü örneğini kartın uygulama satırıyla hesaplayıp formülleri doğrula.
+7. **Gözle kontrol et**: `$PY -W ignore $SK/scripts/review.py <work>/out.pdf <work>` → önce `rv_ov.png` (sayfa dengesi), sonra **her** `rv<n>.png`. Kontrol listesi: her sembol adlandırılmış mı · formüller okunaklı mı (çok küçülen yok) · numaralar kaynakla aynı mı · şema kartıyla aynı yükseklikte mi, sembolleri formülle aynı mı · sayfa altlarında yarım sayfalık boşluk var mı (kart sırasını değiştir: büyük kartın ardından sığan küçük kart; ya da `figmaxh`/`figw` ayarla) · kutu (eksik glif) var mı · etiketler birbirine ya da çizgiye binmiş mi.
+8. **Kopyala ve raporla**: PDF'leri `dirname $B`'ye kopyala, `ls` ile doğrula. `kagit.py` ve `semalar.py`'yi `<dirname $B>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, kapsanan bölümleri/denklem aralığını ve kartların listesini yaz.
 
 ## fslib API (`from fslib import *`)
 
 ```python
 d = Sheet(out, work, 'KONU – FORMÜL KAĞIDI', 'Ders · kapsam · Denklem numaraları kaynaktakiyle aynıdır',
-          'Konu – Formül Kağıdı', 'Yazar, Kitap, Bölüm n', color='#1F3A5F')   # color: kart başlık rengi
+          'Konu – Formül Kağıdı', 'Yazar, Kitap, Bölüm n')   # renk='petrol': tek renkli kağıt; verilmezse her kart ayrı renk
 E = d.E
 E(r'tex', '(2.1)', terms(('q', 'ısı akısı (W/m²)'), ('k', 'ısıl iletkenlik')), label='Etiket', note='tek satır', fs=12.5)
 d.card('1 · Başlık (English)', [E(...), E(...), 'serbest not satırı', ...] + d.tbl(rows, [3*cm, 2*cm], 'Tablo 2.1 – ...'),
        fig='sema_adi',          # <work>/dg/sema_adi.png | mutlak png yolu | d.tbl(...) | [P('<b>kutu</b> ...')] | None
-       cap='şekil altı açıklama', figw=0.40, figmaxh=5.6*cm)
+       cap='şekil altı açıklama', figw=0.40, figmaxh=5.6*cm, renk='yesil')   # renk isteğe bağlı
 sym('T_1')                      # satır içi sembol: italik T + alt 1 (matematik yazı tipi); 'T_1, T_2' birden çok
 P('<b>Birimler</b><br/>1 MPa = 1 N/mm²')   # serbest paragraf (sağ sütun kutusu için)
 d.pagebreak(); d.make()
@@ -87,7 +100,7 @@ d.pagebreak(); d.make()
 
 ## dglib (şema betiği)
 
-`init(work)`, `save(fig, ad)`, `run(f1, f2, ...)`, `arrow(ax, p, q, c)`, `dim(ax, p, q, metin, off)` (ölçü oku), `angarc(ax, merkez, r, a0, a1, metin, tr)` (açı yayı), `clean_axes(ax)`; renkler `BLUE RED GRN ORG NAVY GREY`, dolgular `FILL_GREY FILL_ORANGE FILL_BLUE FILL_LILAC`. Şema boyutu ~`figsize=(3.4, 2.6)`; sembol etiketleri mathtext (`r'$t_o$'`, fontsize 10–11), açıklama yazıları 6.5–8.5 pt.
+`init(work)`, `save(fig, ad)`, `run(f1, f2, ...)`, `arrow(ax, p, q, c)`, `dim(ax, p, q, metin, off)` (ölçü oku), `angarc(ax, merkez, r, a0, a1, metin, tr)` (açı yayı), `clean_axes(ax)`; renkler `BLUE RED GRN ORG KOYU GREY`, dolgular `FILL_GREY FILL_ORANGE FILL_BLUE FILL_ACIK`. Şema boyutu ~`figsize=(3.4, 2.6)`; sembol etiketleri mathtext (`r'$t_o$'`, fontsize 10–11), açıklama yazıları 6.5–8.5 pt.
 
 ## Sık hatalar
 

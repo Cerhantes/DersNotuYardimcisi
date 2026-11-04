@@ -25,7 +25,7 @@ Ya da kendin kurmak istersen Claude Code içinde şu iki komutu çalıştır:
 
 Ardından `/reload-plugins` yaz ya da Claude Code'u yeniden başlat.
 
-Python, paketler ve yazı tipleri için bir şey yapman gerekmez. İlk kullanımda skill eksikleri kendisi kurar (1–3 dakika, yönetici şifresi istemez). Bilgisayarda Python yoksa onu da indirir. Yazı tipleri repoyla birlikte gelir.
+Kurulumdan sonra listede üç skill görünür. Python, paketler ve yazı tipleri için bir şey yapman gerekmez. İlk kullanımda skill eksikleri kendisi kurar (1–3 dakika, yönetici şifresi istemez). Bilgisayarda Python yoksa onu da indirir. Yazı tipleri repoyla birlikte gelir.
 
 ## Kullanım
 
@@ -63,5 +63,7 @@ Kullanıcı bu repodan kurulum isterse:
 - Her skill'in `USLUP.md` dosyası üslup rehberidir. `examples/` klasöründeki betikler kitaptan bağımsız, genel bir konuyu (ısı iletimi) işleyen kalıp örnekleridir; kitap olmadan da derlenir.
 
 ## Lisans
+
+Üretilen PDF'lerde ana renk konudan konuya değişir, zeminler açıktır.
 
 Kod MIT, bkz. [LICENSE](LICENSE). `ortak/fonts/` içindeki Carlito yazı tipi SIL Open Font License 1.1 ile dağıtılır, bkz. [OFL.txt](ortak/fonts/OFL.txt).

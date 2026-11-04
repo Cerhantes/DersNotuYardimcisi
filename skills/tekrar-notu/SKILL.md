@@ -18,7 +18,7 @@ Belge şu parçalardan oluşur, bu sırayla:
    - **Formüller** (`E`): kaynaktaki her numaralı denklem, numarasıyla; problemlerde gereken ters çözülmüş biçimler de.
    - **Tablolar** (`T`): kaynaktaki her tablo, numarası ve **tüm değerleriyle**.
    - **Şekiller** (`F`, `F2`): kaynağın kendi şekilleri, numaralarıyla; altyazı = şeklin söylediği bilgi (ne gösterdiği + dikkat edilecek nokta). İkili şekiller yan yana (`F2`).
-   - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ornek` (yeşil) çözümlü örnek: verilen → yol → sonuç · `ipucu` sezgi · `ozet` (mor) bölüm sonu **HIZLI KONTROL** listesi.
+   - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ornek` (yeşil) çözümlü örnek: verilen → yol → sonuç · `ipucu` sezgi · `ozet` (konunun rengi) bölüm sonu **HIZLI KONTROL** listesi.
 4. **"Neyi değiştirirsem ne olur?" tablosu** — konu parametre–sonuç ilişkileri içeriyorsa: satır = değiştirilen parametre (↑), sütun = etkilenen büyüklükler (↑ ↓ —), son sütun "Diğer".
 5. **Problem çözme**: çözüm sırası kutusu + kaynaktaki her çözümlü problemin özeti tablosu (problem no · konu · yol ve sonuç); bir problem çok sonuç veriyorsa (ör. tüm büyüklükler tablosu) sonuçların **tamamı** ayrı tablo.
 6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi.
@@ -36,12 +36,21 @@ Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tiple
 
 - `SK` = bu skill yüklenirken en üstte yazan **Base directory** yolu (skill `~/.claude/skills` altında da, plugin önbelleğinde de olabilir; yolu varsayma).
 - **İşe başlarken bir kez** Python ortamını hazırla:
-  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../ortak/kur.ps1"`
-  - Mac/Linux: `bash "$SK/../ortak/kur.sh"`
+  - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File "$SK/../../ortak/kur.ps1"`
+  - Mac/Linux: `bash "$SK/../../ortak/kur.sh"`
 - Ortam hazırsa bu adım 1–2 sn sürer. İlk seferde Python ve paketleri indirir (1–3 dk, yönetici hakkı istemez, sistem Python'una dokunmaz); bu sürenin başında kullanıcıya haber ver.
 - Çıktının son satırı `PY=<yol>`. Aşağıdaki komutlardaki `$PY` bu yoldur; sistemdeki `py`/`python` kullanılmaz. Betik `KURULUM BAŞARISIZ` derse mesajı kullanıcıya ilet.
 - Her komutta `PYTHONIOENCODING=utf-8` ve `$PY -W ignore`. Komutlar Bash sözdizimindedir; yalnız PowerShell varsa `$env:PYTHONPATH="..."; & $PY ...` biçimine çevir.
 - Yazı tipleri repoda gömülüdür (metin Carlito, matematik DejaVu Serif), kurulmaz.
+
+## Renk
+
+Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otomatik çalışır, içerik betiğinde renk yazmak gerekmez.
+
+- Renkler yalnız `ortak/tema.py`'deki paletten gelir: `petrol kiremit yesil hardal mavi kirmizi turkuaz zeytin`. Mor ve lacivert palette yoktur, hex renk yazma.
+- Zeminler açık, başlıklar ana renkte metindir; koyu dolgulu bant kullanma.
+- Her `d.h1` sıradaki rengi alır. Konuya uyan rengi seçmek için `d.h1('...', renk='yesil')`; tüm notu tek renk yapmak için `start(..., renk='petrol')`.
+
 
 ## Konum bağımsızlığı
 
@@ -68,7 +77,7 @@ Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tiple
    - Şüpheli satırların gerçek hata türleri: yalnız kalan `↑.` ya da tek kelime; kelime/sayı ortasından bölünmüş tablo hücresi (`83–86 HR | A`, `4000–500 | 0`); `HAM ALT ÇİZGİ` (`F_c` S()'den geçmemiş); `HAM İŞARETLEME` (`&amp;`).
    - Yanlış alarm: bilerek `<br/>` ile bölünmüş başlık, yan yana birleşik okunan tablo hücreleri (`246698`), tek hücreli `—`.
    - Sonra **bütün** `rv_*.png` görüntülerini aç: içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
-8. **Kopyala**: `cp <work>/out.pdf "<dirname $B>/<kök>_Tekrar_Notu.pdf"`; `cmp` ile doğrula.
+8. **Kopyala**: `cp <work>/out.pdf "<dirname $B>/<kök>_Tekrar_Notu.pdf"`; `cmp` ile doğrula. `tekrar.py` ve `figs.json`'u `<dirname $B>/.kaynak/<kök>_Tekrar_Notu/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz.
 9. **Rapor**: dosya yolu, sayfa sayısı, kapsanan bölümler, kapsam denetimi sonucu (kalan bilerek dışarıda bırakılanlar), "benim eklediklerim" (eğilim tablosu, cevaplar).
 
 ## tnlib API (`from tnlib import *`)
