@@ -44,6 +44,7 @@ _BODY_CM, _MATH_CM = _body.face.charToGlyph, _math.face.charToGlyph
 _SYM_CM = pdfmetrics.getFont('Sym').face.charToGlyph
 _missing = set()
 _ANA = '#333333'   # o anki kartın rengi
+_ADLI = set()      # terms(...) ile adlandırılmış semboller
 
 
 def _fix_glyphs(t):
@@ -138,16 +139,54 @@ def sym(s):
 
 def terms(*pairs):
     """terms(('q', 'ısı akısı'), ('L', 'kalınlık (m)')) -> 'q: ısı akısı · L: ...'"""
+    for a, _ in pairs:
+        for s in a.split(', '):
+            if not (s.isascii() and s.isalpha() and len(s) > 1):   # 'MRR' gibi adlar harflerine bölünmez
+                _ADLI.update(_semboller(re.sub(r'_(\w+)', r'_{\1}', s)))   # 'D_ort' -> D_{ort}
     return ' · '.join('<font color="@ANA@">%s</font>: %s' % (sym(a), b) for a, b in pairs)
 
 
-AC_TEX = {'alpha': 'α', 'beta': 'β', 'theta': 'θ', 'phi': 'φ', 'varphi': 'φ', 'psi': 'ψ'}
+YUNAN = {'alpha': 'α', 'beta': 'β', 'gamma': 'γ', 'delta': 'δ', 'epsilon': 'ε', 'varepsilon': 'ε', 'zeta': 'ζ', 'eta': 'η',
+         'theta': 'θ', 'kappa': 'κ', 'lambda': 'λ', 'mu': 'μ', 'nu': 'ν', 'xi': 'ξ', 'pi': 'π', 'rho': 'ρ', 'sigma': 'σ',
+         'tau': 'τ', 'phi': 'φ', 'varphi': 'φ', 'chi': 'χ', 'psi': 'ψ', 'omega': 'ω', 'Gamma': 'Γ', 'Delta': 'Δ',
+         'Theta': 'Θ', 'Lambda': 'Λ', 'Pi': 'Π', 'Sigma': 'Σ', 'Phi': 'Φ', 'Psi': 'Ψ', 'Omega': 'Ω'}
+SABIT = {'π'}   # sabit, büyüklük değil: adlandırılması ya da şemada görünmesi beklenmez
+_TOK = re.compile(r'\\([A-Za-z]+)|([A-Za-zΑ-Ωα-ω])')
 
 
-def _acilar(metin):
-    """Metindeki açı sembolleri (LaTeX ya da Unicode): α β θ φ ψ."""
-    bul = {AC_TEX[m] for m in re.findall(r'\\(alpha|beta|theta|varphi|phi|psi)\b', metin)}
-    return bul | (set(metin) & set(AC_TEX.values())) | ({'φ'} if 'ϕ' in metin else set())
+def _semboller(tex):
+    """Formül metnindeki semboller: 'F_c', 'β', 'D_ort'. LaTeX ve Unicode yazımı aynı sonucu verir."""
+    t = tex.replace('\u0307', '').replace('ϕ', 'φ')
+    t = re.sub(r'_\{?\\mathrm\{(\w+)\}\}?', r'_{\1}', t)     # D_{\mathrm{ort}} -> D_{ort}
+    t = re.sub(r'\\mathrm\{[^{}]*\}', ' ', t)                # MRR gibi adlar ve birimler
+    t = re.sub(r'\{d(?=\\)', '{', t)                         # \frac{d\tau}{d\phi}: türev işareti sembol değil
+    bul, i = set(), 0
+    while True:
+        m = _TOK.search(t, i)
+        if not m:
+            return bul - SABIT
+        i = m.end()
+        if m.group(1) and m.group(1) not in YUNAN:
+            continue
+        taban = YUNAN[m.group(1)] if m.group(1) else m.group(2)
+        alt = re.match(r'\s*_(\{[^{}]*\}|\\[A-Za-z]+|.)', t[i:])
+        if alt:
+            i += alt.end()
+            a = alt.group(1).strip('{}').lstrip('\\')
+            taban += '_' + YUNAN.get(a, a)
+        bul.add(taban)
+
+
+def _sema_sembolleri(yazilar):
+    """Şema yazıları -> (matematik yazılı semboller, düz yazıda tek başına duran harfler ('V', 'm/s'deki m, s))."""
+    mat, duz = set(), set()
+    for y in yazilar:
+        for i, parca in enumerate(y.split('$')):
+            if i % 2:
+                mat |= _semboller(parca)
+            else:
+                duz |= set(re.findall(r'(?<![\wΑ-Ωα-ω])[A-Za-zΑ-Ωα-ω](?![\wΑ-Ωα-ω])', parca))
+    return mat - SABIT, duz - SABIT
 
 
 def _numaralar(n):
@@ -171,7 +210,7 @@ class Sheet(BaseDocTemplate):
         fr = Frame(LM, BM, FW, FH, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
         self.addPageTemplates([PageTemplate('p', [fr], onPage=self._page)])
         self.story = []
-        self.work, self._nums = work, set()
+        self.work, self._nums, self._tablolar, self._kartlar = work, set(), set(), []
         self.tema = Tema(title, renk)
         self._title()
 
@@ -287,31 +326,44 @@ class Sheet(BaseDocTemplate):
                 parca.textColor = col
 
     def _sema_denetimi(self, title, items, fig):
-        """Kartın formüllerindeki açılar şemada gösterilmiyorsa uyarır (dglib şema yazılarını kaydeder)."""
+        """Kartın sembollerini kaydeder; şemayla formül arasındaki farkları raporlar (dglib şema yazılarını kaydeder)."""
+        tex = ' '.join(it[8] for it in items if isinstance(it, tuple) and it and it[0] == 'eq')
+        form = _semboller(tex)
+        ad = re.sub('<[^>]+>', '', title)
+        self._kartlar.append((ad, form))
         if not isinstance(fig, str):
             return
         kayit = os.path.splitext(self._fig_path(fig))[0] + '.yazi.json'
         if not os.path.exists(kayit):
             return
         with open(kayit, encoding='utf-8') as f:
-            yazi = ' '.join(json.load(f))
-        tex = ' '.join(it[8] for it in items if isinstance(it, tuple) and it and it[0] == 'eq')
-        eksik = _acilar(tex) - _acilar(yazi)
-        if eksik:
-            print('UYARI: "%s" kartının şeması (%s) formüldeki açıyı göstermiyor: %s'
-                  % (re.sub('<[^>]+>', '', title), fig, ' '.join(sorted(eksik))), file=sys.stderr)
+            mat, duz = _sema_sembolleri(json.load(f))
+        yok, fazla = sorted(form - mat - duz), sorted(mat - form)
+        if yok:
+            print('ŞEMA "%s" (%s): formülde var, şemada yok: %s' % (ad, fig, ' '.join(yok)))
+        if fazla:
+            print('ŞEMA "%s" (%s): şemada var, formülde yok: %s' % (ad, fig, ' '.join(fazla)))
 
     def _kapsam_denetimi(self):
-        """<work>/metin.txt içinde geçip kağıda girmeyen denklem numaralarını raporlar."""
+        """Adlandırılmamış sembolleri ve <work>/metin.txt içinde geçip kağıda girmeyen denklem/tabloları raporlar."""
+        for ad, form in self._kartlar:
+            yok = sorted(form - _ADLI)
+            if yok:
+                print('UYARI: "%s" kartında adlandırılmamış sembol: %s' % (ad, ' '.join(yok)), file=sys.stderr)
         yol = os.path.join(self.work, 'metin.txt')
         if not os.path.exists(yol):
             return
         with open(yol, encoding='utf-8') as f:
-            kaynak = set(re.findall(r'\((\d+\.\d+)\)', f.read()))
+            metin = f.read()
+        kaynak = set(re.findall(r'\((\d+\.\d+)\)', metin))
         bolumler = {n.split('.')[0] for n in self._nums}   # (0.15) gibi parantez içi sayılar elenir
         kaynak = {n for n in kaynak if n.split('.')[0] in bolumler}
         eksik = sorted(kaynak - self._nums, key=lambda s: [int(x) for x in s.split('.')])
         print('KAPSAM: kaynakta geçip kağıtta olmayan denklemler: %s' % (', '.join(eksik) or 'yok'))
+        tablo = set(re.findall(r'\b(?:TABLE|Table|Tablo)\s+(\d+\.\d+)', metin))
+        tablo = {n for n in tablo if n.split('.')[0] in bolumler} - self._tablolar
+        print('KAPSAM: kaynakta geçip kağıtta olmayan tablolar: %s'
+              % (', '.join(sorted(tablo, key=lambda s: [int(x) for x in s.split('.')])) or 'yok'))
 
     def tbl(self, rows, widths, title=None):
         """Sabitler / tipik değerler tablosu; ilk satır başlık. Liste döndürür: items'a `+ d.tbl(...)` ile ekle
@@ -325,6 +377,7 @@ class Sheet(BaseDocTemplate):
         t._tablo_rengi = True
         out = []
         if title:
+            self._tablolar |= set(re.findall(r'Tablo\s+(\d+\.\d+)', title))
             b = Paragraph('<b>%s</b>' % title, ParagraphStyle('tt', parent=st_terms))
             b._tablo_rengi = True
             out.append(b)

@@ -36,7 +36,7 @@ def init(work):
 
 def save(fig, name):
     assert OUT, 'önce init(<work>) çağır'
-    # fslib, formüldeki açılar şemada var mı diye bu yazı kaydına bakar
+    # fslib, formüldeki semboller şemada var mı diye bu yazı kaydına bakar
     yazi = [t.get_text() for t in fig.findobj(matplotlib.text.Text) if t.get_text().strip()]
     with open(os.path.join(OUT, name + '.yazi.json'), 'w', encoding='utf-8') as f:
         json.dump(yazi, f, ensure_ascii=False)
