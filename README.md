@@ -43,7 +43,7 @@ Komutla da başlatabilirsin:
 | Tekrar notu | `/ders-notu-yardimcisi:tekrar-notu` |
 | Formül kağıdı | `/ders-notu-yardimcisi:formul-kagidi` |
 
-![Dört adım: 1. PDF'ini ver, kitabın ya da notun yolunu söylemen yeter. 2. Soruları yanıtla, gerekirse konuyu ve problemleri sorar. 3. Hazırlanmasını bekle, notu yazar, PDF'i derleyip kontrol eder. 4. PDF'ini al, kaynağın bulunduğu klasöre kaydedilir.](docs/akis.png)
+![Altı adım. Sen: 1. PDF'ini ver, kitabın ya da ders notunun yolunu söylemen yeter. 2. Konuyu seç, konu belli değilse bölümleri listeler, hangilerini istediğini sorar. 3. Problemlere karar ver, kaynakta bölüm sonu problemleri varsa nota eklensin mi diye sorar. Claude: 4. Kaynağı okur, yalnızca seçilen bölümleri okur, formülleri ve şekilleri çıkarır. 5. Notu yazar, Türkçe metni yazar, kaynağın şekillerini ya da şemaları ekler. 6. Kontrol edip kaydeder, sayfaları gözden geçirir, PDF'i kaynağın klasörüne kaydeder.](docs/akis.png)
 
 ## Güncelleme ve kaldırma
 
