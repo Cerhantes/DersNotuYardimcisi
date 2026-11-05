@@ -61,6 +61,16 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 - Son PDF **kaynağın bulunduğu klasöre** (`dirname $B`) yazılır; kullanıcı başka yer söylerse oraya. Yazılamıyorsa sor.
 - Ders belgesi (DUB/izlence/syllabus) kaynağın klasöründe ve üst klasöründe aranır.
 
+## Token tasarrufu: envanter ve sayfa farkı
+
+- **İşe başlarken, sırayla, kaynak metnini okumadan önce:**
+  1. `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri; kapsamı belirle. Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez.
+  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle.
+  3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
+- **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
+- **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
+- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli.
+
 ## Akış
 
 0. **Başlangıç: yalnızca kaynak yolunu iste.** Yol verilmediyse tek soru: kaynak PDF'in yolu (kitap ya da ders notu; birden fazla olabilir). Ders adı, konu, sayfa sorma; kaynaktan çıkar. Dosya bulunamazsa `ls` ile yakın adları göster.
@@ -69,7 +79,7 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
    - Kaynak daha önce yapılmış bir **ders notuysa** onun bölümleri kapsamdır; ders notu bir kitaptan yapılmışsa ve kitap aynı klasördeyse denklem numaraları/tablolar için kitaba da bak.
 2. **Metni ve adayları çıkar**: `$PY -W ignore $SK/scripts/find_formulas.py $B <work> <ilk> <son>` → `<work>/metin.txt`, `<work>/formul_adaylari.txt`.
    - "Denklem metni okunamayan sayfalar" çıktısı varsa (kitaplarda matematik özel kodlu yazı tipindedir, `=` gibi işaretler bozuk çıkar) o sayfaları `$PY -W ignore $SK/scripts/review.py $B <work> 130 --pages 372,373` ile render edip `Read` ile **görerek** oku.
-3. **Envanter çıkar** (yazmadan önce aralığın tamamını oku): her formül için no, ad, semboller + birimler, koşul; tablolar (no, değerler); çözümlü örneklerde kullanılan ters/oran biçimleri; konunun hesap sırası. Bunları kartlara grupla (bir kart = bir kavram; kart başına 2–7 formül) ve her karta hangi şemanın gideceğini belirle.
+3. **Envanter çıkar** (yazmadan önce aralığın tamamını oku; önceki içerik betiği varsa onu, bkz. Token tasarrufu): her formül için no, ad, semboller + birimler, koşul; tablolar (no, değerler); çözümlü örneklerde kullanılan ters/oran biçimleri; konunun hesap sırası. Bunları kartlara grupla (bir kart = bir kavram; kart başına 2–7 formül) ve her karta hangi şemanın gideceğini belirle.
 4. **Şemaları çiz**: `<work>/semalar.py` (dglib). Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_semalar.py`'yi oku. `PYTHONPATH=$SK/scripts $PY -W ignore <work>/semalar.py <work>` → `<work>/dg/*.png` + `KONTROL:` satırındaki `<work>/dg/_kontrol.png`.
    - **Derlemeye geçmeden `_kontrol.png`'yi `Read` ile aç.** Bakılacaklar: etiket bir okun, eğrinin ya da başka etiketin üstünde mi · yazı kesik mi · semboller formüldekiyle aynı mı. Düzeltip yalnızca o şemayı yeniden çiz (`... semalar.py <work> sema_adi`) ve kontrol görüntüsüne yeniden bak.
    - Yerleşim kuralı: sembol etiketleri ok/vektör alanının ve eğrilerin **dışına**, boş bölgeye konur (eğrinin uç noktasının yanına `ha='left'`); ölçü okları (`dim`) gövdeden ayrı bir şeritte durur.
@@ -77,7 +87,7 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 6. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kagit.py <work>/out.pdf <work>`. Stderr'deki `UYARI` satırlarını gider (küçülen formül → böl, eksik glif → başka simge, `adlandırılmamış sembol` → `terms` içinde adlandır).
    - **`ŞEMA` satırlarının her birini tek tek değerlendir.** `formülde var, şemada yok`: sembol çizimde gösterilebiliyorsa şemaya ekle; gösterilemiyorsa (gerilme, katsayı, eğilim grafiğinde eksen dışı büyüklük) bilerek geç. `şemada var, formülde yok`: yazım farkıysa eşitle, yardımcı etiketse bırak.
    - `KAPSAM:` satırlarındaki her denklem ve tablo numarası için karar ver: karta ekle ya da kapsam dışıysa raporda nedenini yaz. Kaynağın çözümlü örneğini kartın uygulama satırıyla hesaplayıp formülleri doğrula.
-7. **Gözle kontrol et**: `$PY -W ignore $SK/scripts/review.py <work>/out.pdf <work>` → önce `rv_ov.png` (sayfa dengesi), sonra **her** `rv<n>.png`. Kontrol listesi: her sembol adlandırılmış mı · formüller okunaklı mı (çok küçülen yok) · numaralar kaynakla aynı mı · şema kartıyla aynı yükseklikte mi, sembolleri formülle aynı mı · sayfa altlarında yarım sayfalık boşluk var mı (kart sırasını değiştir: büyük kartın ardından sığan küçük kart; ya da `figmaxh`/`figw` ayarla) · kutu (eksik glif) var mı · etiketler birbirine ya da çizgiye binmiş mi.
+7. **Gözle kontrol et**: `sayfa_fark.py` ile (bkz. Token tasarrufu) ilk derlemede `rv_ov.png` (sayfa dengesi) ve her `rv<n>.png`, sonraki derlemelerde yalnız `AÇILACAK` listesi. Numaralı formülleri `--serit` kırpıntılarıyla karşılaştır. Kontrol listesi: her sembol adlandırılmış mı · formüller okunaklı mı (çok küçülen yok) · numaralar kaynakla aynı mı · şema kartıyla aynı yükseklikte mi, sembolleri formülle aynı mı · sayfa altlarında yarım sayfalık boşluk var mı (kart sırasını değiştir: büyük kartın ardından sığan küçük kart; ya da `figmaxh`/`figw` ayarla) · kutu (eksik glif) var mı · etiketler birbirine ya da çizgiye binmiş mi.
 8. **Kopyala ve raporla**: PDF'leri `dirname $B`'ye kopyala, `ls` ile doğrula. `kagit.py` ve `semalar.py`'yi `<dirname $B>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, kapsanan bölümleri/denklem aralığını ve kartların listesini yaz.
 
 ## fslib API (`from fslib import *`)

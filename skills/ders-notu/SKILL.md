@@ -51,6 +51,16 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 
 `B=<kitap.pdf, mutlak yol>` olarak:
 
+## Token tasarrufu: envanter ve sayfa farkı
+
+- **İşe başlarken, sırayla, kaynak metnini okumadan önce:**
+  1. `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri; kapsamı belirle. Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez.
+  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle.
+  3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
+- **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
+- **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
+- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli.
+
 ## Akış
 
 0. **Başlangıç: sadece kaynak yolunu iste.** Kullanıcı kitabın yolunu vermediyse tek soru sor: kitabın PDF yolu. Ders adı, konu, sayfa aralığı sorma; bunlar kitaptan çıkar. (Yol tırnaklı, `~`, `Masaüstü` gibi verilebilir; `Masaüstü` = `~/Desktop`. Dosya bulunamazsa `ls` ile yakın adları göster.)
@@ -64,19 +74,19 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 2. **Metni çıkar ve ofseti doğrula**
    `$PY -W ignore $SK/scripts/extract_text.py $B <ilk> <son> <work>/metin.txt`
    Basılı sayfa numaralarıyla book_info'daki farkı doğrula. Aralık bir bölümün ortasında başlıyor ya da bitiyorsa raporda hangi alt bölümleri kapsadığını söyle.
-3. **Metnin tamamını oku** (`Read` ile, parça parça). İçeriği yazmadan önce tüm aralığı oku; şekil numaralarını ve denklemleri listele.
-4. **Şekilleri tespit et**
+3. **Metnin tamamını oku** (`Read` ile, parça parça; envanterin `metin.txt`'si varsa yeniden çıkarma, önceki içerik betiği varsa bkz. Token tasarrufu). İçeriği yazmadan önce tüm aralığı oku; şekil numaralarını ve denklemleri listele.
+4. **Şekilleri tespit et** (envanter şekilleri hazır diyorsa `envanter.py $B --sekil-al <work>` ile al, 5. adıma kadar atla)
    `$PY -W ignore $SK/scripts/detect_figs.py $B <work> <ilk> <son> [1. adımdaki bayraklar]`
 5. **Kes ve gözle kontrol et**
    `$PY -W ignore $SK/scripts/crop_figs.py $B <work> [--cap-above]` → `<work>/sheet_*.png` temas sayfalarının **hepsini** `Read` ile aç. Kümeler her başlığa otomatik atanır (en yakın küme + aynı satır/sütundaki alt şekiller); kitapta başlık şeklin üstündeyse `--cap-above` ver. `UYARI` satırları kontrol edilecek sayfaları gösterir. Tipik hatalar ve düzeltmeleri:
    - Küme yanlış şekle gitmiş / alt şekil eksik → `split.json`: `{"225": {"5.6": [0], "5.7": [1, 2]}}` (küme sırası det.json'daki sıradır).
    - Kesime gövde metni ya da denklem girmiş, veya şeklin bir parçası dışarıda kalmış → `over.json`: `{"5.18": [255, [x0, y0, x1, y1]]}`. Koordinatları det.json kümelerinden ve `page.get_text('dict')` satır kutularından türet. Şekil başlığı elle silinmez: `crop_figs.py` başlık alanını (`det.json` → `capboxes`) over.json kesimlerinde de siler ve boş kenarı kırpar; başlık hâlâ görünüyorsa `--cap` ve `--cap-font` bayraklarına bak.
    - Hatalar çoksa (ör. etiketler kesik ya da her şekle metin giriyor) önce 1. adımdaki bayrakları gözden geçir (`--label-font`, `--label-len`, `--pad`).
-   Düzeltip `crop_figs.py`'yi yeniden çalıştır; temas sayfaları temiz olana kadar tekrarla.
+   Düzeltip `crop_figs.py`'yi yeniden çalıştır; temas sayfaları temiz olana kadar tekrarla. Temizse `envanter.py $B --sekil-kaydet <work>`.
 6. **İçerik betiğini yaz** (`<work>/<konu>.py`). Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_ders_notu.py`'yi baştan sona oku, aynı kalıbı izle. Örnek kitaptan bağımsız genel bir konudur; içerik, künye ve numaralar 1. adımdan ve kitaptan gelir. API aşağıda.
 7. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/<konu>.py <work>/out.pdf <work>`
-8. **Sayfa düzenini gözle kontrol et**: `$PY $SK/scripts/sheets.py <work>/out.pdf <work>/rv` → `rv_*.png` sayfalarının hepsini aç. Şüpheli sayfayı tek başına yüksek çözünürlükte render edip bak. Kontrol listesi: içindekiler tek sayfa mı, şekil kendi paragrafıyla aynı sayfada mı, sayfa sonunda yalnız başlık/yarım kutu var mı, büyük boşluk var mı, denklemlerde kutucuk (eksik glif) var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`; görürsen o metin `d.p` dışında bir yolla eklenmiştir).
-9. **Kopyala ve raporla**: PDF'leri kitabın klasörüne (`dirname $B`, ya da kullanıcının söylediği yere) kopyala, `ls` ile doğrula. İçerik betiğini ve `figs.json`'u `<pdf klasörü>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, PDF ↔ kitap sayfa eşlemesini ve kapsanan bölümleri açıkça yaz ve işin bittiğini söyle.
+8. **Sayfa düzenini gözle kontrol et**: `$PY $SK/scripts/sheets.py <work>/out.pdf <work>/rv` → ilk derlemede `rv_*.png` sayfalarının hepsini aç, sonraki derlemelerde yalnız `sayfa_fark.py`'nin `AÇILACAK` listesini (bkz. Token tasarrufu). Şüpheli sayfayı tek başına yüksek çözünürlükte render edip bak. Kontrol listesi: içindekiler tek sayfa mı, şekil kendi paragrafıyla aynı sayfada mı, sayfa sonunda yalnız başlık/yarım kutu var mı, büyük boşluk var mı, denklemlerde kutucuk (eksik glif) var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`; görürsen o metin `d.p` dışında bir yolla eklenmiştir).
+9. **Kopyala ve raporla**: PDF'leri kitabın klasörüne (`dirname $B`, ya da kullanıcının söylediği yere) kopyala, `ls` ile doğrula. İçerik betiğini ve `figs.json`'u `<pdf klasörü>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, PDF ↔ kitap sayfa eşlemesini ve kapsanan bölümleri açıkça yaz ve işin bittiğini söyle. Sonuna şu öneriyi ekle: tekrar notu ve formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar onlara da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi, sonra sıradaki belgeyi istemesi önerilir.
 
 ## notlib API (`from notlib import *`)
 

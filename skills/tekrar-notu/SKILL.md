@@ -21,9 +21,9 @@ Belge şu parçalardan oluşur, bu sırayla:
    - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ornek` (yeşil) çözümlü örnek: verilen → yol → sonuç · `ipucu` sezgi · `ozet` (konunun rengi) bölüm sonu **HIZLI KONTROL** listesi.
 4. **"Neyi değiştirirsem ne olur?" tablosu** — konu parametre–sonuç ilişkileri içeriyorsa: satır = değiştirilen parametre (↑), sütun = etkilenen büyüklükler (↑ ↓ —), son sütun "Diğer".
 5. **Problem çözme**: çözüm sırası kutusu + kaynaktaki her çözümlü problemin özeti tablosu (problem no · konu · yol ve sonuç); bir problem çok sonuç veriyorsa (ör. tüm büyüklükler tablosu) sonuçların **tamamı** ayrı tablo.
-6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi.
+6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi (bölüm sonu problemleri yalnız kullanıcı isterse).
 7. **Formül özeti** tablosu.
-8. **Kendini Sına — kısa cevaplı**: kaynaktaki soruların hepsi, **cevabıyla**. Sayısal cevaplar Python ile hesaplanıp doğrulanır.
+8. **Kendini Sına — kısa cevaplı**: kapsamdaki soruların hepsi, **cevabıyla** (bölüm sonu problemleri yalnız kullanıcı isterse). Sayısal cevaplar Python ile hesaplanıp doğrulanır.
 
 Diğer kurallar:
 - Dil Türkçe; ondalık ayırıcı virgül. Eğilim gösterimi: `↑` artar, `↓` azalır, `→` sonuç/sebep zinciri.
@@ -57,14 +57,24 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 - Tüm yollar **mutlak**: kaynak `B`, skill `SK`, çalışma klasörü `<work>` = oturum scratchpad'i varsa `<scratch>/tn-<konu>`, yoksa `$TEMP/tekrar-notu/<konu>`. cwd'ye hiçbir şey yazılmaz.
 - Son PDF kaynağın klasörüne (`dirname $B`) kopyalanır; kullanıcı başka yer söylerse oraya.
 
+## Token tasarrufu: envanter ve sayfa farkı
+
+- **İşe başlarken, sırayla, kaynak metnini okumadan önce:**
+  1. `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri; kapsamı belirle. Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez.
+  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle.
+  3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
+- **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
+- **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
+- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli.
+
 ## Akış
 
 0. **Yalnızca kaynak yolunu iste** (verilmediyse). Ders adı/konu/sayfa sorma; kaynaktan çıkar. Birden çok kaynak verilebilir → her biri için 1–9 ayrı.
-1. **Kaynağı çıkar**: `$PY -W ignore $SK/scripts/kaynak.py $B <work>` → künye, içindekiler, `metin.txt`, `fig/*.png`, `figs.json`, `figsheet*.png`.
+1. **Kaynağı çıkar**: envanter şekilleri hazır diyorsa `envanter.py $B --sekil-al <work>` ile al, 2. adımı atla. Değilse `$PY -W ignore $SK/scripts/kaynak.py $B <work>` → künye, içindekiler, `metin.txt`, `fig/*.png`, `figs.json`, `figsheet*.png`; şekiller doğrulanınca `envanter.py $B --sekil-kaydet <work>`.
    - Şekil başlığı farklı biçimdeyse (`Fig 4-1`, `Figure 3.2`) `--cap` regex'ini uyarla.
    - **Şekil bulunamadıysa** (kaynak bir ders kitabı ve şekilleri vektör çizimse): `$SK/../ders-notu` skill'inin `detect_figs.py` + `crop_figs.py` adımlarıyla `<work>/figs.json` ve `<work>/fig/` üret (aynı biçim).
 2. **Temas sayfalarının hepsini `Read` ile aç**: her şekil doğru numarada ve tam mı (başlıksız görseller listesine de bak).
-3. **Metnin tamamını oku** (`Read`, parça parça, hiçbir sayfa atlanmadan). Yazmadan önce envanter çıkar: bölümler; her bölümdeki sayılı listeler; denklem numaraları; tablo numaraları; şekil numaraları; çözümlü örnek/problemler; sorular.
+3. **Metnin tamamını oku** (`Read`, parça parça, hiçbir sayfa atlanmadan; önceki içerik betiği varsa onu oku, atlanan yeri 6. adımdaki kapsam denetimi gösterir). Yazmadan önce envanter çıkar: bölümler; her bölümdeki sayılı listeler; denklem numaraları; tablo numaraları; şekil numaraları; çözümlü örnek/problemler; sorular.
 4. **İçerik betiğini yaz**: `<work>/tekrar.py`. Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_tekrar_notu.py`'yi baştan sona oku, aynı yapıyı izle. Örnek kaynaktan bağımsız genel bir konudur; içerik kaynaktan gelir. API aşağıda.
    - **Uzun kaynak (> ~40 sayfa):** `metin.txt`'yi ~300 satırlık parçalarla oku; her parçayı okur okumaz o bölümlerin içeriğini `<work>/p01.py`, `p02.py`… dosyalarına **Write aracıyla** yaz (ilk parça `start(...)` ve `d.cover(...)` içerir, son parça `d.make()` ile biter), en sonda `cat p*.py > tekrar.py`. Bash heredoc ile Python yazma — Türkçe kesme işaretli metinde tırnaklar kırılır.
 5. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/tekrar.py <work>/out.pdf <work>`
@@ -76,9 +86,9 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 7. **Düzen denetimi**: `$PY -W ignore $SK/scripts/duzen.py <work>/out.pdf <work>` → şüpheli satırlar + `rv_*.png`.
    - Şüpheli satırların gerçek hata türleri: yalnız kalan `↑.` ya da tek kelime; kelime/sayı ortasından bölünmüş tablo hücresi (`83–86 HR | A`, `4000–500 | 0`); `HAM ALT ÇİZGİ` (`F_c` S()'den geçmemiş); `HAM İŞARETLEME` (`&amp;`).
    - Yanlış alarm: bilerek `<br/>` ile bölünmüş başlık, yan yana birleşik okunan tablo hücreleri (`246698`), tek hücreli `—`.
-   - Sonra **bütün** `rv_*.png` görüntülerini aç: içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
+   - Sonra ilk derlemede **bütün** `rv_*.png` görüntülerini aç, sonraki derlemelerde yalnız `sayfa_fark.py`'nin `AÇILACAK` listesini (bkz. Token tasarrufu): içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
 8. **Kopyala**: `cp <work>/out.pdf "<dirname $B>/<kök>_Tekrar_Notu.pdf"`; `cmp` ile doğrula. `tekrar.py` ve `figs.json`'u `<dirname $B>/.kaynak/<kök>_Tekrar_Notu/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz.
-9. **Rapor**: dosya yolu, sayfa sayısı, kapsanan bölümler, kapsam denetimi sonucu (kalan bilerek dışarıda bırakılanlar), "benim eklediklerim" (eğilim tablosu, cevaplar).
+9. **Rapor**: dosya yolu, sayfa sayısı, kapsanan bölümler, kapsam denetimi sonucu (kalan bilerek dışarıda bırakılanlar), "benim eklediklerim" (eğilim tablosu, cevaplar). Sonuna şu öneriyi ekle: formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar ona da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi önerilir.
 
 ## tnlib API (`from tnlib import *`)
 

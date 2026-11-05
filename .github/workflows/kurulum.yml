@@ -46,3 +46,12 @@ jobs:
           PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_semalar.py out/fk
           PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_kagit.py out/fk.pdf out/fk
           test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf
+
+      - name: Envanter ve sayfa farkı
+        run: |
+          "$PY" -W ignore ortak/envanter.py out/dn.pdf | grep 'Envanter henüz yok'
+          "$PY" -W ignore ortak/envanter.py out/dn.pdf 1-2 --work out/env | grep 'Envanter kuruldu'
+          test -s out/env/metin.txt
+          "$PY" -W ignore ortak/envanter.py out/dn.pdf 1-2 | grep 'yeniden kullanılıyor'
+          "$PY" -W ignore ortak/sayfa_fark.py out/dn.pdf out/fark | grep 'rv1.png'
+          "$PY" -W ignore ortak/sayfa_fark.py out/dn.pdf out/fark | grep 'AÇILACAK: yok'
