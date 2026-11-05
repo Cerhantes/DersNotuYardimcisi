@@ -1,39 +1,49 @@
 # Ders Notu Yardımcısı
 
-Ders kitabı ya da ders notu PDF'lerinden Türkçe çalışma materyali (PDF) üreten üç [Claude Code](https://claude.com/claude-code) skill'i.
+Ders kitabını ya da ders notunu ver, Claude Code sana Türkçe ders notu, tekrar notu ve formül kağıdını PDF olarak hazırlasın.
 
-*Three Claude Code skills that turn textbook PDFs into Turkish study material: lecture notes, review sheets and formula sheets.*
+*Claude Code skills that turn textbook PDFs into Turkish lecture notes, review notes and formula sheets.*
 
-| Skill | Ne yapar |
-|---|---|
-| `ders-notu` | Ders kitabından, kitabın kendi şekilleriyle, konuyu sıfırdan anlatan Türkçe ders notu |
-| `tekrar-notu` | Ders notu ya da kitaptan madde madde, hiçbir ayrıntıyı atlamayan tekrar özeti |
-| `formul-kagidi` | Şemalarla desteklenmiş, her terimi adlandırılmış formül kağıdı |
+Aynı konu (Fourier yasası), üç farklı çıktı:
+
+<table>
+<tr>
+<td width="33%" valign="top"><img src="docs/ornek-ders-notu.png" alt="Ders notu örneği"></td>
+<td width="33%" valign="top"><img src="docs/ornek-tekrar-notu.png" alt="Tekrar notu örneği"></td>
+<td width="33%" valign="top"><img src="docs/ornek-formul-kagidi.png" alt="Formül kağıdı örneği"></td>
+</tr>
+</table>
 
 ## Kurulum
 
-Tek gereken Claude Code. Claude Code'a şunu yaz:
-
-> https://github.com/Cerhantes/DersNotuYardimcisi skill'lerini kur
-
-Ya da kendin kurmak istersen Claude Code içinde şu iki komutu çalıştır:
+Claude Code içinde şu iki komutu çalıştır:
 
 ```
 /plugin marketplace add Cerhantes/DersNotuYardimcisi
 /plugin install ders-notu-yardimcisi@ders-notu-yardimcisi
 ```
 
-Ardından `/reload-plugins` yaz ya da Claude Code'u yeniden başlat.
+Sonra `/reload-plugins` yaz ya da Claude Code'u yeniden başlat.
 
-Kurulumdan sonra listede üç skill görünür. Python, paketler ve yazı tipleri için bir şey yapman gerekmez. İlk kullanımda skill eksikleri kendisi kurar (1–3 dakika, yönetici şifresi istemez). Bilgisayarda Python yoksa onu da indirir. Yazı tipleri repoyla birlikte gelir.
+Başka bir şey kurman gerekmez. İlk kullanımda skill, gereken Python ortamını 1–3 dakikada kendisi hazırlar. Yönetici şifresi istemez, sistemdeki Python'a dokunmaz.
 
 ## Kullanım
 
-Claude Code'da "şu kitaptan ders notu çıkar", "bu nottan tekrar özeti çıkar" ya da "formül kağıdı hazırla" de. Skill yalnızca PDF'in yolunu sorar.
+Claude Code'a ne istediğini yaz:
 
-Komutla başlatmak için: `/ders-notu-yardimcisi:ders-notu`, `/ders-notu-yardimcisi:tekrar-notu`, `/ders-notu-yardimcisi:formul-kagidi`.
+> Şu kitabın 6. bölümünden ders notu çıkar
+
+> Bu nottan tekrar notu hazırla
+
+> Vize konuları için formül kağıdı hazırla
+
+Komutla da başlatabilirsin: `/ders-notu-yardimcisi:ders-notu`, `/ders-notu-yardimcisi:tekrar-notu`, `/ders-notu-yardimcisi:formul-kagidi`.
+
+Skill önce PDF'in yolunu, kapsam belli değilse konuyu sorar. Bölüm sonu problemlerinin okunup okunmayacağını da sana bırakır. Bitince PDF'i kaynağın bulunduğu klasöre kaydeder.
 
 ## Güncelleme ve kaldırma
+
+Terminalde güncellemek için:
 
 ```
 claude plugin marketplace update ders-notu-yardimcisi
@@ -42,28 +52,8 @@ claude plugin update ders-notu-yardimcisi@ders-notu-yardimcisi
 
 Kendiliğinden güncellensin istersen: `/plugin` → Marketplaces → `ders-notu-yardimcisi` → Enable auto-update.
 
-Kaldırmak için `claude plugin uninstall ders-notu-yardimcisi@ders-notu-yardimcisi` çalıştır ve Python ortamının durduğu `~/.claude/ders-notu-yardimcisi` klasörünü sil. Sistemdeki Python'a dokunulmaz.
-
-## Claude için kurulum talimatı
-
-Kullanıcı bu repodan kurulum isterse:
-
-1. `claude plugin marketplace add Cerhantes/DersNotuYardimcisi`
-2. `claude plugin install ders-notu-yardimcisi@ders-notu-yardimcisi --scope user`
-3. Python ortamını şimdiden hazırla. Bu iki komutu, kurulan plugin'in kök klasöründen çalıştır (`claude plugin list --json` çıktısındaki `installPath`):
-   - Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File ortak/kur.ps1`
-   - Mac/Linux: `bash ortak/kur.sh`
-
-   Son satır `PY=<yol>` ise ortam hazırdır. Bu betik Python yoksa [uv](https://docs.astral.sh/uv/) ile indirir; elle Python ya da paket kurma.
-4. Kullanıcıya `/reload-plugins` yazmasını ya da Claude Code'u yeniden başlatmasını söyle.
-
-## Notlar
-
-- Üç skill birlikte kurulur: `tekrar-notu`, `ders-notu`'nun şekil kırpma betiklerini kullanır; hepsi `ortak/` klasörünü paylaşır.
-- Her skill'in `USLUP.md` dosyası üslup rehberidir. `examples/` klasöründeki betikler kitaptan bağımsız, genel bir konuyu (ısı iletimi) işleyen kalıp örnekleridir; kitap olmadan da derlenir.
+Kaldırmak için `claude plugin uninstall ders-notu-yardimcisi@ders-notu-yardimcisi` çalıştır ve Python ortamının durduğu `~/.claude/ders-notu-yardimcisi` klasörünü sil.
 
 ## Lisans
-
-Üretilen PDF'lerde ana renk konudan konuya değişir, zeminler açıktır.
 
 Kod MIT, bkz. [LICENSE](LICENSE). `ortak/fonts/` içindeki Carlito yazı tipi SIL Open Font License 1.1 ile dağıtılır, bkz. [OFL.txt](ortak/fonts/OFL.txt).
