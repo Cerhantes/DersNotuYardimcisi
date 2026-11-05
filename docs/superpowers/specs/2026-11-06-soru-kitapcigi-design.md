@@ -46,23 +46,16 @@ Kapak, tek konulu/karma açıklaması, konu başına soru numaralı içindekiler
 
 1. Ortam ve `ortak/envanter.py`; konu ve problem sayfaları belirlenir, yalnız o aralıklar okunur.
 2. Sorular `<work>/sorular.json`'a yazılır: no, sayfa, konu(lar), karma mı, gereken şekil/tablo, bağlı olduğu soru.
-3. Yalnız gereken konu anlatımı okunur; konuyu tutan önceki içerik betiği varsa "kaynak bir kez okunur" kuralı geçerlidir.
+3. Soru dışında yalnız sorunun dayandığı numaralı sayfalar okunur (bkz. Okuma kapsamı).
 4. Gereken şekiller `detect_figs`/`crop_figs` ile kesilir, envantere kaydedilir. Tablolar değerleriyle yazılır. Başka soruya bağlı soruda ("Problem 5.84'teki yolluk") eksik veri karta eklenir ve iki soru yan yana konur.
 5. Konu konu içerik betiği (`p01.py`, `p02.py`, …), Write ile.
 6. Sayısal sonuçlar `<work>/hesap.py` ile hesaplanır. Sonuç değeri karta bu hesaptan yazılır.
 7. Derleme, `sayfa_fark.py` ile yalnız değişen sayfaların kontrolü, `denetim.py` ile otomatik kontrol.
 8. Kopyalama (`.kaynak/` dahil) ve rapor.
 
-## Önce not çıkarılmış, kitapçık sonradan istenmişse
+## Okuma kapsamı
 
-Not skill'i problemleri okumadan çalışmış olabilir.
-
-- Künye, içindekiler ve daha önce kesilen şekiller envanterden gelir; konu anlatımı için önceki betik okunur, kitap yeniden okunmaz.
-- Konu başlıkları nottaki başlıklardan alınır.
-- Yalnız problem sayfaları envantere eklenir ve okunur. Bölüm sonunda toplu duran problemler konulara göre sınıflandırılır.
-- Yalnız kartlarda gereken ve envanterde olmayan şekiller kesilir.
-- Önceki betikten çalışıldığı için nottaki hataların kitapçığa geçebileceği başta bir cümleyle hatırlatılır; raporda hangi betikten çalışıldığı yazılır.
-- `envanter.py` düzeltmesi: `--sekil-kaydet` `figs.json`'un üzerine yazmaz, numara bazında birleştirir. Şekil dizininde gerekli numaralardan envanterde olmayanlar listelenir; "Şekiller hazır" mesajı bu listeyle birlikte verilir.
+Yalnız soru sayfaları okunur (kullanıcı kararı). Önceki not betiğinden çalışılmaz: not, soruları ya zaten içerir ya da hiç okumamıştır. Soru kitabın bir denklemine, tablosuna ya da şekline dayanıyorsa `envanter.py --bul` ile yalnız o sayfa okunur. Daha önce kesilmiş şekiller envanterden kullanılır; yalnız eksikler kesilir (`--sekil-eksik`, `--yalniz`). `--sekil-kaydet` `figs.json`'u numara bazında birleştirir.
 
 ## Çözümlerin güvenilirliği
 

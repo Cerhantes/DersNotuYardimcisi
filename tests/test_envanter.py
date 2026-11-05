@@ -39,6 +39,18 @@ class SekilTest(unittest.TestCase):
         self.assertEqual(figs['1.1'][0], 0)
         self.assertEqual(figs['2.1'][0], 5)
 
+    def test_numara_bul(self):
+        import pymupdf as fitz
+        d = fitz.open()
+        for yazi in ('Bkz. Eq. (8.30) ve Table 8.4 atif', 'Giris\nT = V a,\n(8.30)\nFIGURE 8.21 Egri', 'TABLE 8.4\nDegerler', 'FIGURE 8.210 Baska\n(8.301)'):
+            d.new_page().insert_text((50, 50), yazi)
+        bulunan = envanter.numara_bul(d, ['8.30', '8.4', '8.21', '9.9'])
+        self.assertEqual(bulunan['8.21'], [2])
+        self.assertEqual(bulunan['8.4'], [3])
+        self.assertIn(2, bulunan['8.30'])
+        self.assertNotIn(4, bulunan['8.30'])
+        self.assertEqual(bulunan['9.9'], [])
+
     def test_eksik(self):
         kur(self.env, {'1.1': [0, [0, 0, 1, 1]]})
         self.assertEqual(envanter.sekil_eksik(self.env, ['1.1', '9.9']), ['9.9'])

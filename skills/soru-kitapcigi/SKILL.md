@@ -47,7 +47,7 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
 ## Akış
 
 0. **Yalnızca kaynak yolunu iste.** Birden çok kaynak verilebilir (ör. toplu soru PDF'i + kitap). Toplu soru PDF'i verildiyse aynı klasörde ya da mesajda kitap var mı bak; şekil ve tablolar kitaptan gelir.
-1. **Envanter:** `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri. Konuları ve problem sayfalarını belirle, sonra `envanter.py $B <problem aralıkları> --work <work>`. Yalnız o aralıklar okunur; özet ve kaynakça okunmaz. Metni okunmayan (taranmış) sayfaları `$SK/../formul-kagidi/scripts/review.py $B <work> 130 --pages n` ile render edip görerek oku.
+1. **Envanter:** `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri. Konuları ve problem sayfalarını belirle, sonra `envanter.py $B <problem aralıkları> --work <work>`. Okunan yalnız soru sayfalarıdır; konu anlatımı, özet ve kaynakça okunmaz. Metni okunmayan (taranmış) sayfaları `$SK/../formul-kagidi/scripts/review.py $B <work> 130 --pages n` ile render edip görerek oku.
 2. **Sınıflandır:** kapsama giren soruları `<work>/sorular.json`'a yaz:
    ```json
    {"sorular": [{"no": "5.82", "konular": ["5.2 ...", "5.8 ..."], "sayfa": 412, "sekiller": ["5.10"], "tablolar": ["8.3"], "bagli": "5.84", "sayisal": true, "cevap": "≈ 0,5 dk"}],
@@ -55,7 +55,7 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
    ```
    `konular`da ilki ana konudur ve bantta aynen yazılan metinle eşleşir. `sekiller`, `tablolar`, `bagli`, `sayisal`, `cevap` isteğe bağlıdır; `cevap` kaynakta cevap varsa yazılır.
 3. **Çözmeden önce sor:** konu başına soru sayısını ve toplamı `AskUserQuestion` ile bildir: devam mı, daraltılsın mı? Soru sayısı token'ı doğrudan belirler; 100 soru üzerinde bunu açıkça söyle.
-4. **Konu anlatımı:** yalnız gereken bölümler okunur. Konuyu tutan önceki içerik betiği varsa "kaynak bir kez okunur": betiği oku, kitabı yeniden okuma. Konu başlıklarını nottan al.
+4. **Yalnız sorular okunur:** konu anlatımı okunmaz; konu başlıkları içindekilerden gelir, çözümler soruların üzerinden yapılır. Soru kitabın bir denklemine, tablosuna ya da şekline dayanıyorsa `$PY -W ignore $SK/../../ortak/envanter.py $B --bul 8.30,8.4` ile sayfasını bul, yalnız o sayfayı oku (`envanter.py $B 495-495 --work <work>`, sonra `<work>/metin.txt`). Sayısal veri kitap tablosundan geliyorsa tahmin etme, tabloyu oku. Sözel bir sorunun cevabından emin değilsen ilgili alt bölümün sayfalarını içindekilerden bulup oku.
 5. **Şekiller:** `$PY -W ignore $SK/../../ortak/envanter.py $B --sekil-eksik 5.1,5.2` → yalnız `EKSİK ŞEKİL` satırındakiler kesilir: `$PY -W ignore $DN/scripts/detect_figs.py $B <work> <ilk> <son>` → `$PY -W ignore $DN/scripts/crop_figs.py $B <work>` → temas sayfalarını aç (hata düzeltmeleri `ders-notu` skill'inde: `split.json`, `over.json`) → `envanter.py $B --sekil-kaydet <work> --yalniz <eksik numaralar>` (aralıktaki eski, elle düzeltilmiş kesimler ezilmez). Sonra `envanter.py $B --sekil-al <work>`. Problem şekilleri (`FIGURE P5–32` gibi) varsayılan başlık aramasına takılmaz: `--cap` ver ya da `over.json` ile kes; numarasız şekle soru numarasıyla ad ver. Kitap tabloları değerleriyle `TB(..., baslik='Tablo n – Açıklama')` ile yazılır.
 6. **Bağlı sorular:** "Problem 5.84'teki yolluk" gibi soruda eksik veri karta eklenir; hem `sorular.json`'a hem `soru(..., bagli='5.84')`'e yazılır, iki soru yan yana kalır.
 7. **Hesap:** `<work>/hesap.py` (kalıp `$SK/examples/ornek_hesap.py`), `PYTHONPATH=$SK/scripts $PY -W ignore <work>/hesap.py <work>`. Kartta yazılacak sonuçları `h.kaydet(no, ad, deger, birim, ondalik)` ile kaydet, ara değerleri kaydetme. Kaynakta cevap varsa karşılaştır, uyuşmazlığı raporla.
@@ -63,11 +63,7 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
 9. **Derle:** `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kitapcik.py <work>/out.pdf <work>`. stderr'deki `VARSAYIM` ve `UYARI` satırlarına bak.
 10. **Denetle:** `$PY -W ignore $SK/scripts/denetim.py <work>/out.pdf <work>`. `DENETİM TAMAM` görmeden bitirme. `UZUN KART` sayfalarına bak, `CEVAP KARŞILAŞTIR` satırlarını çözümle karşılaştır.
 11. **Gözle kontrol:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider.
-12. **Kopyala ve raporla:** PDF'i `dirname $B`'ye; `kitapcik.py`, `hesap.py`, `sorular.json`, `sonuc.json`'u `<dirname $B>/.kaynak/<PDF adı>/` içine kopyala. Rapor: yol, sayfa ve soru sayısı, çıkarılanlar ve nedenleri, varsayımlar, cevap karşılaştırması, hangi betikten çalışıldığı.
-
-## Önce not çıkarılmışsa
-
-Not skill'i problemleri okumadan çalışmış olabilir. Künye, içindekiler ve kesilmiş şekiller envanterden gelir; kitap yeniden okunmaz. Başlarken bir cümleyle hatırlat: notta hata varsa kitapçığa geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı devam derse bekleme.
+12. **Kopyala ve raporla:** PDF'i `dirname $B`'ye; `kitapcik.py`, `hesap.py`, `sorular.json`, `sonuc.json`'u `<dirname $B>/.kaynak/<PDF adı>/` içine kopyala. Rapor: yol, sayfa ve soru sayısı, çıkarılanlar ve nedenleri, varsayımlar, cevap karşılaştırması, soru dışında okunan sayfalar.
 
 ## Çözümlerin güvenilirliği
 

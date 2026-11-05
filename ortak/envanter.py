@@ -9,6 +9,7 @@ Kullanım:
   python -W ignore envanter.py <kaynak.pdf> --sekil-kaydet <work>   <work>/fig + figs.json envantere
   python -W ignore envanter.py <kaynak.pdf> --sekil-al <work>       envanterdeki şekiller <work>'e
   python -W ignore envanter.py <kaynak.pdf> --sekil-eksik 5.1,5.2   bu numaralardan kesilmemiş olanlar
+  python -W ignore envanter.py <kaynak.pdf> --bul 8.30,8.21         bu denklem, tablo ve şekillerin PDF sayfaları
   (--sekil-kaydet ve --sekil-al figs.json'u numara bazında birleştirir; --sekil-kaydet <work> --yalniz 5.2 yalnız bu numarayı kaydeder)
 
 Konum: <kaynağın klasörü>/.kaynak/envanter/<kaynak adı>/
@@ -267,6 +268,19 @@ def sekil_kopya(kaynak_yer, hedef_yer, yalniz=None):
     print('Kopyalandı: %d şekil -> %s' % (len(gelen), hedef_yer))
 
 
+def numara_bul(d, nolar):
+    """Her denklem, tablo ve şekil numarasının tanımlandığı PDF sayfaları (1 tabanlı).
+    Tablo ve şekilde başlık satırı, denklemde satır başındaki (n) aranır; metin içi atıflar sayılmaz."""
+    bulunan = {n: [] for n in nolar}
+    for i, p in enumerate(d):
+        t = p.get_text()
+        for n in nolar:
+            e = re.escape(n)
+            if re.search(r'^(?:TABLE|Table|Tablo|FIGURE|Figure|Fig\.|Şekil)\s+%s(?![\d.])|^\(%s\),?\s*$' % (e, e), t, re.M):
+                bulunan[n].append(i + 1)
+    return bulunan
+
+
 def sekil_eksik(yer, nolar):
     """nolar içinden envanterde kesilmemiş olanlar."""
     yol = os.path.join(yer, 'figs.json')
@@ -292,6 +306,7 @@ def main():
     gel = al('--sekil-al')
     eks = al('--sekil-eksik')
     yal = al('--yalniz')
+    bul = al('--bul')
     wrk = al('--work')
     kaynak = a[0]
     istenen = []
@@ -309,6 +324,9 @@ def main():
         sekil_kopya(kay[0], yer, yal[0].split(',') if yal else None)
     elif gel:
         sekil_kopya(yer, gel[0])
+    elif bul:
+        for n, s in numara_bul(d, bul[0].split(',')).items():
+            print('%s: %s' % (n, ', '.join(map(str, s)) or 'bulunamadı'))
     elif eks:
         nolar = [n for n in eks[0].split(',') if n]
         eksik = sekil_eksik(yer, nolar)
