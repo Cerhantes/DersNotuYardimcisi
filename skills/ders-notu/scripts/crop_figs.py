@@ -12,7 +12,7 @@
 #                {"8.1": [471, [30, 50, 325, 278]]}           (sayfa idx, [x0, y0, x1, y1] pt)
 #   skip.json  : yok sayılacak sayfa idx listesi, ör. [471]  (o sayfadaki şekiller over.json ile verilir)
 import pymupdf as fitz, json, sys, os, re, argparse
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 ap = argparse.ArgumentParser()
 ap.add_argument('src'); ap.add_argument('work'); ap.add_argument('--cap-above', action='store_true')
@@ -96,11 +96,41 @@ for k, v in det.items():
 for f, (pg, rc) in over.items():
     figs[f] = (pg, fitz.Rect(rc))
 
-os.makedirs(os.path.join(W, 'fig'), exist_ok=True)
-json.dump({f: [pg, list(rc)] for f, (pg, rc) in figs.items()}, open(os.path.join(W, 'figs.json'), 'w'))
-for f, (pg, rc) in figs.items():
+DPI = 220
+
+
+def render(f, pg, rc):
+    """Kesimi PNG'ye yazar. Kesime giren şekil başlığı (L biçimli şekilde köşede kalır, kırpmayla çıkmaz)
+    beyazla silinir, kalan boş kenarlar kırpılır. Dönen dikdörtgen PNG'nin en-boy oranını korur."""
     rc = fitz.Rect(rc.x0 - 5, rc.y0 - 5, rc.x1 + 5, rc.y1 + 5) & d[pg].rect
-    d[pg].get_pixmap(dpi=220, clip=rc).save(os.path.join(W, 'fig', f + '.png'))
+    pm = d[pg].get_pixmap(dpi=DPI, clip=rc)
+    boxes = [b for b in map(fitz.Rect, det.get(str(pg), {}).get('capboxes', [])) if b.intersects(rc)]
+    yol = os.path.join(W, 'fig', f + '.png')
+    if not boxes:
+        pm.save(yol)
+        return None
+    s = DPI / 72
+    im = Image.frombytes('RGB', (pm.width, pm.height), pm.samples)
+    dr = ImageDraw.Draw(im)
+    for b in boxes:
+        dr.rectangle([(b.x0 - 2 - rc.x0) * s, (b.y0 - 2 - rc.y0) * s, (b.x1 + 2 - rc.x0) * s, (b.y1 + 2 - rc.y0) * s], fill='white')
+    kut = ImageChops.difference(im, Image.new('RGB', im.size, 'white')).convert('L').point(lambda v: 255 if v > 18 else 0).getbbox()
+    if not kut:   # kesimde başlıktan başka bir şey yokmuş
+        warn.append(f'{f}: kesimde yalnız başlık var -> over.json ile ver')
+        im.save(yol)
+        return rc
+    m = round(5 * s)
+    kut = (max(kut[0] - m, 0), max(kut[1] - m, 0), min(kut[2] + m, im.width), min(kut[3] + m, im.height))
+    im.crop(kut).save(yol)
+    return fitz.Rect(rc.x0 + kut[0] / s, rc.y0 + kut[1] / s, rc.x0 + kut[2] / s, rc.y0 + kut[3] / s)
+
+
+os.makedirs(os.path.join(W, 'fig'), exist_ok=True)
+for f, (pg, rc) in list(figs.items()):
+    yeni = render(f, pg, rc)
+    if yeni:
+        figs[f] = (pg, yeni)
+json.dump({f: [pg, list(rc)] for f, (pg, rc) in figs.items()}, open(os.path.join(W, 'figs.json'), 'w'))
 
 # temas sayfaları: her şeklin kesimini numarasıyla göster (gözle kontrol için)
 def key(s):

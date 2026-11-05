@@ -33,7 +33,19 @@ for i in range(A.a - 1, A.b):
         for ln in blk.get('lines', []):
             lines.append((''.join(s['text'] for s in ln['spans']).strip(), fitz.Rect(ln['bbox']), ln['spans'], b))
     longs = [(t, r) for t, r, _, _ in lines if len(t) > 45]
-    capblk = {b for t, r, sp, b in lines if cap_re.match(t) and capf_re.search(sp[0]['font'])}
+    # başlığın tam alanı (crop_figs bunu kesimden siler): başlık satırı + aynı satırdaki metni + altındaki devam
+    # satırları. Kitap şekil etiketlerini (eksen rakamı, (a), (b)) başlıkla aynı bloğa koyabilir; onlar konuma göre ayrılır.
+    capboxes = []
+    for t, r, sp, b in lines:
+        if cap_re.match(t) and capf_re.search(sp[0]['font']):
+            box = fitz.Rect(r)
+            for _, r2, _, b2 in sorted((x for x in lines if x[3] == b), key=lambda x: (x[1].y0, x[1].x0)):
+                ayni_satir = abs(r2.y0 - box.y0) < 3 and r2.x0 >= box.x0 and r2.x0 - box.x1 < 15
+                ortak = min(r2.x1, box.x1) - max(r2.x0, box.x0)
+                alt_satir = r2.y0 > box.y0 and r2.y0 - box.y1 < 6 and ortak >= 0.5 * r2.width
+                if ayni_satir or alt_satir:
+                    box |= r2
+            capboxes.append(box)
     els = []
     for dr in p.get_drawings():
         r = fitz.Rect(dr['rect'])
@@ -41,6 +53,10 @@ for i in range(A.a - 1, A.b):
             continue
         if r.width * r.height > 20000 and sum(len(t) for t, lr in longs if r.contains(lr)) > 200:
             continue   # gövde metni taşıyan zemin kutusu
+        if dr.get('color') is None and dr.get('fill') and min(dr['fill']) > 0.99:
+            continue   # görünmez beyaz zemin (kitaplar başlığın altına koyar; şekli başlığa bağlıyordu)
+        if any(c.contains(r) for c in capboxes):
+            continue   # başlığın kendi süsü (ince çizgi vb.)
         els.append(r)
     for im in p.get_image_info():
         els.append(fitz.Rect(im['bbox']))
@@ -48,7 +64,7 @@ for i in range(A.a - 1, A.b):
     for t, r, spans, b in lines:
         if cap_re.match(t) and capf_re.search(spans[0]['font']):
             caps.append((t, list(r)))
-        elif b in capblk:
+        elif any(c.contains(r) for c in capboxes):
             continue   # başlığın devam satırları etiket değildir
         elif lab_re:
             els += [fitz.Rect(s['bbox']) for s in spans if lab_re.search(s['font'])]
@@ -81,8 +97,13 @@ for i in range(A.a - 1, A.b):
                     clusters.remove(x); clusters.remove(y); clusters.append(x | y); changed = True; break
             if changed: break
     clusters = [c for c in clusters if c.width * c.height > 3000]
+    # çizimden uzak ama şekil alanına değen kısa etiketler ((a), (b), eksen harfi) yarım kesilmesin
+    for n, c in enumerate(clusters):
+        for r in [r for r in pending if fitz.Rect(c.x0 - 3, c.y0 - 3, c.x1 + 3, c.y1 + 3).intersects(r)]:
+            clusters[n] = clusters[n] | r
+            pending.remove(r)
     clusters.sort(key=lambda c: (round(c.y0), c.x0))
-    res[i] = {'caps': caps, 'clusters': [list(c) for c in clusters]}
+    res[i] = {'caps': caps, 'clusters': [list(c) for c in clusters], 'capboxes': [list(c) for c in capboxes]}
 
 json.dump(res, open(os.path.join(A.work, 'det.json'), 'w', encoding='utf-8'), indent=0, ensure_ascii=False)
 for k, v in res.items():

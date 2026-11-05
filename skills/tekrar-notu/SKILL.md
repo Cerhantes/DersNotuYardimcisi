@@ -97,7 +97,7 @@ F2('2.1', '2.2', 'altyazı a', 'altyazı b', h=150)                      # yan y
 d.make()
 ```
 
-Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` → D<sub>ort</sub>, `f^2` / `V^{−1/n}` → üst simge (`/ , .` içeren üs **mutlaka** `{}` içinde: `x^{1/n}`, `V^{0,2}`). Kalın `<b>`, italik `<i>`, `<br/>`. Metinde `&` → `&amp;`, `<` → `&lt;` (yalnız `start`'ın `source` argümanında düz `&`). Oklar, `=` ve paragrafın son kelimesi otomatik bağlanır.
+Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` → D<sub>ort</sub>, `f^2` / `V^{−1/n}` → üst simge (`/ , .` içeren üs **mutlaka** `{}` içinde: `x^{1/n}`, `V^{0,2}`). Parantezsiz indis tek öğedir, ardındaki sembole taşmaz: `h_1A` → h<sub>1</sub>A, `d^2T` → d<sup>2</sup>T, `h_fA` → h<sub>f</sub>A; `T_ort`, `N_Re`, `T_iç`, `T_s1` bütün kalır, `e^2x` üstel olduğu için bütün kalır. Bitişik küçük harflerde `S()` kelime indis sanır, sınırla: `A_{c}k`; rakam + harf indis de `{}` ister: `x_{1a}`. Noktalı ve üslü semboller de indis alır: `Ė_g`, `q̇_0`, `q″_x`. Kalın `<b>`, italik `<i>`, `<br/>`. Metinde `&` → `&amp;`, `<` → `&lt;` (yalnız `start`'ın `source` argümanında düz `&`). Oklar, `=` ve paragrafın son kelimesi otomatik bağlanır.
 
 ## Sık hatalar
 
@@ -108,7 +108,7 @@ Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` →
 | Hücrede kelime ortadan bölünmüş (`ka` / `dar`) | Hücre metnini kısalt ya da sütunu genişlet |
 | Şekil altında ham `F_c` | `terms=` metni `F()` dışında verilmiş; `F(..., terms=...)` kullan |
 | Sayfa başlığında `&amp;` | `start(... source=...)` içinde düz `&` yaz |
-| Üs yanlış yere taşmış (`m^3K` → m<sup>3K</sup>, `f^2/(8R)`) | Üssü `{}` ile sınırla: `m^{3}·K`, `f^{2}/(8R)` |
+| İndis yanlış yere taşmış (`A_ck` → A<sub>ck</sub>, `x^ab`) | Bitişik küçük harfleri `S()` kelime sanır; `{}` ile sınırla: `A_{c}k`, `x^{a}b` |
 | İki denklem yapışık (`F = R sin β N = R cos β`) | `E()` içinde araya en az 2 boşluk koy |
 | Küçük yazılı şekil okunmuyor (ör. proses–pürüzlülük çizelgesi) | `F2` yerine tek başına `F(..., maxh=330, scale=1.0)` |
 | `UYARI denklem tek satıra sığmadı` | Denklemi iki `E` satırına böl (ikincinin numarası `''`); açıklama metnini denklemden çıkarıp `P`/`B`'ye taşı |

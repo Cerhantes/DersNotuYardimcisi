@@ -7,7 +7,8 @@
     d.make()
 
 Tüm metin yardımcıları (B P E X BX T F F2) S() süzgecinden geçer:
-  x_o -> alt simge, x_{ort} -> alt simge, x^2 / x^{-1/n} -> üst simge,
+  x_o -> alt simge, x_{ort} -> alt simge, x^2 / x^{-1/n} -> üst simge; Ė_g, q̇_0, q″_x de olur;
+  parantezsiz indis ardındaki sembole taşmaz (h_1A, d^2T), birden çok öğeli indis {} ister (x_{1a}, m^{3}),
   oklar (↑↓) önceki kelimeye, '=' '≈' '<' '>' iki yanına, paragrafın son kelimesi öncekine bağlanır
   (satır sonunda yalnız "↑." ya da tek kelime kalmaz).
 """
@@ -39,12 +40,21 @@ def start(out, work, title, header, source, subtitle='Tekrar Notu — konu konu 
     return d
 
 
+# Süslü parantezsiz indis tek öğedir, ardındaki sembole taşmaz: h_1A -> h₁A, d^2T -> d²T, A_fθ_b -> A_f θ_b,
+# h_fA -> h_f A. Kelime indisler (T_ort, N_Re, T_iç, T_s1) bütün kalır. Belirsiz yazım (x_ab = x_a b?) {} ister.
+_KUC = 'a-zçğıöşü'
+_OGE = r'[0-9]+|[A-Z]+[%s]*[0-9]*|[%s]+[0-9]*|[α-ω∞]' % (_KUC, _KUC)
+# indis alan taban: harf (Ė, ṁ gibi hazır noktalılar dahil) ya da ) | ] ′ ″ ‴ ve birleşik nokta (q̇, Q̇)
+_ISARET = r')|\]′″‴̇'
+
+
 def S(t):
     if not t: return t
-    t = re.sub(r'(?<=[A-Za-zα-ωΑ-Ω0-9\)|])_\{([^}]+)\}', r'<sub>\1</sub>', t)      # |_{r=R} de
-    t = re.sub(r'(?<=[A-Za-zα-ωΑ-Ω\)|])_([A-Za-z0-9α-ω∞]+)', r'<sub>\1</sub>', t)   # p_∞ de
+    t = re.sub(r'(?<=[\w%s])_\{([^}]+)\}' % _ISARET, r'<sub>\1</sub>', t)                 # |_{r=R} de
+    t = re.sub(r'(?<=[^\W\d]|[%s])_(%s)' % (_ISARET, _OGE), r'<sub>\1</sub>', t)           # p_∞ de
     t = re.sub(r'\^\{([^}]+)\}', r'<super>\1</super>', t)
-    t = re.sub(r'\^([A-Za-z0-9\-−α-ω]+)', r'<super>\1</super>', t)   # '/' ',' '.' dahil değil: x^{1/n} yaz
+    t = re.sub(r'(?<![^\W\d])e\^([−\-]?[0-9A-Za-zα-ω]+)', r'e<super>\1</super>', t)         # üstel: e^2x, e^-mx bütün
+    t = re.sub(r'\^([−\-]?(?:%s))' % _OGE, r'<super>\1</super>', t)   # '/' ',' '.' dahil değil: x^{1/n} yaz
     t = re.sub(r' (?=\(?[↑↓])', '&nbsp;', t)
     t = t.replace(' → ', '&nbsp;→ ')
     t = re.sub(r' ([=≈<>]|&lt;|&gt;) ', r'&nbsp;\1&nbsp;', t)
