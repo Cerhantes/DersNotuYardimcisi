@@ -220,6 +220,13 @@ class _Kart(Flowable):
             return h
         return self._bas_h() + (self._yukseklik(self.adimlar[0]) if self.adimlar else 0) + _IC / 2
 
+    def kuyruk(self, tam):
+        """Boş sayfadan başlarsa son parçanın altında kalan yer."""
+        k = self
+        while k.wrap(FW, FH)[1] > tam:
+            k = k.split(FW, tam)[1]
+        return tam - k.wrap(FW, FH)[1] - _KART_ARA
+
     def draw(self):
         c = self.canv
         W, Y = self.width, self.height
@@ -303,16 +310,18 @@ def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, seki
     blok['gruplar'].append([kart])
 
 
-def _paketle(boylar, ilk, tam):
+def _paketle(boylar, ilk, tam, kuyruk=None):
     """Best-fit decreasing: boylar sayfalara dağıtılır. ilk: içinde bulunulan sayfada kalan yer, tam: boş sayfa.
-    Dönüş: (sayfa başına öğe sırası listesi, son sayfada kalan yer). Sayfadan uzun öğe kendi başına durur."""
+    Dönüş: (sayfa başına öğe sırası listesi, son sayfada kalan yer). Sayfadan uzun öğe kendi kutusunu açar;
+    son parçasının altında kalan yere (kuyruk[i]) başka öğe konabilir."""
+    kuyruk = kuyruk or {}
     kutular = [{'kalan': ilk, 'oge': [], 'uzun': False}]
     for i in sorted(range(len(boylar)), key=lambda x: (-boylar[x], x)):
         h = boylar[i]
         if h > tam:
-            kutular.append({'kalan': tam - h % tam, 'oge': [i], 'uzun': True})
+            kutular.append({'kalan': kuyruk.get(i, tam - h % tam), 'oge': [i], 'uzun': True})
             continue
-        uygun = [k for k in kutular if not k['uzun'] and k['kalan'] >= h]
+        uygun = [k for k in kutular if k['kalan'] >= h]
         if uygun:
             k = min(uygun, key=lambda x: x['kalan'])
         else:
@@ -340,7 +349,8 @@ def _yerlestir():
         ilk = kalan - bas_h
         if ilk < min(boylar) and not any(h > tam for h in boylar):
             ilk = tam - bas_h
-        plan, kalan = _paketle(boylar, ilk, tam)
+        kuyruk = {i: g[0].kuyruk(tam) for i, g in enumerate(b['gruplar']) if len(g) == 1 and boylar[i] > tam}
+        plan, kalan = _paketle(boylar, ilk, tam, kuyruk)
         sira = [b['gruplar'][i] for sayfa in plan for i in sayfa]
         d.story.append(CondPageBreak(bas_h + sira[0][0].en_az() + 1))
         d.story += basliklar

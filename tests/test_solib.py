@@ -156,6 +156,18 @@ class KartTest(unittest.TestCase):
         self.assertEqual(len(dolu), 2, dolu)
         self.assertEqual(sorted(len(b) for b in dolu), [2, 2])
 
+    def test_uzun_kart_kuyrugu_doldurulur(self):
+        def icerik():
+            solib.soru('G1', ['K'], 'M', [Spacer(1, 90) for _ in range(11)])      # sayfadan uzun
+            solib.soru('G2', ['K'], 'M', [Spacer(1, 100)])
+            solib.soru('G3', ['K'], 'M', [Spacer(1, 560)])
+        self.derle(icerik)
+        sayfa = next(b for b in self.bandlar_tum() if 'Soru G2' in b)
+        self.assertIn('Soru G1 (devam)', sayfa)
+
+    def bandlar_tum(self):
+        return [[l for l in p.get_text().split('\n') if l.startswith('Soru ')] for p in fitz.open(self.out)]
+
     def test_yerlesim_konulari_karistirmaz(self):
         def icerik():
             solib.konu('KONUBIR')

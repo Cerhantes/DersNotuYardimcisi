@@ -40,12 +40,13 @@ def kartlar(pdf):
     sonuc = {}
     for p in d:
         sat = _satirlar(p)
+        konu_sat = [l for l in sat if abs(l['boy'] - BOY_KONU) < 0.15]
         bant = []
         for l in sat:
             m = _BANT.match(l['t'])
-            if m and l['kalin'] and abs(l['boy'] - BOY_NO) < 0.2:
+            # bandın yanında mutlaka konu yazısı vardır; kapaktaki "Soru sayısı: 18" gibi satırlar elenir
+            if m and l['kalin'] and abs(l['boy'] - BOY_NO) < 0.2 and any(abs(k['y'] - l['y']) < 30 for k in konu_sat):
                 bant.append((l['y'], m.group(1), bool(m.group(2))))
-        konu_sat = [l for l in sat if abs(l['boy'] - BOY_KONU) < 0.15]
         for i, (y, no, devam) in enumerate(bant):
             alt = bant[i + 1][0] if i + 1 < len(bant) else p.rect.height + 1
             alt = min([alt] + [l['y'] for l in sat if y < l['y'] < alt and l['boy'] >= BOY_BASLIK])     # konu başlığı karta ait değil

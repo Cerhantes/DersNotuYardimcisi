@@ -180,6 +180,16 @@ class DenetimTest(unittest.TestCase):
         s = self.derle([self.kart('1.1', metin='Tablo 8.3 değerleriyle bulunuz')], [{'no': '1.1', 'konular': ['K'], 'tablolar': ['8.3']}])
         self.assertTrue(any('8.3' in x for x in s), s)
 
+    def test_kapaktaki_soru_sayisi_bant_sanilmaz(self):
+        solib.start(self.pdf, self.work, 'D', 'D', 'K')
+        solib.kapak(['<b>Soru sayısı:</b> 18'], False)
+        solib.soru('1.1', ['K'], 'M', ['A'])
+        with contextlib.redirect_stderr(io.StringIO()):
+            solib.make()
+        json.dump({'sorular': [{'no': '1.1', 'konular': ['K']}], 'cikarilan': []},
+                  open(os.path.join(self.work, 'sorular.json'), 'w', encoding='utf-8'))
+        self.assertEqual(denetle(self.pdf, self.work), [])
+
     def test_bagli_komsu(self):
         y = [{'no': '1.1', 'konular': ['K']}, {'no': '1.2', 'konular': ['K']}, {'no': '1.3', 'konular': ['K'], 'bagli': '1.1'}]
         s = self.derle([self.kart('1.1'), self.kart('1.2'), self.kart('1.3')], y)
