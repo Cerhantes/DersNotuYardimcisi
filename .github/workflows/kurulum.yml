@@ -48,7 +48,10 @@ jobs:
           PYTHONPATH=skills/tekrar-notu/scripts "$PY" -W ignore skills/tekrar-notu/examples/ornek_tekrar_notu.py out/tn.pdf out/tn
           PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_semalar.py out/fk
           PYTHONPATH=skills/formul-kagidi/scripts "$PY" -W ignore skills/formul-kagidi/examples/ornek_kagit.py out/fk.pdf out/fk
-          test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf
+          mkdir -p out/sk
+          PYTHONPATH=skills/soru-kitapcigi/scripts "$PY" -W ignore skills/soru-kitapcigi/examples/ornek_hesap.py out/sk
+          PYTHONPATH=skills/soru-kitapcigi/scripts "$PY" -W ignore skills/soru-kitapcigi/examples/ornek_soru_kitapcigi.py out/sk.pdf out/sk
+          test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf && test -s out/sk.pdf
 
       - name: Envanter ve sayfa farkı
         run: |

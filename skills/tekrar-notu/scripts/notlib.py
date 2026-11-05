@@ -165,7 +165,7 @@ class Doc(BaseDocTemplate):
             self.notify('TOCEntry', (lvl, txt, self.page, key))
 
     # ---------- content API ----------
-    def cover(self, lines, contents):
+    def cover(self, lines, contents, kutu='BU NOTU NASIL KULLANMALISIN?'):
         s = self.story
         s.append(Spacer(1, 1.2 * cm))
         s.append(Paragraph(self.title_, ParagraphStyle('ct', fontName='Body-B', fontSize=30, leading=36, textColor=self._kapak[0])))
@@ -175,7 +175,7 @@ class Doc(BaseDocTemplate):
         for l in lines:
             s.append(Paragraph(l, ParagraphStyle('cl', parent=ss['body'], fontSize=11.5, leading=16, alignment=TA_LEFT)))
         s.append(Spacer(1, 0.6 * cm))
-        self.box('ipucu', contents, title='BU NOTU NASIL KULLANMALISIN?')
+        self.box('ipucu', contents, title=kutu)
         s.append(NextPageTemplate('main'))
         s.append(PageBreak())
         s.append(Paragraph('İçindekiler', self._renkli('h1')))
