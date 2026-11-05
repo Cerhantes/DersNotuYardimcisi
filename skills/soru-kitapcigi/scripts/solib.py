@@ -21,7 +21,7 @@ from tnlib import S, ss, FW, FH, Paragraph, Table, TableStyle, Image, ParagraphS
 from reportlab.platypus import Flowable, Spacer
 from tema import PALET, acik
 
-__all__ = ['start', 'kapak', 'bolum', 'konu', 'soru', 'H', 'M', 'TB', 'make', 'R', 'S', 'cm']
+__all__ = ['start', 'kapak', 'bolum', 'konu', 'soru', 'H', 'M', 'TB', 'G', 'make', 'R', 'S', 'cm']
 
 d = None
 _work = None
@@ -98,6 +98,19 @@ def TB(satirlar, genislikler=None):
     return t
 
 
+def G(yol, altyazi, maxh=170):
+    """Çözümün parçası olan grafik (hesap.py'nin çizdiği PNG); kitap şekli için soru(sekil=...) kullan."""
+    from PIL import Image as PI
+    with PI.open(yol) as im:
+        gen, yuk = im.size
+    h = min(maxh, _IW * yuk / gen)
+    img = Image(yol, width=h * gen / yuk, height=h)
+    img.hAlign = 'CENTER'
+    t = Table([[img], [Paragraph(S(altyazi), ss['cap'])]], colWidths=[_IW])
+    t.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 1), ('BOTTOMPADDING', (0, 0), (-1, -1), 2)]))
+    return t
+
+
 def R(no, ad):
     """hesap.py'nin sonuc.json'a yazdığı biçimli değer."""
     yol = os.path.join(_work, 'sonuc.json')
@@ -108,6 +121,10 @@ def R(no, ad):
     if ad not in veri.get(no, {}):
         raise KeyError('hesap.py içinde yok: %s/%s' % (no, ad))
     return veri[no][ad]
+
+
+def _giris_mi(f):
+    return hasattr(f, 'getPlainText') and f.getPlainText().rstrip().endswith(':')
 
 
 class _Kart(Flowable):
@@ -165,6 +182,8 @@ class _Kart(Flowable):
                 break
             kalan -= h
             n += 1
+        while n and _giris_mi(self.adimlar[n - 1]):      # ":" ile biten adım sonraki adımdan ayrılmaz
+            n -= 1
         if n == 0:
             return []
         return [_Kart(self.no, self.konular, self.bas, self.adimlar[:n], self.renk, self.devam),
@@ -215,13 +234,14 @@ def _sekil_parcalari(no, sekil):
     return parca
 
 
-def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=()):
-    """no: kaynaktaki numara. konular: ilki ana konu; birden çoksa KARMA. adimlar: str | H | M | TB | flowable."""
+def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=(), ek=()):
+    """no: kaynaktaki numara. konular: ilki ana konu; birden çoksa KARMA. adimlar: str | H | M | TB | G | flowable.
+    ek: sorunun kendi verisi (ör. TB), soru metninin ardına, ÇÖZÜM'den önce konur."""
     kutu = Table([[Paragraph(S(metin), _st_soru)]], colWidths=[_IW])
     kutu.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F7F8FA')),
                               ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
     baslik = Paragraph('<b><font color="%s">ÇÖZÜM</font></b>' % d.ana, ss['boxt'])
-    bas = [kutu] + _sekil_parcalari(no, sekil) + [baslik]
+    bas = [kutu] + list(ek) + _sekil_parcalari(no, sekil) + [baslik]
     parcalar = []
     for a in adimlar:
         if isinstance(a, str):

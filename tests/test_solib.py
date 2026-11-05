@@ -114,6 +114,30 @@ class KartTest(unittest.TestCase):
         for k in ('HESAPSATIRI', 'MADDEBIR', 'MADDEIKI', 'BASLIK', 'HUCRE'):
             self.assertIn(k, s)
 
+    def test_grafik_cozumde(self):
+        from PIL import Image
+        yol = os.path.join(self.work, 'g.png')
+        Image.new('RGB', (300, 200), (0, 0, 200)).save(yol)
+        s = self.derle(lambda: solib.soru('1.1', ['K'], 'GRAFIKSORU', ['A', solib.G(yol, 'GRAFIKYAZI')]))
+        n = next(i for i, t in enumerate(s) if 'GRAFIKSORU' in t)
+        self.assertEqual(len(fitz.open(self.out)[n].get_image_info()), 1)
+        self.assertLess(s[n].index('ÇÖZÜM'), s[n].index('GRAFIKYAZI'))
+
+    def test_iki_nokta_sonraki_adimdan_ayrilmaz(self):
+        for dolgu in range(0, 24, 3):       # sayfa sınırı farklı adımlara denk gelsin
+            adim = ['Kısa dolgu'] * dolgu
+            for i in range(30):
+                adim += ['GIRIS%02d kısa:' % i, 'SONRAKI%02d ' % i + 'kelime ' * 25]
+            s = self.derle(lambda: solib.soru('9.7', ['K'], 'M', adim))
+            for i in range(30):
+                sayfa = [n for n, x in enumerate(s) if 'GIRIS%02d' % i in x]
+                sonraki = [n for n, x in enumerate(s) if 'SONRAKI%02d' % i in x]
+                self.assertEqual(sayfa, sonraki, (dolgu, i))
+
+    def test_ek_cozumden_once(self):
+        s = ''.join(self.derle(lambda: solib.soru('1.1', ['K'], 'M', ['A'], ek=[TB([['VERITABLO'], ['x']])])))
+        self.assertLess(s.index('VERITABLO'), s.index('ÇÖZÜM'))
+
     def test_R_virgul(self):
         json.dump({'1.1': {'q': '500 W'}}, open(os.path.join(self.work, 'sonuc.json'), 'w'))
         solib.start(self.out, self.work, 'D', 'D', 'K')

@@ -81,10 +81,12 @@ kapak(['<b>Kapsam:</b> ...'], kaynakta_cevap=False, kapsam_notu='Çıkarılan so
 bolum('Bölüm 5 – Döküm')                 # içindekilerde 1. düzey
 konu('5.2 Metallerin Katılaşması')       # 2. düzey, sıradaki renk
 soru('5.82', ['5.2 Katılaşma', '5.8 Kum Döküm'], 'Soru metni',
-     ['paragraf adım', H('hesap satırı'), M(['madde', 'madde']), TB([['Başlık', 'B'], ['a', 'b']], [0.6, 0.4])],
-     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')])
+     ['paragraf adım', H('hesap satırı'), M(['madde', 'madde']), TB([['Başlık', 'B'], ['a', 'b']], [0.6, 0.4]), G(work + '/grafik.png', 'Altyazı')],
+     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')], ek=[TB(soruda_verilen_tablo)])
 make()
 ```
+
+`sekil` kitap şekli, `ek` sorunun kendi verisi (ikisi de ÇÖZÜM'den önce); `G` soruda istenen ve `hesap.py`'de çizilen grafik (çözümün içinde).
 
 Metinler `S()`'den geçer: `t_o`, `D_{ort}`, `f^2`, `V^{−1/n}`; kalın `<b>`, `&` → `&amp;`, `<` → `&lt;`.
 
