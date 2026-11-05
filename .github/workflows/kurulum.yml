@@ -38,6 +38,9 @@ jobs:
           fi
           test "$(wc -l < kur2.log)" -eq 1
 
+      - name: Birim testleri
+        run: '"$PY" -W ignore -m unittest discover -s tests -v'
+
       - name: Örnekleri derle
         run: |
           mkdir -p out/dn out/tn out/fk

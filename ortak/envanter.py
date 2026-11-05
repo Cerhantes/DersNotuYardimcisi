@@ -8,6 +8,8 @@ Kullanım:
                                                               kitaptaki numaralı denklemlerin kırpıntıları
   python -W ignore envanter.py <kaynak.pdf> --sekil-kaydet <work>   <work>/fig + figs.json envantere
   python -W ignore envanter.py <kaynak.pdf> --sekil-al <work>       envanterdeki şekiller <work>'e
+  python -W ignore envanter.py <kaynak.pdf> --sekil-eksik 5.1,5.2   bu numaralardan kesilmemiş olanlar
+  (--sekil-kaydet ve --sekil-al figs.json'u numara bazında birleştirir, üzerine yazmaz)
 
 Konum: <kaynağın klasörü>/.kaynak/envanter/<kaynak adı>/
   envanter.json  imza, sayfa aralıkları, bölümler, numaralı denklem/tablo/şekil dizini (sayfa numarasıyla)
@@ -183,7 +185,9 @@ def ozet(kaynak, d, yer, e, kuruldu, istenen, work):
             hedef, bin_token = is_metni(yer, istenen or [tuple(x) for x in e['araliklar']], work)
             print('Bu işin metni: %s ≈ %d bin token' % (hedef, bin_token))
         if os.path.exists(os.path.join(yer, 'figs.json')):
-            print('Şekiller hazır: --sekil-al <work> ile al, yeniden kesme.')
+            with open(os.path.join(yer, 'figs.json'), encoding='utf-8') as f:
+                n = len(json.load(f))
+            print('Şekiller hazır (%d şekil): kartta gerekenleri --sekil-eksik ile denetle, eksikleri kes, gerisini --sekil-al ile al.' % n)
     else:
         print('Envanter henüz yok: %s' % kaynak)
     bet = onceki_betikler(kaynak)
@@ -246,8 +250,18 @@ def sekil_kopya(kaynak_yer, hedef_yer):
         sys.exit('Şekil bulunamadı: %s içinde fig/ ve figs.json gerekir' % kaynak_yer)
     os.makedirs(hedef_yer, exist_ok=True)
     shutil.copytree(kaynak_fig, os.path.join(hedef_yer, 'fig'), dirs_exist_ok=True)
-    shutil.copy2(os.path.join(kaynak_yer, 'figs.json'), os.path.join(hedef_yer, 'figs.json'))
+    hedef_json = os.path.join(hedef_yer, 'figs.json')
+    birlesik = json.load(open(hedef_json, encoding='utf-8')) if os.path.exists(hedef_json) else {}
+    birlesik.update(json.load(open(os.path.join(kaynak_yer, 'figs.json'), encoding='utf-8')))
+    json.dump(birlesik, open(hedef_json, 'w', encoding='utf-8'))
     print('Kopyalandı: %d şekil -> %s' % (len(os.listdir(kaynak_fig)), hedef_yer))
+
+
+def sekil_eksik(yer, nolar):
+    """nolar içinden envanterde kesilmemiş olanlar."""
+    yol = os.path.join(yer, 'figs.json')
+    var = json.load(open(yol, encoding='utf-8')) if os.path.exists(yol) else {}
+    return [n for n in nolar if n not in var]
 
 
 def main():
@@ -266,6 +280,7 @@ def main():
     ar = al('--aralik', 2)
     kay = al('--sekil-kaydet')
     gel = al('--sekil-al')
+    eks = al('--sekil-eksik')
     wrk = al('--work')
     kaynak = a[0]
     istenen = []
@@ -283,6 +298,11 @@ def main():
         sekil_kopya(kay[0], yer)
     elif gel:
         sekil_kopya(yer, gel[0])
+    elif eks:
+        nolar = [n for n in eks[0].split(',') if n]
+        eksik = sekil_eksik(yer, nolar)
+        print('HAZIR: %s' % (', '.join(n for n in nolar if n not in eksik) or 'yok'))
+        print('EKSİK ŞEKİL: %s' % (', '.join(eksik) or 'yok'))
     else:
         ozet(kaynak, d, yer, e, kuruldu, istenen, wrk[0] if wrk else None)
 
