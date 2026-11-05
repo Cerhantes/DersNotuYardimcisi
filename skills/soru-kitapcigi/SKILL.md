@@ -24,6 +24,7 @@ Yasaklar: şekli olmayan "şekilden" sorusu, kaynağı belirtilmeden kullanılan
 - Konuları kullanıcı yazar ya da ders belgesinden (DUB) çıkarılır. Belli değilse konu listesi sorulur.
 - Konuya giren soruların **tamamı** alınır. Kullanıcı sayı verirse farklı alt konu ve türlerden o kadar soru seçilir.
 - Karma soru, ana konusu kapsamdaysa alınır ve ana konunun altına yazılır. Çözümü esas olarak kapsam dışı konuyu gerektiriyorsa çıkarılır ve kapsam notunda anılır.
+- Sınavda çıkmayacak türden, çözümü çok uzun tablo gerektiren sorular (kabaca 20 satırdan uzun) alınmaz; `cikarilan` listesine ve kapsam notuna yazılır.
 - Kitap verisine dayanan soru kitaptan tamamlanır. Kitapta da bulunamayan değer için `varsayim=` ile açıkça varsayım yapılır ya da soru nedeniyle birlikte çıkarılır.
 
 ## Ortam (Windows / Mac / Linux)
