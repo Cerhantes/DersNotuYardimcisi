@@ -22,6 +22,21 @@ os.makedirs(A.work, exist_ok=True)
 cap_re, capf_re = re.compile(A.cap), re.compile(A.cap_font)
 lab_re = None if A.label_font == 'auto' else re.compile(A.label_font)
 
+
+
+def menzil(t, r):
+    """Kısa satırın şekle katılacağı en büyük uzaklık (pt). Gövde metni artıkları yalnız değince katılır."""
+    if re.fullmatch(r'\(\s*[a-z]\s*\)', t):
+        return 18   # panel etiketi
+    if r.height > 3 * r.width and len(t) > 3:
+        return 22   # dik yazılmış eksen adı
+    if len(t) <= 6 and re.fullmatch(r'[−\-]?\d+([.,]\d+)?', t):
+        return 9    # eksen rakamı
+    if t.isalpha() and (len(t) == 1 or (len(t) <= 3 and t != t.lower())):
+        return 18   # sembol: x, β, K, CD, ReD ('or' gibi küçük harfli sözcük değil)
+    return 3
+
+
 d = fitz.open(A.src)
 res = {}
 for i in range(A.a - 1, A.b):
@@ -60,7 +75,7 @@ for i in range(A.a - 1, A.b):
         els.append(r)
     for im in p.get_image_info():
         els.append(fitz.Rect(im['bbox']))
-    caps, shorts = [], []
+    caps, shorts, metin = [], [], {}
     for t, r, spans, b in lines:
         if cap_re.match(t) and capf_re.search(spans[0]['font']):
             caps.append((t, list(r)))
@@ -70,6 +85,7 @@ for i in range(A.a - 1, A.b):
             els += [fitz.Rect(s['bbox']) for s in spans if lab_re.search(s['font'])]
         elif t and len(t) <= A.label_len:
             shorts.append(r)
+            metin[id(r)] = t
     # auto: çizime değen ya da çok yakın kısa satırları, yeni eklenenlerden de yayılarak etikete kat
     pending, near = shorts, 6
     while pending and els:
@@ -97,11 +113,17 @@ for i in range(A.a - 1, A.b):
                     clusters.remove(x); clusters.remove(y); clusters.append(x | y); changed = True; break
             if changed: break
     clusters = [c for c in clusters if c.width * c.height > 3000]
-    # çizimden uzak ama şekil alanına değen kısa etiketler ((a), (b), eksen harfi) yarım kesilmesin
-    for n, c in enumerate(clusters):
-        for r in [r for r in pending if fitz.Rect(c.x0 - 3, c.y0 - 3, c.x1 + 3, c.y1 + 3).intersects(r)]:
-            clusters[n] = clusters[n] | r
-            pending.remove(r)
+    # çizimden uzak etiketler ((a), eksen adı, eksen rakamı) kesilmesin: en yakın şekle, türüne göre bir mesafeye kadar kat
+    degisti = bool(clusters)
+    while degisti:
+        degisti = False
+        for r in list(pending):
+            uzak = lambda c: max(c.x0 - r.x1, r.x0 - c.x1, c.y0 - r.y1, r.y0 - c.y1, 0)
+            n = min(range(len(clusters)), key=lambda k: uzak(clusters[k]))
+            if uzak(clusters[n]) <= menzil(metin[id(r)], r):
+                clusters[n] = clusters[n] | r
+                pending.remove(r)
+                degisti = True
     clusters.sort(key=lambda c: (round(c.y0), c.x0))
     res[i] = {'caps': caps, 'clusters': [list(c) for c in clusters], 'capboxes': [list(c) for c in capboxes]}
 
