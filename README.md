@@ -43,7 +43,7 @@ Komutla da başlatabilirsin:
 | Tekrar notu | `/ders-notu-yardimcisi:tekrar-notu` |
 | Formül kağıdı | `/ders-notu-yardimcisi:formul-kagidi` |
 
-Skill önce PDF'in yolunu, kapsam belli değilse konuyu sorar. Bölüm sonu problemlerinin okunup okunmayacağını da sana bırakır. Bitince PDF'i kaynağın bulunduğu klasöre kaydeder.
+![Dört adım: 1. PDF'ini ver, kitabın ya da notun yolunu söylemen yeter. 2. Soruları yanıtla, gerekirse konuyu ve problemleri sorar. 3. Hazırlanmasını bekle, notu yazar, PDF'i derleyip kontrol eder. 4. PDF'ini al, kaynağın bulunduğu klasöre kaydedilir.](docs/akis.png)
 
 ## Güncelleme ve kaldırma
 
