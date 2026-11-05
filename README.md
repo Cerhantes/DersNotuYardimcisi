@@ -2,8 +2,6 @@
 
 Ders kitabını ya da ders notunu ver, Claude Code sana Türkçe ders notu, tekrar notu ve formül kağıdını PDF olarak hazırlasın.
 
-*Claude Code skills that turn textbook PDFs into Turkish lecture notes, review notes and formula sheets.*
-
 Aynı konu (Fourier yasası), üç farklı çıktı:
 
 <table>
@@ -37,7 +35,13 @@ Claude Code'a ne istediğini yaz:
 
 > Vize konuları için formül kağıdı hazırla
 
-Komutla da başlatabilirsin: `/ders-notu-yardimcisi:ders-notu`, `/ders-notu-yardimcisi:tekrar-notu`, `/ders-notu-yardimcisi:formul-kagidi`.
+Komutla da başlatabilirsin:
+
+| Çıktı | Komut |
+|---|---|
+| Ders notu | `/ders-notu-yardimcisi:ders-notu` |
+| Tekrar notu | `/ders-notu-yardimcisi:tekrar-notu` |
+| Formül kağıdı | `/ders-notu-yardimcisi:formul-kagidi` |
 
 Skill önce PDF'in yolunu, kapsam belli değilse konuyu sorar. Bölüm sonu problemlerinin okunup okunmayacağını da sana bırakır. Bitince PDF'i kaynağın bulunduğu klasöre kaydeder.
 
