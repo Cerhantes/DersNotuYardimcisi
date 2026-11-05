@@ -1,12 +1,12 @@
 {
   "name": "ders-notu-yardimcisi",
   "owner": { "name": "Cerhantes" },
-  "metadata": { "description": "PDF'lerden Türkçe ders notu, tekrar notu ve formül kağıdı üreten Claude Code skill'leri." },
+  "metadata": { "description": "PDF'lerden Türkçe ders notu, tekrar notu, formül kağıdı ve çözümlü soru kitapçığı üreten Claude Code skill'leri." },
   "plugins": [
     {
       "name": "ders-notu-yardimcisi",
       "source": "./",
-      "description": "Ders kitabı ve ders notu PDF'lerinden Türkçe ders notu, tekrar notu ve formül kağıdı üretir."
+      "description": "Ders kitabı ve ders notu PDF'lerinden Türkçe ders notu, tekrar notu, formül kağıdı ve çözümlü soru kitapçığı üretir."
     }
   ]
 }

@@ -121,6 +121,19 @@ class KartTest(unittest.TestCase):
         with self.assertRaisesRegex(KeyError, '1.1/z'):
             solib.R('1.1', 'z')
 
+    def test_skill_komutlari_var(self):
+        import re
+        yer = os.path.join(KOK, 'skills', 'soru-kitapcigi')
+        metin = open(os.path.join(yer, 'SKILL.md'), encoding='utf-8').read()
+        self.assertIn('name: soru-kitapcigi', metin)
+        for y in re.findall(r'\$SK/\.\./\.\./ortak/(\w+\.\w+)', metin):
+            self.assertTrue(os.path.exists(os.path.join(KOK, 'ortak', y)), y)
+        for y in re.findall(r'\$SK/((?:scripts|examples)/\w+\.\w+)', metin):
+            self.assertTrue(os.path.exists(os.path.join(yer, y)), y)
+        for y in re.findall(r'\$DN/scripts/(\w+\.py)', metin):
+            self.assertTrue(os.path.exists(os.path.join(KOK, 'skills', 'ders-notu', 'scripts', y)), y)
+        self.assertTrue(os.path.exists(os.path.join(KOK, 'skills', 'formul-kagidi', 'scripts', 'review.py')))
+
     def test_notlib_kopyalari_ayni(self):
         a = open(os.path.join(KOK, 'skills', 'ders-notu', 'scripts', 'notlib.py'), 'rb').read()
         b = open(os.path.join(KOK, 'skills', 'tekrar-notu', 'scripts', 'notlib.py'), 'rb').read()

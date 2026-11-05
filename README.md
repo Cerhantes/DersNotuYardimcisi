@@ -1,14 +1,17 @@
 # Ders Notu Yardımcısı
 
-Ders kitabını ya da ders notunu ver, Claude Code sana Türkçe ders notu, tekrar notu ve formül kağıdını PDF olarak hazırlasın.
+Ders kitabını ya da ders notunu ver, Claude Code sana Türkçe ders notu, tekrar notu, formül kağıdı ve çözümlü soru kitapçığını PDF olarak hazırlasın.
 
-Aynı konu (Fourier yasası), üç farklı çıktı:
+Aynı konu (Fourier yasası), dört farklı çıktı:
 
 <table>
 <tr>
-<td width="33%" valign="top"><img src="docs/ornek-ders-notu.png" alt="Ders notu örneği"></td>
-<td width="33%" valign="top"><img src="docs/ornek-tekrar-notu.png" alt="Tekrar notu örneği"></td>
-<td width="33%" valign="top"><img src="docs/ornek-formul-kagidi.png" alt="Formül kağıdı örneği"></td>
+<td width="50%" valign="top"><img src="docs/ornek-ders-notu.png" alt="Ders notu örneği"></td>
+<td width="50%" valign="top"><img src="docs/ornek-tekrar-notu.png" alt="Tekrar notu örneği"></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="docs/ornek-formul-kagidi.png" alt="Formül kağıdı örneği"></td>
+<td width="50%" valign="top"><img src="docs/ornek-soru-kitapcigi.png" alt="Soru kitapçığı örneği"></td>
 </tr>
 </table>
 
@@ -35,6 +38,8 @@ Claude Code'a ne istediğini yaz:
 
 > Vize konuları için formül kağıdı hazırla
 
+> 8. bölümün problemlerinden takım aşınmasıyla ilgili olanları çöz
+
 Komutla da başlatabilirsin:
 
 | Çıktı | Komut |
@@ -42,6 +47,7 @@ Komutla da başlatabilirsin:
 | Ders notu | `/ders-notu-yardimcisi:ders-notu` |
 | Tekrar notu | `/ders-notu-yardimcisi:tekrar-notu` |
 | Formül kağıdı | `/ders-notu-yardimcisi:formul-kagidi` |
+| Soru kitapçığı | `/ders-notu-yardimcisi:soru-kitapcigi` |
 
 ![Altı adım. Sen: 1. PDF'ini ver, kitabın ya da ders notunun yolunu söylemen yeter. 2. Konuyu seç, konu belli değilse bölümleri listeler, hangilerini istediğini sorar. 3. Problemlere karar ver, kaynakta bölüm sonu problemleri varsa nota eklensin mi diye sorar. Claude: 4. Kaynağı okur, yalnızca seçilen bölümleri okur, formülleri ve şekilleri çıkarır. 5. Notu yazar, Türkçe metni yazar, kaynağın şekillerini ya da şemaları ekler. 6. Kontrol edip kaydeder, sayfaları gözden geçirir, PDF'i kaynağın klasörüne kaydeder.](docs/akis.png)
 

@@ -65,7 +65,7 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 
 - **İşe başlarken, sırayla, kaynak metnini okumadan önce:**
   1. `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri; kapsamı belirle. Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez.
-  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle.
+  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle. Çözümlü kitapçık istenirse `soru-kitapcigi` skill'i kullanılır.
   3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
 - **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
 - **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
