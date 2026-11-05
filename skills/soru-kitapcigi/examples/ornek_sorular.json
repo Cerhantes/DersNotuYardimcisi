@@ -1,0 +1,10 @@
+{
+ "sorular": [
+  {"no": "2.1", "konular": ["2. Fourier Yasası"], "sayfa": 1, "sekiller": ["2.1"], "sayisal": true},
+  {"no": "2.2", "konular": ["2. Fourier Yasası"], "sayfa": 1, "bagli": "2.1", "sayisal": true},
+  {"no": "2.3", "konular": ["2. Fourier Yasası"], "sayfa": 1, "tablolar": ["2.1"]},
+  {"no": "3.1", "konular": ["3. Düzlem Duvar ve Isıl Direnç", "2. Fourier Yasası"], "sayfa": 1, "sayisal": true, "cevap": "≈ 130 W"},
+  {"no": "3.2", "konular": ["3. Düzlem Duvar ve Isıl Direnç"], "sayfa": 1}
+ ],
+ "cikarilan": []
+}
