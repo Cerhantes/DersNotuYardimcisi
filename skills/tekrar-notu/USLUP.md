@@ -10,6 +10,7 @@ kaynaktaki **her** bilgi notta yer alır (SKILL.md'deki "Tekrar notunun biçimi"
 - Madde dili kısa ve isim ağırlıklı: `'Metallerde <b>yüksek</b>: serbest elektronlar ısıyı da taşır.'` Gereksiz fiil, bağlaç ve "dır/dir" atılabilir.
 - Neden-sonuç zinciri okla: `kalınlık ↑ → R ↑ → Q ↓`. Eğilim `↑` / `↓`, çok güçlü etki `↓↓`, etkisiz `—`.
 - Örnek ve istisna parantezde: `(ör. bakır, alüminyum)`.
+- **Kelimesi kelimesine çevirme:** cümleyi anlamından yeniden Türkçe kur, yazdıktan sonra Türkçe okunuşunu kontrol et. `far downstream` → "çok akış aşağısında" değil, "akış yönünde çok ileride". Yerleşik terimler (`akış aşağısı`, `sınır tabaka`) kalır.
 - Terim ilk geçtiğinde **kalın**, İngilizcesi parantezde.
 
 ## Bölüm iskeleti

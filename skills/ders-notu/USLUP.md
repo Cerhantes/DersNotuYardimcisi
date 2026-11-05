@@ -13,6 +13,7 @@ genel bir konuyu (ısı iletimi) anlatır. Örnekten içeriği değil **kalıbı
 
 ## Terimler ve sayılar
 
+- **Kelimesi kelimesine çevirme:** cümleyi anlamından yeniden Türkçe kur, yazdıktan sonra Türkçe okunuşunu kontrol et. `far downstream` → "çok akış aşağısında" değil, "akış yönünde çok ileride". Yerleşik terimler (`akış aşağısı`, `sınır tabaka`) kalır.
 - Terim ilk geçtiğinde **kalın**, İngilizcesi parantezde ve normal yazıyla: `<b>ısıl iletkenlik</b> (thermal conductivity)`.
   Sonraki geçişlerde yalnız Türkçesi.
 - Kritik sonuç cümlesi kalın yazılır (paragrafın "aklında kalsın" kısmı), ama paragrafın en fazla 1–2 yeri.

@@ -16,6 +16,7 @@ Betikleri yazmadan önce bu dosyayı ve `examples/ornek_semalar.py` ile `example
 - Etiket kısa ve isim halinde: `'Isı akısı'`, `'Oran formu (n = 2)'`, `'Kararlı hal, düzlem levha'`.
 - `terms(...)` açıklamaları küçük harfle başlar, birim parantezde: `('k', 'ısıl iletkenlik (W/m·K)')`.
   Aynı kartta daha önce adlandırılmış sembol tekrar adlandırılmaz.
+- **Kelimesi kelimesine çevirme:** cümleyi anlamından yeniden Türkçe kur, yazdıktan sonra Türkçe okunuşunu kontrol et. `far downstream` → "çok akış aşağısında" değil, "akış yönünde çok ileride". Yerleşik terimler (`akış aşağısı`, `sınır tabaka`) kalır.
 - `note=` tek satır ve şu türlerden biri: işaret/yön anlamı, geçerlilik koşulu, tipik aralık, sık yapılan hata, benzetme.
 - Kartın son satırı genellikle bir **uygulama**: `'<b>Uygulama:</b> verilenler → hesap = sonuç; değişen durumda sonuç.'`
   Kaynağın çözümlü örneğinden alınır ve kartın formüllerinin nasıl zincirlendiğini gösterir.
