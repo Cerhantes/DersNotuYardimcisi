@@ -11,6 +11,8 @@
 
 Metinler tnlib'in S() süzgecinden geçer (x_o, x^2). Kart bir sayfaya sığıyorsa bölünmez; sığmıyorsa adım arasından
 bölünür, bant "(devam)" ile tekrar eder. Tek adım bir sayfadan uzunsa ValueError: adımı böl.
+Kartlar make()'te ölçülür ve aynı konu içinde sayfalara en az boşluk kalacak biçimde dağıtılır; numara sırası korunmaz.
+bagli= ile işaretlenen sorular birlikte taşınır ve yan yana kalır.
 """
 import json, os, sys
 
@@ -18,7 +20,7 @@ _KOK = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_KOK, '..', '..', 'tekrar-notu', 'scripts'))
 import tnlib
 from tnlib import S, ss, FW, FH, Paragraph, Table, TableStyle, Image, ParagraphStyle, colors, cm
-from reportlab.platypus import Flowable, Spacer
+from reportlab.platypus import CondPageBreak, Flowable, Spacer
 from tema import PALET, acik
 
 __all__ = ['start', 'kapak', 'bolum', 'konu', 'soru', 'H', 'M', 'TB', 'G', 'make', 'R', 'S', 'cm']
@@ -28,6 +30,7 @@ _work = None
 _IC = 10            # kart iç boşluğu (pt)
 _ARA = 4            # kart parçaları arası (pt)
 _IW = FW - 2 * _IC
+_KART_ARA = 10       # kartlar arası (pt)
 _KARMA = PALET['kirmizi']
 _VARSAYIM = PALET['hardal']
 _CIZGI = colors.HexColor('#BBBBBB')
@@ -51,12 +54,13 @@ def start(out, work, title, header, source, subtitle='Çözümlü Sorular', renk
     _work = work
     d = tnlib.start(out, work, title, header, source, subtitle=subtitle, renk=renk)
     d._dizin, d._varsayimlar, d._dizin_yeri, d._kapsam_notu = {}, [], None, None
+    d._bloklar, d._bolum_var = [], False
     return d
 
 
 def kapak(kapsam, kaynakta_cevap, kapsam_notu=None):
     icerik = ['Her soru, sorusu ve çözümüyle birlikte tek kart hâlindedir. Kartın üstündeki bant sorunun konusunu söyler; '
-              '<b>KARMA</b> etiketli sorularda birden çok konu birlikte kullanılır.']
+              '<b>KARMA</b> etiketli sorularda birden çok konu birlikte kullanılır. Sorular sayfa düzenine göre dizildiği için numara sırasında olmayabilir.']
     if not kaynakta_cevap:
         icerik.append('Kaynakta cevap anahtarı yoktur; çözümler Claude tarafından yapılmıştır, sayısal sonuçlar Python ile hesaplanmıştır.')
     d.cover(kapsam, icerik, kutu='BU KİTAPÇIĞI NASIL KULLANMALISIN?')
@@ -64,13 +68,24 @@ def kapak(kapsam, kaynakta_cevap, kapsam_notu=None):
     d._kapsam_notu = kapsam_notu
 
 
+def _blok(baslik=None):
+    """Kartı olmayan son bloğa başlık ekler, yoksa yeni blok açar."""
+    if not d._bloklar or (d._bloklar[-1]['gruplar'] and baslik is not None):
+        d._bloklar.append({'basliklar': [], 'gruplar': []})
+    if baslik is not None:
+        d._bloklar[-1]['basliklar'].append(baslik)
+    return d._bloklar[-1]
+
+
 def bolum(ad):
-    d.h1(ad)
+    d.tema.sonraki()
+    d._bolum_var = True
+    _blok(d._hp(ad, d._renkli('h1'), 0))
 
 
 def konu(ad, renk=None):
     d.tema.sonraki(renk)
-    d.h2(ad)
+    _blok(d._hp(ad, d._renkli('h2'), 1 if d._bolum_var else 0))
 
 
 def H(metin):
@@ -88,14 +103,19 @@ def M(maddeler):
     return [Paragraph(S(m), _st_madde, bulletText='•') for m in maddeler]
 
 
-def TB(satirlar, genislikler=None):
-    """Tablo; ilk satır başlık. genislikler: oranlar (toplam 1)."""
+def TB(satirlar, genislikler=None, baslik=None):
+    """Tablo; ilk satır başlık. genislikler: oranlar (toplam 1). baslik: 'Tablo 8.5 – Açıklama' (kitap tablosunda zorunlu)."""
     veri = [[Paragraph(S(str(h)), ss['cellh'] if i == 0 else ss['cell']) for h in r] for i, r in enumerate(satirlar)]
     t = Table(veri, colWidths=[g * _IW for g in genislikler] if genislikler else [_IW / len(satirlar[0])] * len(satirlar[0]))
     st = [('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(d.ana)), ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#AAAAAA')),
           ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]
     t.setStyle(TableStyle(st))
-    return t
+    if not baslik:
+        return t
+    dis = Table([[Paragraph('<b><font color="%s">%s</font></b>' % (d.ana, S(baslik)), ss['cap'])], [t]], colWidths=[_IW])
+    dis.setStyle(TableStyle([('LEFTPADDING', (0, 0), (-1, -1), 0), ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                             ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 2)]))
+    return dis
 
 
 def G(yol, altyazi, maxh=170):
@@ -133,6 +153,7 @@ class _Kart(Flowable):
     def __init__(self, no, konular, bas, adimlar, renk, devam=False):
         super().__init__()
         self.no, self.konular, self.bas, self.adimlar, self.renk, self.devam = no, konular, bas, adimlar, renk, devam
+        self.spaceAfter = _KART_ARA
         self._bant_olustur()
 
     def _bant_olustur(self):
@@ -182,12 +203,22 @@ class _Kart(Flowable):
                 break
             kalan -= h
             n += 1
+        sigan = n
         while n and _giris_mi(self.adimlar[n - 1]):      # ":" ile biten adım sonraki adımdan ayrılmaz
             n -= 1
         if n == 0:
-            return []
+            if aH < FH - 2 or not sigan:
+                return []
+            n = sigan                                    # boş sayfada başka yol yok: kural gevşer, derleme çökmez
         return [_Kart(self.no, self.konular, self.bas, self.adimlar[:n], self.renk, self.devam),
                 _Kart(self.no, self.konular, [], self.adimlar[n:], self.renk, True)]
+
+    def en_az(self):
+        """Kartın başlıklarıyla birlikte sayfada kalması için gereken en küçük yükseklik."""
+        h = self.wrap(FW, FH)[1]
+        if h <= FH - 2:
+            return h
+        return self._bas_h() + (self._yukseklik(self.adimlar[0]) if self.adimlar else 0) + _IC / 2
 
     def draw(self):
         c = self.canv
@@ -234,9 +265,10 @@ def _sekil_parcalari(no, sekil):
     return parca
 
 
-def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=(), ek=()):
+def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=(), ek=(), bagli=None):
     """no: kaynaktaki numara. konular: ilki ana konu; birden çoksa KARMA. adimlar: str | H | M | TB | G | flowable.
-    ek: sorunun kendi verisi (ör. TB), soru metninin ardına, ÇÖZÜM'den önce konur."""
+    ek: sorunun kendi verisi (ör. TB), soru metninin ardına, ÇÖZÜM'den önce konur.
+    bagli: bu sorunun dayandığı sorunun numarası; ikisi yan yana kalır."""
     kutu = Table([[Paragraph(S(metin), _st_soru)]], colWidths=[_IW])
     kutu.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F7F8FA')),
                               ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
@@ -262,7 +294,58 @@ def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, seki
     if notu:
         parcalar.append(Paragraph(S(notu), _st_not))
     d._dizin.setdefault(konular[0], []).append(no)
-    d.story += [_Kart(no, list(konular), bas, parcalar, d.ana), Spacer(1, 10)]
+    kart = _Kart(no, list(konular), bas, parcalar, d.ana)
+    blok = _blok()
+    for g in blok['gruplar']:
+        if bagli and any(k.no == bagli for k in g):
+            g.append(kart)
+            return
+    blok['gruplar'].append([kart])
+
+
+def _paketle(boylar, ilk, tam):
+    """Best-fit decreasing: boylar sayfalara dağıtılır. ilk: içinde bulunulan sayfada kalan yer, tam: boş sayfa.
+    Dönüş: (sayfa başına öğe sırası listesi, son sayfada kalan yer). Sayfadan uzun öğe kendi başına durur."""
+    kutular = [{'kalan': ilk, 'oge': [], 'uzun': False}]
+    for i in sorted(range(len(boylar)), key=lambda x: (-boylar[x], x)):
+        h = boylar[i]
+        if h > tam:
+            kutular.append({'kalan': tam - h % tam, 'oge': [i], 'uzun': True})
+            continue
+        uygun = [k for k in kutular if not k['uzun'] and k['kalan'] >= h]
+        if uygun:
+            k = min(uygun, key=lambda x: x['kalan'])
+        else:
+            k = {'kalan': tam, 'oge': [], 'uzun': False}
+            kutular.append(k)
+        k['oge'].append(i)
+        k['kalan'] -= h
+    ilk_kutu, geri = kutular[0], kutular[1:]
+    geri.sort(key=lambda k: (not k['uzun'], k['kalan']))     # en boş sayfa sona: sonraki konu orada başlayabilsin
+    sira = [ilk_kutu] + geri
+    return [k['oge'] for k in sira if k['oge']], sira[-1]['kalan']
+
+
+def _yerlestir():
+    """Kartları ölç, konu konu en az boşlukla sayfalara dağıt, story'ye ekle."""
+    tam = FH - 2
+    kalan = tam
+    for b in d._bloklar:
+        basliklar = b['basliklar']
+        bas_h = sum(p.wrap(FW, FH)[1] + p.getSpaceBefore() + p.getSpaceAfter() for p in basliklar)
+        boylar = [sum(k.wrap(FW, FH)[1] + _KART_ARA for k in g) for g in b['gruplar']]
+        if not boylar:
+            d.story += basliklar
+            continue
+        ilk = kalan - bas_h
+        if ilk < min(boylar) and not any(h > tam for h in boylar):
+            ilk = tam - bas_h
+        plan, kalan = _paketle(boylar, ilk, tam)
+        sira = [b['gruplar'][i] for sayfa in plan for i in sayfa]
+        d.story.append(CondPageBreak(bas_h + sira[0][0].en_az() + 1))
+        d.story += basliklar
+        for g in sira:
+            d.story += g
 
 
 def make():
@@ -276,6 +359,7 @@ def make():
         if d._kapsam_notu:
             ek += [Spacer(1, 8), Paragraph('<b>Kapsam notu.</b> ' + S(d._kapsam_notu), ss['cap'])]
         d.story[d._dizin_yeri:d._dizin_yeri] = ek
+    _yerlestir()
     for no, metin in d._varsayimlar:
         print('VARSAYIM %s: %s' % (no, metin), file=sys.stderr)
     d.make()

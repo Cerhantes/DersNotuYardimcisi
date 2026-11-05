@@ -13,6 +13,7 @@ Ders kitabının bölüm sonu problemlerinden ya da toplu soru PDF'lerinden, bel
 - **Bant:** `Soru 5.82` ve sağda sorunun konu başlığı. Birkaç konu birlikte gerekiyorsa `KARMA · 5.2 Katılaşma + 5.8 Kum Döküm`.
 - **Kart sırası:** soru metni, gerekirse kitaptan şekil ve tablo, `ÇÖZÜM`, adımlar, `Sonuç` kutusu, kısa not.
 - **Numaralar kaynakla aynıdır;** sorunun verileri ve değerleri değiştirilmez.
+- **Sayfa düzeni önceliklidir:** kartlar ölçülür, aynı konu içinde en az boşluk kalacak biçimde sayfalara dağıtılır (otomatik). Numara sırası korunmaz; konular karışmaz, `bagli` sorular yan yana kalır.
 - **Belge:** kapak, içindekiler, konu başına soru numaralı dizin, kapsam notu, konu konu kartlar.
 - Çıktı: `<kaynağın klasörü>/<Konu>_Cozumlu_Sorular.pdf`. Dil Türkçe, ondalık ayırıcı virgül.
 
@@ -54,8 +55,8 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
    `konular`da ilki ana konudur ve bantta aynen yazılan metinle eşleşir. `sekiller`, `tablolar`, `bagli`, `sayisal`, `cevap` isteğe bağlıdır; `cevap` kaynakta cevap varsa yazılır.
 3. **Çözmeden önce sor:** konu başına soru sayısını ve toplamı `AskUserQuestion` ile bildir: devam mı, daraltılsın mı? Soru sayısı token'ı doğrudan belirler; 100 soru üzerinde bunu açıkça söyle.
 4. **Konu anlatımı:** yalnız gereken bölümler okunur. Konuyu tutan önceki içerik betiği varsa "kaynak bir kez okunur": betiği oku, kitabı yeniden okuma. Konu başlıklarını nottan al.
-5. **Şekiller:** `$PY -W ignore $SK/../../ortak/envanter.py $B --sekil-eksik 5.1,5.2` → yalnız `EKSİK ŞEKİL` satırındakiler kesilir: `$DN/scripts/detect_figs.py $B <work> <ilk> <son>` → `$DN/scripts/crop_figs.py $B <work>` → temas sayfalarını aç (hata düzeltmeleri `ders-notu` skill'inde: `split.json`, `over.json`) → `envanter.py $B --sekil-kaydet <work>`. Sonra `envanter.py $B --sekil-al <work>`. Tablolar değerleriyle `TB` ile yazılır, başlığında `Tablo n` geçer.
-6. **Bağlı sorular:** "Problem 5.84'teki yolluk" gibi soruda eksik veri karta eklenir, iki soru yan yana konur (`bagli`).
+5. **Şekiller:** `$PY -W ignore $SK/../../ortak/envanter.py $B --sekil-eksik 5.1,5.2` → yalnız `EKSİK ŞEKİL` satırındakiler kesilir: `$PY -W ignore $DN/scripts/detect_figs.py $B <work> <ilk> <son>` → `$PY -W ignore $DN/scripts/crop_figs.py $B <work>` → temas sayfalarını aç (hata düzeltmeleri `ders-notu` skill'inde: `split.json`, `over.json`) → `envanter.py $B --sekil-kaydet <work> --yalniz <eksik numaralar>` (aralıktaki eski, elle düzeltilmiş kesimler ezilmez). Sonra `envanter.py $B --sekil-al <work>`. Problem şekilleri (`FIGURE P5–32` gibi) varsayılan başlık aramasına takılmaz: `--cap` ver ya da `over.json` ile kes; numarasız şekle soru numarasıyla ad ver. Kitap tabloları değerleriyle `TB(..., baslik='Tablo n – Açıklama')` ile yazılır.
+6. **Bağlı sorular:** "Problem 5.84'teki yolluk" gibi soruda eksik veri karta eklenir; hem `sorular.json`'a hem `soru(..., bagli='5.84')`'e yazılır, iki soru yan yana kalır.
 7. **Hesap:** `<work>/hesap.py` (kalıp `$SK/examples/ornek_hesap.py`), `PYTHONPATH=$SK/scripts $PY -W ignore <work>/hesap.py <work>`. Kartta yazılacak sonuçları `h.kaydet(no, ad, deger, birim, ondalik)` ile kaydet, ara değerleri kaydetme. Kaynakta cevap varsa karşılaştır, uyuşmazlığı raporla.
 8. **İçerik:** önce `$SK/USLUP.md` ve `$SK/examples/ornek_soru_kitapcigi.py`'yi oku. Konu konu `<work>/p01.py`, `p02.py`… **Write aracıyla** yaz (ilki `start` ve `kapak`, sonuncusu `make()`), `cat p*.py > kitapcik.py`. Sonuçlar elle değil `R(no, ad)` ile yazılır.
 9. **Derle:** `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kitapcik.py <work>/out.pdf <work>`. stderr'deki `VARSAYIM` ve `UYARI` satırlarına bak.
@@ -81,8 +82,8 @@ kapak(['<b>Kapsam:</b> ...'], kaynakta_cevap=False, kapsam_notu='Çıkarılan so
 bolum('Bölüm 5 – Döküm')                 # içindekilerde 1. düzey
 konu('5.2 Metallerin Katılaşması')       # 2. düzey, sıradaki renk
 soru('5.82', ['5.2 Katılaşma', '5.8 Kum Döküm'], 'Soru metni',
-     ['paragraf adım', H('hesap satırı'), M(['madde', 'madde']), TB([['Başlık', 'B'], ['a', 'b']], [0.6, 0.4]), G(work + '/grafik.png', 'Altyazı')],
-     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')], ek=[TB(soruda_verilen_tablo)])
+     ['paragraf adım', H('hesap satırı'), M(['madde', 'madde']), TB([['Başlık', 'B'], ['a', 'b']], [0.6, 0.4], baslik='Tablo 8.5 – Açıklama'), G(work + '/grafik.png', 'Altyazı')],
+     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')], ek=[TB(soruda_verilen_tablo)], bagli='5.84')
 make()
 ```
 
@@ -98,6 +99,7 @@ Metinler `S()`'den geçer: `t_o`, `D_{ort}`, `f^2`, `V^{−1/n}`; kalın `<b>`, 
 | `KeyError: şekil yok (figs.json)` | 5. adım: kes, `--sekil-kaydet`, `--sekil-al` |
 | `KeyError: hesap.py içinde yok` | `hesap.py`'yi çalıştır ya da kaydı ekle |
 | `SORUN: bantta konu uyuşmuyor` | `soru()` konuları ile `sorular.json` aynı metin olmalı |
-| `SORUN: şekilsiz atıf` | Şekli karta ekle ya da atfı kaldırıp soruyu kapsam notuna taşı |
+| `SORUN: şekilsiz atıf` | Şekli `sekil=` ile karta ekle ya da atfı kaldır; karşılanamıyorsa soruyu kapsam notuna taşı |
+| `SORUN: soru Tablo n'e atıf yapıyor` | Tabloyu `TB(..., baslik='Tablo n – ...')` ile karta ekle |
 | `SORUN: hesap sonucu kartta yok` | Sonucu `R()` ile yaz ya da ara değeri `hesap.py`'den çıkar |
 | `ModuleNotFoundError` / `UnicodeEncodeError` | Kurulum betiğinin verdiği `$PY`, `PYTHONIOENCODING=utf-8` |

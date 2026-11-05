@@ -8,6 +8,9 @@ import solib
 from solib import H, M, TB
 
 
+from reportlab.platypus import Spacer
+
+
 def sayfalar(pdf):
     return [p.get_text() for p in fitz.open(pdf)]
 
@@ -133,6 +136,76 @@ class KartTest(unittest.TestCase):
                 sayfa = [n for n, x in enumerate(s) if 'GIRIS%02d' % i in x]
                 sonraki = [n for n, x in enumerate(s) if 'SONRAKI%02d' % i in x]
                 self.assertEqual(sayfa, sonraki, (dolgu, i))
+
+    def bandlar(self):
+        return [[l for l in p.get_text().split('\n') if l.startswith('Soru ') and l[5:6].isalnum() and ' ' not in l[5:]]
+                for p in fitz.open(self.out)]
+
+    def test_iki_nokta_ardindan_uzun_tablo_derlenir(self):
+        for satir in (20, 30, 40):
+            s = self.derle(lambda: solib.soru('4.4', ['K'], 'Metin ' * 80, ['Sonuçlar aşağıdaki tablodadır:', TB([['A']] + [['x']] * satir), 'Son adım']))
+            self.assertIn('Soru 4.4', ''.join(s))
+
+    def test_yerlesim_bosluklari_doldurur(self):
+        def icerik():
+            for no, h in (('A1', 380), ('A2', 380), ('A3', 100), ('A4', 100)):
+                solib.soru(no, ['K'], 'M', [Spacer(1, h)])
+        self.derle(icerik)
+        dolu = [[x for x in b if x != 'Soru dizini'] for b in self.bandlar()]
+        dolu = [b for b in dolu if b]
+        self.assertEqual(len(dolu), 2, dolu)
+        self.assertEqual(sorted(len(b) for b in dolu), [2, 2])
+
+    def test_yerlesim_konulari_karistirmaz(self):
+        def icerik():
+            solib.konu('KONUBIR')
+            solib.soru('B1', ['KONUBIR'], 'M', [Spacer(1, 500)])
+            solib.konu('KONUIKI')
+            solib.soru('B2', ['KONUIKI'], 'M', [Spacer(1, 500)])
+            solib.soru('B3', ['KONUIKI'], 'M', [Spacer(1, 60)])
+        s = ' '.join(self.derle(icerik)[2:])
+        self.assertLess(s.index('Soru B1'), s.index('KONUIKI'))
+        self.assertLess(s.index('KONUIKI'), s.index('Soru B3'))
+
+    def test_bagli_sorular_birlikte_kalir(self):
+        def icerik():
+            solib.soru('C1', ['K'], 'M', [Spacer(1, 100)])
+            solib.soru('C2', ['K'], 'M', [Spacer(1, 500)])
+            solib.soru('C3', ['K'], 'M', [Spacer(1, 90)], bagli='C1')
+        self.derle(icerik)
+        sira = [n for b in self.bandlar() for n in b]
+        self.assertEqual(abs(sira.index('Soru C1') - sira.index('Soru C3')), 1, sira)
+
+    def test_bolum_basligi_yalniz_kalmaz(self):
+        for dolgu in (300, 450, 600):
+            def icerik():
+                solib.soru('D1', ['K'], 'M', [Spacer(1, dolgu)])
+                solib.bolum('IKINCIBOLUM')
+                solib.konu('IKINCIKONU')
+                solib.soru('D2', ['IKINCIKONU'], 'M', [Spacer(1, 400)])
+            s = self.derle(icerik)[2:]
+            ayni = [t for t in s if 'IKINCIBOLUM' in t]
+            self.assertEqual(len(ayni), 1)
+            self.assertIn('IKINCIKONU', ayni[0], dolgu)
+            self.assertIn('Soru D2', ayni[0], dolgu)
+
+    def test_bolumsuz_konu_derlenir(self):
+        solib.start(self.out, self.work, 'D', 'D', 'K')
+        solib.kapak(['K'], True)
+        solib.konu('TEKKONU')
+        solib.soru('E1', ['TEKKONU'], 'M', ['A'])
+        with contextlib.redirect_stderr(io.StringIO()):
+            solib.make()
+        self.assertIn('Soru E1', ''.join(sayfalar(self.out)))
+
+    def test_son_kart_bos_sayfa_acmaz(self):
+        for h in range(560, 640, 8):
+            s = self.derle(lambda: solib.soru('F1', ['K'], 'M', [Spacer(1, h)]))
+            self.assertIn('Soru F1', s[-1], h)
+
+    def test_tablo_basligi(self):
+        s = ''.join(self.derle(lambda: solib.soru('1.1', ['K'], 'M', [TB([['A'], ['b']], baslik='Tablo 8.5 – Pay')])))
+        self.assertIn('Tablo 8.5 – Pay', ' '.join(s.split()))
 
     def test_ek_cozumden_once(self):
         s = ''.join(self.derle(lambda: solib.soru('1.1', ['K'], 'M', ['A'], ek=[TB([['VERITABLO'], ['x']])])))

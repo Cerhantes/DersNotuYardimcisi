@@ -28,6 +28,7 @@ Yeni soru üretmek, deneme sınavı, cevapsız kitapçık, not skill'lerinin yer
 - Üst bant: `Soru 5.82` + konu başlığı. Karma soruda `KARMA · 5.2 Katılaşma + 5.8 Kum Döküm`, ayırt edici renkle.
 - Soru metni, gerekirse kitaptan şekil ve tablo, `ÇÖZÜM`, adımlar, `Sonuç` kutusu, kısa not.
 - Numaralar kaynaktakiyle aynıdır. Sorunun verileri ve değerleri değiştirilmez.
+- Sayfa düzeni önceliklidir: kartlar ölçülüp aynı konu içinde en az boşlukla dağıtılır, numara sırası korunmaz; konular karışmaz, bağlı sorular yan yana kalır (kullanıcı kararı).
 - Kart bir sayfaya sığıyorsa bölünmez. Sığmıyorsa adım arasından bölünür, bant `(devam)` ile tekrar eder; soru metni ile çözüm başlangıcı aynı sayfada kalır.
 
 ## Belge
@@ -71,7 +72,7 @@ Not skill'i problemleri okumadan çalışmış olabilir.
 
 ## Yeni kod
 
-- `skills/soru-kitapcigi/scripts/solib.py`: `notlib` üzerine kart API'si. `notlib`, `tekrar-notu`'nda olduğu gibi skill'in kendi klasöründe kopya olarak durur; böylece her skill tek başına derlenir.
+- `skills/soru-kitapcigi/scripts/solib.py`: `tekrar-notu`'nun `tnlib`/`notlib` katmanı üzerine kart API'si (skill'ler birlikte kurulduğu için kopya tutulmaz).
 - `denetim.py`: seçilen her soru PDF'te var mı, bandında konu var mı, soruda atıf yapılan şekil/tablo kartta var mı, kart bölünmüş mü.
 - `SKILL.md`, `USLUP.md`, kitaptan bağımsız `examples/ornek_soru_kitapcigi.py`.
 - Şekil kesme `ders-notu`'nun betiklerinden kullanılır.

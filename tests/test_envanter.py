@@ -31,6 +31,14 @@ class SekilTest(unittest.TestCase):
         envanter.sekil_kopya(self.is_, self.env)
         self.assertEqual(json.load(open(os.path.join(self.env, 'figs.json')))['1.1'][0], 9)
 
+    def test_yalniz_istenen_numara_kaydedilir(self):
+        kur(self.env, {'1.1': [0, [0, 0, 1, 1]]})
+        kur(self.is_, {'1.1': [9, [0, 0, 9, 9]], '2.1': [5, [0, 0, 2, 2]]})
+        envanter.sekil_kopya(self.is_, self.env, yalniz=['2.1'])
+        figs = json.load(open(os.path.join(self.env, 'figs.json')))
+        self.assertEqual(figs['1.1'][0], 0)
+        self.assertEqual(figs['2.1'][0], 5)
+
     def test_eksik(self):
         kur(self.env, {'1.1': [0, [0, 0, 1, 1]]})
         self.assertEqual(envanter.sekil_eksik(self.env, ['1.1', '9.9']), ['9.9'])

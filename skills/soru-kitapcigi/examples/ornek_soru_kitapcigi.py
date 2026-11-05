@@ -47,13 +47,13 @@ soru('2.2', [ILETIM],
      'Soru 2.1\'deki duvarın kalınlığı iki katına çıkarılırsa ısı kaybı nasıl değişir?',
      ['Q, L ile ters orantılıdır (Q ∝ 1/L).', H('Q = 0,7 × 10 × 20 / 0,4 = <b>%s</b>' % R('2.2', 'Q'))],
      sonuc='Isı kaybı yarıya iner: %s.' % R('2.2', 'Q'),
-     notu='Eşitlik yalnız kararlı hal ve sabit k için geçerlidir.')
+     notu='Eşitlik yalnız kararlı hal ve sabit k için geçerlidir.', bagli='2.1')
 
 soru('2.3', [ILETIM],
      'Metallerin ısıl iletkenliği yalıtkanlardan neden çok daha yüksektir? Tablo 2.1\'deki değerlerle açıklayınız.',
      [M(['<b>Metaller:</b> ısıyı serbest elektronlar da taşır.',
          '<b>Yalıtkanlar:</b> gözeneklerdeki hareketsiz hava iletimi düşürür.']),
-      TB([['Malzeme', 'k (W/m·K)'], ['Bakır', '≈ 400'], ['Tuğla', '≈ 0,7'], ['Cam yünü', '≈ 0,04']], [0.6, 0.4])],
+      TB([['Malzeme', 'k (W/m·K)'], ['Bakır', '≈ 400'], ['Tuğla', '≈ 0,7'], ['Cam yünü', '≈ 0,04']], [0.6, 0.4], baslik='Tablo 2.1 – Isıl iletkenlik (yaklaşık)')],
      sonuc='Fark, ısıyı taşıyan mekanizmadan kaynaklanır.')
 
 konu(DUVAR)

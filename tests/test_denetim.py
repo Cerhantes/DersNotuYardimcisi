@@ -114,6 +114,72 @@ class DenetimTest(unittest.TestCase):
         y = [{'no': n, 'konular': ['K'], 'sayisal': True} for n in ('1.1', '1.2')]
         self.assertEqual(self.derle([self.kart('1.1', notu='Son satır 500 W'), self.kart('1.2', notu='Son satır 600 W')], y), [])
 
+    def test_numarali_atif_baska_sekil(self):
+        self.sekilli('5.2')
+        s = self.derle([self.kart('1.1', metin='Şekil 5.1 için bulunuz', sekil=[('5.2', 'alt')])], [{'no': '1.1', 'konular': ['K']}])
+        self.assertTrue(any('atıf' in x and '5.1' in x for x in s), s)
+
+    def test_grafik_sekil_sayilmaz(self):
+        from PIL import Image
+        yol = os.path.join(self.work, 'g.png')
+        Image.new('RGB', (200, 100)).save(yol)
+        k = (('1.1', ['K'], 'Şekil 5.1 için bulunuz', ['A', solib.G(yol, 'Grafik')]), {})
+        solib.start(self.pdf, self.work, 'D', 'D', 'K')
+        k = (('1.1', ['K'], 'Şekil 5.1 için bulunuz', ['A', solib.G(yol, 'Grafik')]), {})
+        s = self.derle([k], [{'no': '1.1', 'konular': ['K']}])
+        self.assertTrue(any('atıf' in x for x in s), s)
+
+    def test_atif_bicimleri(self):
+        for metin in ('ŞEKİL 5.1 için', 'Fig. P5.12 için', 'Figure 5–3 için', 'Şekil P5.3 için', 'aşağıdaki şekle bakarak',
+                      'Aşağıdaki şekilde verilen', 'yukarıdaki şekil için', 'Şekilden okuyunuz'):
+            s = self.derle([self.kart('1.1', metin=metin)], [{'no': '1.1', 'konular': ['K']}])
+            self.assertTrue(any('atıf' in x for x in s), metin)
+
+    def test_gundelik_sekilde_alarm_vermez(self):
+        for metin in ('Bu şekilde bulunur', 'Aynı şekilde hesaplanır', 'Şu şekilde yazılır', 'Uygun şekilde seçilir'):
+            self.assertEqual(self.derle([self.kart('1.1', metin=metin)], [{'no': '1.1', 'konular': ['K']}]), [], metin)
+
+    def test_sonraki_konu_basligi_karta_yazilmaz(self):
+        solib.start(self.pdf, self.work, 'D', 'D', 'K')
+        solib.kapak(['K'], False)
+        solib.konu('Birinci')
+        solib.soru('1.1', ['Birinci'], 'M', ['A'])
+        solib.konu('5.3 Şekildeki Parçalar')
+        solib.soru('1.2', ['5.3 Şekildeki Parçalar'], 'M', ['A'])
+        with contextlib.redirect_stderr(io.StringIO()):
+            solib.make()
+        json.dump({'sorular': [{'no': '1.1', 'konular': ['Birinci']}, {'no': '1.2', 'konular': ['5.3 Şekildeki Parçalar']}], 'cikarilan': []},
+                  open(os.path.join(self.work, 'sorular.json'), 'w', encoding='utf-8'))
+        self.assertEqual(denetle(self.pdf, self.work), [])
+
+    def test_birim_ust_simge(self):
+        d = Hesap(self.work).kaydet('1.1', 'q', 500, 'W/m^2', 0)
+        s = self.derle([self.kart('1.1', sonuc='q = ' + d)], [{'no': '1.1', 'konular': ['K'], 'sayisal': True}])
+        self.assertEqual(s, [])
+
+    def test_deger_sayi_siniri(self):
+        Hesap(self.work).kaydet('1.1', 'q', 500, 'W', 0)
+        s = self.derle([self.kart('1.1', sonuc='q = 1500 W')], [{'no': '1.1', 'konular': ['K'], 'sayisal': True}])
+        self.assertTrue(any('500 W' in x for x in s), s)
+
+    def test_sekil_numara_siniri(self):
+        self.sekilli('5.10')
+        s = self.derle([self.kart('1.1', sekil=[('5.10', 'alt')])], [{'no': '1.1', 'konular': ['K'], 'sekiller': ['5.1']}])
+        self.assertTrue(any('5.1 ' in x + ' ' for x in s), s)
+
+    def test_tablo_numara_siniri(self):
+        k = (('1.1', ['K'], 'M', [solib.TB([['A'], ['b']], baslik='Tablo 8.31 – X')]), {})
+        solib.start(self.pdf, self.work, 'D', 'D', 'K')
+        k = (('1.1', ['K'], 'M', [solib.TB([['A'], ['b']], baslik='Tablo 8.31 – X')]), {})
+        s = self.derle([k], [{'no': '1.1', 'konular': ['K'], 'tablolar': ['8.3']}])
+        self.assertTrue(any('8.3 ' in x + ' ' for x in s), s)
+
+    def test_soru_tablo_atfi_tablosuz(self):
+        s = self.derle([self.kart('1.1', metin='Tablo 8.3 değerleriyle bulunuz')], [{'no': '1.1', 'konular': ['K']}])
+        self.assertTrue(any('8.3' in x for x in s), s)
+        s = self.derle([self.kart('1.1', metin='Tablo 8.3 değerleriyle bulunuz')], [{'no': '1.1', 'konular': ['K'], 'tablolar': ['8.3']}])
+        self.assertTrue(any('8.3' in x for x in s), s)
+
     def test_bagli_komsu(self):
         y = [{'no': '1.1', 'konular': ['K']}, {'no': '1.2', 'konular': ['K']}, {'no': '1.3', 'konular': ['K'], 'bagli': '1.1'}]
         s = self.derle([self.kart('1.1'), self.kart('1.2'), self.kart('1.3')], y)

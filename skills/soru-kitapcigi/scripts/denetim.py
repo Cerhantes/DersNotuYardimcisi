@@ -8,8 +8,14 @@ sonuc.json'daki her değer kartta görünmelidir: hesap.py'de yalnız kartta yaz
 import json, os, re, sys
 import pymupdf as fitz
 
-BOY_NO, BOY_KONU, BOY_UST = 11.5, 8.8, 8.5
-_ATIF = re.compile(r'(?:Şekil|Şek\.|Fig\.?|Figure)\s*\d+[.\-]\d+|\b[Şş]ekil(?:de|den|deki|e|i)\b')
+BOY_NO, BOY_KONU, BOY_UST, BOY_BASLIK = 11.5, 8.8, 8.5, 13.0
+# Numaralı atıf: Şekil 5.1, ŞEKİL 5.1, Fig. P5.12, Figure 5–3. Numarasız: "şekilden", "aşağıdaki şekil".
+# "bu şekilde", "aynı şekilde" gibi gündelik kullanımlar atıf değildir.
+_ATIF_NO = re.compile(r'(?:[Şş]ekil|ŞEKİL|[Şş]ek\.|[Ff]ig\.?|FIG\.?|[Ff]igure|FIGURE)\s*(P?\d+[.\-–]\d+)')
+_ATIF_YALIN = re.compile(r'\b(?:[Şş]ekilden|[Şş]ekildeki|[Şş]ekle\s+bak\w*|(?:[Aa]şağıdaki|[Yy]ukarıdaki|[Vv]erilen|[Ee]kteki)\s+şekil\w*)')
+_SEKIL_YAZI = re.compile(r'Şekil\s+(P?\d+[.\-–]\d+)[a-z]?\s+–')
+_TABLO_YAZI = re.compile(r'Tablo\s+(P?\d+[.\-–]\d+)[a-z]?\s+–')
+_TABLO_ATIF = re.compile(r'(?:Tablo|TABLO|Table|TABLE)\s*(P?\d+[.\-–]\d+)')
 _BANT = re.compile(r'^Soru (.+?)( \(devam\))?$')
 
 
@@ -42,6 +48,7 @@ def kartlar(pdf):
         konu_sat = [l for l in sat if abs(l['boy'] - BOY_KONU) < 0.15]
         for i, (y, no, devam) in enumerate(bant):
             alt = bant[i + 1][0] if i + 1 < len(bant) else p.rect.height + 1
+            alt = min([alt] + [l['y'] for l in sat if y < l['y'] < alt and l['boy'] >= BOY_BASLIK])     # konu başlığı karta ait değil
             konu = [l['t'] for l in konu_sat if abs(l['y'] - y) < 30]
             metin = [l['t'] for l in sat if y < l['y'] < alt
                      and abs(l['boy'] - BOY_KONU) >= 0.15 and abs(l['boy'] - BOY_UST) >= 0.15]
@@ -53,6 +60,16 @@ def kartlar(pdf):
             k['gorsel'] += gorsel
             k['devam'] = k['devam'] or devam
     return sonuc, ' '.join(_duz(p.get_text()) for p in d)
+
+
+def _no(x):
+    return x.replace('–', '.').replace('-', '.')
+
+
+def _deger_var(deger, metin):
+    """Değer kartta sayı sınırıyla geçiyor mu? (500 W, 1500 W ile karışmaz; m^2 PDF'te m2 olur.)"""
+    d = re.sub(r'[\^_{}]', '', _duz(deger))
+    return re.search(r'(?<![\d,.])%s(?!\d)' % re.escape(d), metin) is not None
 
 
 def rapor(pdf, work):
@@ -85,25 +102,31 @@ def rapor(pdf, work):
                 sorun.append('Soru %s: bantta konu uyuşmuyor: %s' % (no, k['konu']))
         elif k['konu'] != konular[0]:
             sorun.append('Soru %s: bantta konu uyuşmuyor: %s' % (no, k['konu']))
+        sekil_yazi = {_no(x) for x in _SEKIL_YAZI.findall(k['metin'])}
+        tablo_yazi = {_no(x) for x in _TABLO_YAZI.findall(k['metin'])}
         gerekli = s.get('sekiller', [])
         for num in gerekli:
-            if 'Şekil %s' % num not in k['metin']:
+            if _no(num) not in sekil_yazi:
                 sorun.append('Soru %s: Şekil %s kartta yok' % (no, num))
         if k['gorsel'] < len(gerekli):
             sorun.append('Soru %s: %d şekil gerekli, kartta %d görsel var' % (no, len(gerekli), k['gorsel']))
+        soru_metni = k['metin'].split('ÇÖZÜM')[0]
         for num in s.get('tablolar', []):
-            if 'Tablo %s' % num not in k['metin']:
+            if _no(num) not in tablo_yazi:
                 sorun.append('Soru %s: Tablo %s kartta yok' % (no, num))
-        if k['gorsel'] == 0:
-            m = _ATIF.search(k['metin'])
-            if m:
-                sorun.append('Soru %s: şekilsiz atıf: "%s"' % (no, m.group(0)))
+        for num in sorted({_no(x) for x in _TABLO_ATIF.findall(soru_metni)} - tablo_yazi - {_no(x) for x in s.get('tablolar', [])}):
+            sorun.append('Soru %s: soru Tablo %s\'e atıf yapıyor, tablo kartta yok' % (no, num))
+        for num in sorted({_no(x) for x in _ATIF_NO.findall(k['metin'])} - sekil_yazi):
+            sorun.append('Soru %s: şekilsiz atıf: Şekil %s' % (no, num))
+        m = _ATIF_YALIN.search(k['metin'])
+        if m and not sekil_yazi:
+            sorun.append('Soru %s: şekilsiz atıf: "%s"' % (no, m.group(0)))
         if s.get('sayisal'):
             degerler = hesap.get(no, {})
             if not degerler:
                 sorun.append('Soru %s: sayısal ama hesap.py kaydı yok' % no)
             for ad, deger in degerler.items():
-                if _duz(deger) not in k['metin']:
+                if not _deger_var(deger, k['metin']):
                     sorun.append('Soru %s: hesap sonucu kartta yok: %s = %s' % (no, ad, deger))
         bagli = s.get('bagli')
         if bagli and bagli in pdf_kart and abs(sira.index(no) - sira.index(bagli)) != 1:
