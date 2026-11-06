@@ -38,7 +38,7 @@ Claude Code'a ne istediğini yaz:
 
 > Vize konuları için formül kağıdı hazırla
 
-> 8. bölümün problemlerinden takım aşınmasıyla ilgili olanları çöz
+> Bu kitabın 8. bölümünden çözümlü soru kitapçığı hazırla
 
 Komutla da başlatabilirsin:
 
