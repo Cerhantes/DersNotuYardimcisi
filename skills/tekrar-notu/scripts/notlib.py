@@ -1,4 +1,4 @@
-import json, os, re, sys
+import json, os, re, sys, unicodedata
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -10,6 +10,11 @@ from reportlab.lib.fonts import addMapping
 from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Image,
                                 Table, TableStyle, KeepTogether, PageBreak, CondPageBreak, NextPageTemplate)
 from reportlab.platypus.tableofcontents import TableOfContents
+from reportlab.platypus import paraparser
+
+# Varsayılan 0,5 ile alt simge alt satıra ve noktalamaya, üst simge üst satıra çarpıyor
+paraparser.subFraction = 0.22
+paraparser.supFraction = 0.42
 
 # Ders notu PDF altyapısı (reportlab). İçerik betiği: from notlib import *  ->  d = Doc(...); d.h1(...); d.p(...); d.fig(...); d.make()
 
@@ -81,6 +86,28 @@ _SYM_CM = pdfmetrics.getFont('Sym').face.charToGlyph
 _missing = set()
 
 
+def _buyuk_nokta(t, stil=None):
+    """Birleşen nokta küçük harfe göre durur, DejaVu Serif büyük harfinde gövdenin içine düşer.
+    Hazır karakteri olan (Ė) ona iner; olmayan (Q̇, V̇) noktanın oturduğu metin yazı tipine geçer,
+    bulunduğu yerin kalın ve eğik hali korunur."""
+    ad = getattr(stil, 'fontName', '')
+    kalin, egik = int(ad in ('Body-B', 'Body-BI')), int(ad in ('Body-I', 'Body-BI'))
+    out = []
+    for s in re.split(r'(<[^>]+>)', t):
+        if s[:1] == '<':
+            etiket = s.lower()
+            kalin += {'<b>': 1, '</b>': -1}.get(etiket, 0)
+            egik += {'<i>': 1, '</i>': -1}.get(etiket, 0)
+            out.append(s); continue
+        ek = ('B' if kalin > 0 else '') + ('I' if egik > 0 else '')
+        yazi = 'Body-' + ek if ek else 'Body'
+        def degistir(m):
+            hazir = unicodedata.normalize('NFC', m.group(0))
+            return hazir if len(hazir) == 1 else '<font name="%s">%s</font>̇' % (yazi, m.group(1))
+        out.append(re.sub('([A-Z])̇', degistir, s))
+    return ''.join(out)
+
+
 def _fix_glyphs(t):
     """Metin yazı tipinde olmayan karakterleri (∛ ∝ ′ ≪ ...) matematik ya da yedek yazı tipine geçirir."""
     out = []
@@ -104,7 +131,8 @@ def _fix_glyphs(t):
 
 
 def Paragraph(t, *a, **k):
-    return _BP(_fix_glyphs(t), *a, **k)
+    stil = a[0] if a else k.get('style')
+    return _BP(_fix_glyphs(_buyuk_nokta(t, stil)), *a, **k)
 
 
 class Doc(BaseDocTemplate):
