@@ -9,6 +9,7 @@ Raporlar:
   4) Sayısal değerler    '0,5–2', '1100 °C', '%300' ... kaynakta olup notta hiç geçmeyenler, bağlamıyla
 Eksik listesindeki HER satırı oku: gerçekten atlanmış bir bilgi ise nota ekle; yalnız ara hesap,
 sayfa numarası, tekrar eden ifade ise bırak. Hedef: eksik listede bilgi taşıyan satır kalmaması.
+Bu kural denklem numaraları için geçerli değildir: ara adım denklemi de yazılır, denetimi ortak/denklem_kapsam.py yapar.
 """
 import sys, re, argparse
 import pymupdf

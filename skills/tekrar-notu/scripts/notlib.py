@@ -64,6 +64,7 @@ _P = Paragraph
 # Sayfa sonunda paragraf bölünürken: alt sayfada en az MIN_TAIL satır, üstte en az MIN_HEAD satır kalsın.
 # Olmuyorsa paragraf bütün olarak sonraki sayfaya geçer (sonraki sayfanın başında 1-2 satırlık "artık" kalmaz).
 MIN_HEAD, MIN_TAIL = 2, 3
+ZINCIR = 8   # sayfada birlikte tutulan en uzun denklem zinciri
 
 class _BP(_P):
     def split(self, aW, aH):
@@ -258,7 +259,66 @@ class Doc(BaseDocTemplate):
                    colWidths=[nw, FW - 2 * nw, nw])
         tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2),
                                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
-        self.story.append(tb)
+        self._denklem_ekle(tb, t, n)
+
+    @staticmethod
+    def _giris_mi(f):
+        """':' ile biten, başlık olmayan cümle: ardındaki denklemi tanıtır."""
+        return isinstance(f, _P) and not getattr(f.style, 'keepWithNext', 0) and f.getPlainText().rstrip().endswith(':')
+
+    def _giris_al(self):
+        """Hikâyenin sonundaki giriş cümlesini (madde listesinin boşluğuyla birlikte) çıkarıp döndürür."""
+        s = self.story
+        if s and self._giris_mi(s[-1]):
+            return [s.pop()]
+        if len(s) > 1 and isinstance(s[-1], Spacer) and self._giris_mi(s[-2]):
+            s.pop()
+            return [s.pop()]
+        return []
+
+    def _denklem_ekle(self, tb, t, n=''):
+        """Sayfa bölünmesi türetimi parçalamasın. Aynı sayfada kalanlar: '=', '+' ile başlayan devam satırı,
+        numarasız ara adım ve sonraki denklem, aynı numaranın harfli denklemleri (2.18a, 2.18b),
+        ':' ile biten giriş cümlesi ve üstündeki başlık denklemle.
+        Zincir en çok ZINCIR satır olur, daha uzun türetim sayfaya bölünebilir (bütün sayfa boş kalmasın)."""
+        duz = re.sub(r'<[^>]+>|&nbsp;', '', t).strip()
+        m = re.match(r'\((\d+\.\d+)[a-z]\)', n or '')
+        harf = m.group(1) if m else None
+        parca = [tb]
+        once = self.story[-1] if self.story else None
+        if getattr(once, '_denklem', False):
+            icerik = once._content if isinstance(once, KeepTogether) else [once]
+            devam = duz and duz[0] in '=+−×'
+            ayni = harf and getattr(once, '_harf', None) == harf
+            if devam or ayni or (getattr(once, '_numarasiz', False) and len(icerik) < ZINCIR):
+                self.story.pop()
+                parca = list(icerik) + parca
+        parca = self._giris_al() + parca
+        parca = self._heads() + parca
+        oge = tb if len(parca) == 1 else KeepTogether(parca)
+        oge._denklem = True
+        oge._numarasiz = not n
+        oge._harf = harf
+        self.story.append(oge)
+
+    def grup_bas(self):
+        """Aynı sayfada kalacak konu grubunu başlatır: g = d.grup_bas(); ...; d.grup_son(g).
+        Grubu tanıtan giriş cümlesi gruba dahildir."""
+        s = self.story
+        if s and getattr(s[-1], '_denklem', False):
+            s[-1]._denklem = False   # gruptan önceki denklem zinciri gruba girmesin, sınır kaymasın
+        if s and self._giris_mi(s[-1]):
+            return len(s) - 1
+        if len(s) > 1 and isinstance(s[-1], Spacer) and self._giris_mi(s[-2]):
+            return len(s) - 2
+        return len(s)
+
+    def grup_son(self, g):
+        parca = []
+        for f in self.story[g:]:   # iç içe KeepTogether sayfaya sığmaz sayılıp boşuna sayfa atlatır: düzleştir
+            parca.extend(f._content if isinstance(f, KeepTogether) else [f])
+        del self.story[g:]
+        self.story.append(KeepTogether(self._heads() + parca))
 
     def _boxflow(self, kind, body, title=None):
         bg, fg, lab = BOXES[kind]

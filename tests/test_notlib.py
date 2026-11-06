@@ -1,5 +1,5 @@
 """notlib dizgi kuralları: alt simge satıra çarpmaz, büyük harfin noktası harfin üstünde kalır."""
-import filecmp, os, sys, tempfile, unittest
+import filecmp, os, shutil, sys, tempfile, unittest
 import pymupdf as fitz
 
 KOK = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -65,6 +65,104 @@ class BuyukHarfNoktasi(unittest.TestCase):
         self.assertIn('DejaVu', harfin_yazi_tipi(s, 'q'))
         self.assertIn('DejaVu', harfin_yazi_tipi(spanlar('Q = 5'), 'Q'))
 
+
+class Bolunme(unittest.TestCase):
+    def setUp(self):
+        self.k = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, self.k)
+        os.makedirs(os.path.join(self.k, 'fig'))
+        with open(os.path.join(self.k, 'figs.json'), 'w') as f:
+            f.write('{}')
+        self.pdf = os.path.join(self.k, 'o.pdf')
+        self.d = notlib.Doc(self.pdf, 'T', 'A', 'B', self.k, 'K')
+        self.d.cover(['x'], ['y'])
+
+    def doldur(self, cumle=38):
+        for i in range(cumle):
+            self.d.p('Dolgu satırı %d' % i)
+
+    def sayfalar(self, *metinler):
+        self.d.make()
+        d = fitz.open(self.pdf)
+        sonuc = [[i for i, p in enumerate(d) if m in p.get_text()] for m in metinler]
+        d.close()
+        return sonuc
+
+    def sona_getir(self, kur):
+        """Son satır sayfaya sığmayana dek dolgu ekleyerek kuralı sayfa sınırında sına."""
+        for n in range(20, 60):
+            self.setUp()
+            self.doldur(n)
+            kur()
+            self.d.make()
+            d = fitz.open(self.pdf)
+            sayfa = [i for i, p in enumerate(d) if 'ILK' in p.get_text()], [i for i, p in enumerate(d) if 'SON' in p.get_text()]
+            d.close()
+            yield sayfa
+
+    def test_cok_satirli_denklem_bolunmez(self):
+        for ilk, son in self.sona_getir(lambda: (self.d.eq('ILK = a + b', ''), self.d.eq('+ SON', '(1.1)'))):
+            self.assertEqual(ilk, son)
+
+    def test_denklemi_tanitan_cumle_denklemden_ayrilmaz(self):
+        for ilk, son in self.sona_getir(lambda: (self.d.p('ILK şöyledir:'), self.d.eq('SON = 1', '(1.1)'))):
+            self.assertEqual(ilk, son)
+
+    def test_grup_tek_parca_kalir(self):
+        def kur():
+            g = self.d.grup_bas()
+            self.d.eq('ILK = 1', '(1.1)'); self.d.eq('orta = 2', '(1.2)'); self.d.eq('SON = 3', '(1.3)')
+            self.d.grup_son(g)
+        for ilk, son in self.sona_getir(kur):
+            self.assertEqual(ilk, son)
+
+    def test_numarasiz_ara_adim_sonraki_denklemden_ayrilmaz(self):
+        for ilk, son in self.sona_getir(lambda: (self.d.eq('ILK = 1', ''), self.d.eq('SON = 2', '(1.1)'))):
+            self.assertEqual(ilk, son)
+
+    def test_cok_uzun_zincir_bolunebilir(self):
+        self.doldur(3)
+        for i in range(notlib.ZINCIR + 3):
+            self.d.eq('a%d = 1' % i, '')
+        self.assertGreater(sum(isinstance(f, notlib.KeepTogether) for f in self.d.story), 1)
+
+    def test_harfli_denklemler_birlikte_kalir(self):
+        for ilk, son in self.sona_getir(lambda: (self.d.eq('ILK = 1', '(2.18a)'), self.d.eq('b = 2', '(2.18b)'), self.d.eq('SON = 3', '(2.18c)'))):
+            self.assertEqual(ilk, son)
+
+    def test_grup_giris_cumlesini_de_alir(self):
+        def kur():
+            self.d.p('ILK şöyledir:')
+            g = self.d.grup_bas()
+            self.d.eq('a = 1', '(1.1)'); self.d.eq('SON = 2', '(1.2)')
+            self.d.grup_son(g)
+        for ilk, son in self.sona_getir(kur):
+            self.assertEqual(ilk, son)
+
+    def test_grup_ara_adimdan_sonra_baslasa_da_tam_kalir(self):
+        def kur():
+            self.d.eq('once = 0', '')
+            g = self.d.grup_bas()
+            self.d.eq('ILK = 1', '(1.1)'); self.d.eq('orta = 2', '(1.2)'); self.d.eq('SON = 3', '(1.3)')
+            self.d.grup_son(g)
+        for ilk, son in self.sona_getir(kur):
+            self.assertEqual(ilk, son)
+
+    def test_grup_yeri_varken_sayfa_atlatmaz(self):
+        self.doldur(3)
+        g = self.d.grup_bas()
+        self.d.eq('ILK = 1', ''); self.d.eq('+ 2', '(1.1)'); self.d.eq('SON = 3', '(1.2)')
+        self.d.grup_son(g)
+        self.d.make()
+        d = fitz.open(self.pdf)
+        ilk_dolgu = next(i for i, p in enumerate(d) if 'Dolgu' in p.get_text())
+        son = next(i for i, p in enumerate(d) if 'SON' in p.get_text())
+        d.close()
+        self.assertEqual(ilk_dolgu, son)
+
+    def test_ayri_denklemler_birbirine_baglanmaz(self):
+        self.doldur(5)
+        self.d.eq('a = 1', '(1.1)'); self.d.eq('b = 2', '(1.2)')
+        self.assertFalse(isinstance(self.d.story[-1], notlib.KeepTogether))
 
 class Kopyalar(unittest.TestCase):
     def test_iki_notlib_kopyasi_ayni(self):
