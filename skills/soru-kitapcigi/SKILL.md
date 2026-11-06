@@ -74,6 +74,7 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
 - Kaynakta cevap yoksa çözümü Claude yapar; `kapak(..., kaynakta_cevap=False)` bunu kapağa yazar.
 - Kaynakta cevap varsa `kaynakta_cevap=True`, çözüm cevapla karşılaştırılır.
 - Emin olunmayan çözüm kesin gibi yazılmaz: `notu=` ile söylenir ve raporda listelenir.
+- Kitapta karşılığı bulunmayan açıklama genel bilgi olarak `notu=` ile belirtilir; kitabın verdiği bilgiyle karıştırılmaz.
 
 ## solib API (`from solib import *`)
 
