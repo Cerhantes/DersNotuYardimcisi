@@ -53,16 +53,34 @@ Komutla da başlatabilirsin:
 
 ## Güncelleme ve kaldırma
 
-Terminalde güncellemek için:
+### Güncelleme
+
+Terminalde şu iki komutu çalıştır:
 
 ```
 claude plugin marketplace update ders-notu-yardimcisi
 claude plugin update ders-notu-yardimcisi@ders-notu-yardimcisi
 ```
 
-Kendiliğinden güncellensin istersen: `/plugin` → Marketplaces → `ders-notu-yardimcisi` → Enable auto-update.
+Kendiliğinden güncellenmesi için Claude Code'da:
 
-Kaldırmak için `claude plugin uninstall ders-notu-yardimcisi@ders-notu-yardimcisi` çalıştır ve Python ortamının durduğu `~/.claude/ders-notu-yardimcisi` klasörünü sil.
+1. `/plugin` yaz.
+2. **Marketplaces** altından `ders-notu-yardimcisi`'ni seç.
+3. **Enable auto-update**'i aç.
+
+### Kaldırma
+
+Terminalde şu komutu çalıştır:
+
+```
+claude plugin uninstall ders-notu-yardimcisi@ders-notu-yardimcisi
+```
+
+Ardından Python ortamının durduğu klasörü sil:
+
+```
+~/.claude/ders-notu-yardimcisi
+```
 
 ## Lisans
 
