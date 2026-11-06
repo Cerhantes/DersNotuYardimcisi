@@ -46,7 +46,7 @@ Kapak, tek konulu/karma açıklaması, konu başına soru numaralı içindekiler
 
 1. Ortam ve `ortak/envanter.py`; konu ve problem sayfaları belirlenir, yalnız o aralıklar okunur.
 2. Sorular `<work>/sorular.json`'a yazılır: no, sayfa, konu(lar), karma mı, gereken şekil/tablo, bağlı olduğu soru.
-3. Soru dışında yalnız sorunun dayandığı numaralı sayfalar okunur (bkz. Okuma kapsamı).
+3. Soru dışında soru türüne göre gereken sayfalar okunur (bkz. Okuma kapsamı).
 4. Gereken şekiller `detect_figs`/`crop_figs` ile kesilir, envantere kaydedilir. Tablolar değerleriyle yazılır. Başka soruya bağlı soruda ("Problem 5.84'teki yolluk") eksik veri karta eklenir ve iki soru yan yana konur.
 5. Konu konu içerik betiği (`p01.py`, `p02.py`, …), Write ile.
 6. Sayısal sonuçlar `<work>/hesap.py` ile hesaplanır. Sonuç değeri karta bu hesaptan yazılır.
@@ -55,7 +55,9 @@ Kapak, tek konulu/karma açıklaması, konu başına soru numaralı içindekiler
 
 ## Okuma kapsamı
 
-Yalnız soru sayfaları okunur (kullanıcı kararı). Önceki not betiğinden çalışılmaz: not, soruları ya zaten içerir ya da hiç okumamıştır. Soru kitabın bir denklemine, tablosuna ya da şekline dayanıyorsa `envanter.py --bul` ile yalnız o sayfa okunur. Daha önce kesilmiş şekiller envanterden kullanılır; yalnız eksikler kesilir (`--sekil-eksik`, `--yalniz`). `--sekil-kaydet` `figs.json`'u numara bazında birleştirir.
+Kullanıcı kararı: önceki not betiğinden çalışılmaz (not, soruları ya zaten içerir ya da hiç okumamıştır). Soru sayfaları okunur; sayısal soruda yalnız dayandığı denklem, tablo ya da şekil sayfası (`envanter.py --bul`), sözel soruda konunun alt bölümü, çok uzun alt bölümde yalnız ilgili sayfalar. Daha önce kesilmiş şekiller envanterden kullanılır; yalnız eksikler kesilir (`--sekil-eksik`, `--yalniz`). `--sekil-kaydet` `figs.json`'u numara bazında birleştirir.
+
+Gerekçe: Kesme Sıvıları denemesinde yalnız soru okununca yanlış çıkmadı ama sözel cevaplarda kitabın maddeleri eksik kaldı.
 
 ## Çözümlerin güvenilirliği
 
