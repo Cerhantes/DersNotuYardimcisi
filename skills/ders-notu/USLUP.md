@@ -27,7 +27,7 @@ genel bir konuyu (ısı iletimi) anlatır. Örnekten içeriği değil **kalıbı
 | `tanim` | Yeni, sınavda tanımı sorulabilecek kavram | `'<b>Terim</b> (English): tek-iki cümlelik tanım.'`; birden çok tanım varsa liste |
 | `onemli` | Konunun iskeleti, sayılı faktörler, sık karıştırılan nokta | Giriş cümlesi + `1) …<br/>2) …`; `title='… N TEMEL FAKTÖRÜ'` gibi büyük harf başlık |
 | `ipucu` | Sezgi, benzetme, "neden böyle?" açıklaması, karıştırılan iki kavramın farkı | 2–3 cümle; tek bir fikir |
-| `ornek` | Çözümlü örnek (kitaptaki örnekler, numarasıyla) | Aşağıdaki kalıp |
+| `ornek` | Çözümlü örnek (kitaptaki örnekler, numarasıyla) | Aşağıdaki kalıp. Yalnız sonuç listesi "örnek" diye adlandırılmaz: soru ve çözüm yoksa "tipik değerler" gibi bir cümle olur |
 | `ozet` | Her h1 bölümünün sonu | `'• '` ile başlayan 4–6 madde, her biri tek cümle; `title='BÖLÜM n ÖZETİ'` |
 | `terim` | Nadiren: şekil dışında bir terim listesi | `English = Türkçe; …` |
 
@@ -65,6 +65,7 @@ d.box('ornek', [
 - Hemen arkasından gelen paragraf **her sembolü** açıklar: `'Burada ' + M('q') + ' ısı akısı, ' + M('k') + ' … dır.'`
 - Satır içi sembol her zaman `M('…')` ile, alt/üst simgeler `<sub>`/`<super>` ile.
 - Türetilmiş ya da ters çözülmüş biçimler numarasız `d.eq(..., '')` olarak verilir.
+- Numaralı denklem paragrafın içinde `M('…') + ' (3.27)'` biçiminde bırakılmaz; `d.eq('…', '(3.27)')` ile kendi satırına alınır.
 
 ## Şekiller
 

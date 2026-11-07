@@ -112,6 +112,31 @@ class Rapor(Taban):
         self.assertIn('numaralı denklem bulunamadı', c)
         self.assertNotIn('TAMAM', c)
 
+    def test_kaynaksiz_kip_metinde_kalan_numarayi_bulur(self):
+        pdf(self.out, ['A sabit ise q Δx/A = −k ΔT (3.27). Integral alınır.', 'q = −k dT/dx (3.26)', 'a = b (2.13a)', '(2.13) yerine konursa'])
+        b = io.StringIO()
+        with contextlib.redirect_stdout(b):
+            kod = dk.main(['-', self.out])
+        self.assertEqual(kod, 1)
+        self.assertIn('BELGEDE YALNIZ ANILMIŞ (denklemi numarasıyla göster): 3.27', b.getvalue())
+        self.assertNotIn('3.26', b.getvalue().split(':')[-1])
+        self.assertNotIn('2.13', b.getvalue())
+
+    def test_kaynaksiz_kip_temiz_belge(self):
+        pdf(self.out, ['q = −k dT/dx (3.26)', '(3.26) ile bulunur'])
+        b = io.StringIO()
+        with contextlib.redirect_stdout(b):
+            kod = dk.main(['-', self.out])
+        self.assertEqual(kod, 0)
+        self.assertIn('BELGE İÇİ TAMAM', b.getvalue())
+
+    def test_kaynakta_numara_yoksa_belge_ici_de_yazilir(self):
+        pdf(self.src, ['Slayt metni'])
+        pdf(self.out, ['metinde (3.27) geçer'])
+        kod, c = self.calistir()
+        self.assertEqual(kod, 2)
+        self.assertIn('BELGEDE YALNIZ ANILMIŞ', c)
+
 
 if __name__ == '__main__':
     unittest.main()

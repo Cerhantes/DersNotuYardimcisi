@@ -1,6 +1,7 @@
 """Kaynaktaki her numaralı denklem belgede gösterilmiş mi? Ara adımlar dahil hiçbiri atlanamaz.
 
 python -W ignore denklem_kapsam.py <kaynak.pdf> <belge.pdf> --from <ilk> --to <son> [--disarida <dosya>]
+python -W ignore denklem_kapsam.py - <belge.pdf>      (kaynaksız: yalnız belgenin kendi içinde bakar)
 
 Belgedeki durumlar:
   gösterilmiş     denklem yazılı, numarası satır sonunda ya da kendi satırında
@@ -10,6 +11,9 @@ Belgedeki durumlar:
             ya da aralık: '3.109–3.133: nano ölçek, ders dışı'. Gerekçesiz satır geçersizdir.
 Çıkış kodu: 0 tamam, 1 eksik var, 2 kaynakta numaralı denklem bulunamadı (slaytta denklemler görsel olabilir;
 bu durumda araç güvence vermez, kaynak gözle karşılaştırılır).
+Kaynaksız kip ve çıkış kodu 2 durumu ayrıca 'BELGEDE YALNIZ ANILMIŞ' satırını yazar: numarası belgede metin içinde
+geçip hiçbir yerde denklem olarak gösterilmeyenler ('(3.27). Integral ...'). Denklemi tabloda ya da kutuda formülüyle
+yazılı olanlar ve gösterilmiş bir gruba atıflar ('(2.13) yerine konursa', 2.13a–c gösterilmişken) hata değildir.
 """
 import argparse, re, sys
 import pymupdf
@@ -102,11 +106,20 @@ def main(argv=None):
     ap.add_argument('--to', dest='son', type=int, default=10 ** 6)
     ap.add_argument('--disarida')
     a = ap.parse_args(argv)
+    gosterilen, anilan = not_numaralari(a.belge)
+    belge_ici = sorted(anilan - {g for n in gosterilen for g in [n.rstrip('abcdefgh')]}, key=_sira)
+    if a.kaynak == '-':
+        if belge_ici:
+            print('BELGEDE YALNIZ ANILMIŞ (denklemi numarasıyla göster): ' + ', '.join(belge_ici))
+            return 1
+        print('BELGE İÇİ TAMAM: anılan her numara denklem olarak gösterilmiş')
+        return 0
     kaynak = kaynak_numaralari(a.kaynak, a.ilk, a.son)
     if not kaynak:
         print('UYARI: kaynakta numaralı denklem bulunamadı. Denklemler görsel olabilir; kaynağı gözle karşılaştır.')
+        if belge_ici:
+            print('BELGEDE YALNIZ ANILMIŞ (denklemi numarasıyla göster): ' + ', '.join(belge_ici))
         return 2
-    gosterilen, anilan = not_numaralari(a.belge)
     gerekce, gecersiz = _disarida(a.disarida) if a.disarida else ({}, [])
     kalan = kaynak - gosterilen
     disari = {n: gerekce[n] for n in kalan if n in gerekce}
