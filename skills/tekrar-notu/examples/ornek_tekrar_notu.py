@@ -1,6 +1,6 @@
 """ÖRNEK içerik betiği — kaynaktan bağımsız, genel bir konu (ısı iletimi). Yalnızca KALIBI gösterir:
 semboller tablosu, bölüm iskeleti (tanım → madde/formül/tablo/şekil → önemli → hızlı kontrol), problem tablosu,
-kısa yanıtlar, eğilim tablosu, formül özeti. Çözümlü örnek ve Kendini Sına yoktur. Kurallar için ../USLUP.md.
+eğilim tablosu, formül özeti. Çözümlü örnek, kaynak sorularına yanıt ve Kendini Sına yoktur. Kurallar için ../USLUP.md.
 Gerçek notta konu, künye, numaralar ve her bilgi kullanıcının kaynağından gelir.
 
 Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore ornek_tekrar_notu.py <cikti.pdf> <work>
@@ -96,12 +96,9 @@ BX('ozet', ['Q = kAΔT/L; L ↑ → Q ↓ (ters orantı).',
             'En büyük ΔT en büyük dirençli katmanda; ince ama düşük k\'lı katman toplam direnci belirler.'], 'BÖLÜM 3 HIZLI KONTROL')
 
 # ======================================================================
-d.h1('4. Problem Çözme ve Kaynak Soruları')
+d.h1('4. Problem Çözme')
 X('onemli', ['<b>Çözüm sırası:</b> 1) her katmanın R = L/(kA), yüzeylerde R = 1/(hA) → 2) R_{top} (seri/paralel) → 3) Q = ΔT_{top}/R_{top} → '
              '4) ara yüz sıcaklıkları: T_{i+1} = T_i − Q R_i.'])
-d.h2('Kaynak sorularına kısa yanıtlar')
-B(['<b>1</b> Eksi işareti: akı, sıcaklığın azaldığı yönde. <b>2</b> Kararlı hal: hiçbir noktada sıcaklık zamanla değişmez.',
-   '<b>3</b> Gözenekli yalıtkanlar: katı iskelet ince, gözeneklerdeki hava hareketsiz → k havanınkine yakın.'])
 
 # ======================================================================
 d.h1('5. "Neyi Değiştirirsem Ne Olur?" — Tüm Eğilimler Tek Tabloda')

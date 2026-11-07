@@ -21,10 +21,9 @@ Belge şu parçalardan oluşur, bu sırayla:
    - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ipucu` sezgi · `ozet` (konunun rengi) bölüm sonu **HIZLI KONTROL** listesi.
 4. **"Neyi değiştirirsem ne olur?" tablosu** — konu parametre–sonuç ilişkileri içeriyorsa: satır = değiştirilen parametre (↑), sütun = etkilenen büyüklükler (↑ ↓ —), son sütun "Diğer".
 5. **Problem çözme**: yalnız çözüm sırası kutusu (hangi adım hangi sırayla).
-6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi (bölüm sonu problemleri yalnız kullanıcı isterse).
-7. **Formül özeti** tablosu.
+6. **Formül özeti** tablosu.
 
-**Tekrar notunda çözümlü örnek ve Kendini Sına yoktur** (kullanıcının kararı): örnek kutusu, problem özeti tablosu, örnek sorular ve Kendini Sına soruları yazılmaz; çözümlü örnekler ders notunda ve soru kitapçığındadır. Kapakta bunu bir cümleyle söyle. Kullanıcı bu belge için açıkça isterse eklenir.
+**Tekrar notunda soru yoktur** (kullanıcının kararı): çözümlü örnek kutusu, problem özeti tablosu, örnek sorular, kaynak sorularına kısa yanıtlar ve Kendini Sına yazılmaz; çözümlü örnekler ders notunda ve soru kitapçığındadır. Kapakta bunu bir cümleyle söyle. Kullanıcı bu belge için açıkça isterse eklenir.
 
 Diğer kurallar:
 - Dil Türkçe; ondalık ayırıcı virgül. Eğilim gösterimi: `↑` artar, `↓` azalır, `→` sonuç/sebep zinciri.
