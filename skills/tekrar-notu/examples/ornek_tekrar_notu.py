@@ -1,6 +1,6 @@
 """ÖRNEK içerik betiği — kaynaktan bağımsız, genel bir konu (ısı iletimi). Yalnızca KALIBI gösterir:
 semboller tablosu, bölüm iskeleti (tanım → madde/formül/tablo/şekil → önemli → hızlı kontrol), problem tablosu,
-kısa yanıtlar, eğilim tablosu, formül özeti, Kendini Sına. Kurallar için ../USLUP.md.
+kısa yanıtlar, eğilim tablosu, formül özeti. Çözümlü örnek ve Kendini Sına yoktur. Kurallar için ../USLUP.md.
 Gerçek notta konu, künye, numaralar ve her bilgi kullanıcının kaynağından gelir.
 
 Çalıştırma: PYTHONPATH=<skill>/scripts python -W ignore ornek_tekrar_notu.py <cikti.pdf> <work>
@@ -30,13 +30,14 @@ d = start(out, work, 'ISI İLETİMİ', 'Isı İletimi – Tekrar Notu', 'Kaynak:
 d.cover([
     '<b>Kaynak:</b> Isi_Iletimi_Ders_Notu.pdf (n sayfa) — Yazar(lar), <i>Kitap Adı</i>, baskı, Bölüm n.1 – n.4.',
     '<b>Kapsam:</b> Ders notunun 1–3. bölümlerinin tamamı. Ek bilgi olarak işaretli bölüm yok.',
+    '<b>Çözümlü örnekler</b> bu notta yoktur: ders notunda ve soru kitapçığındadır.',
     '<b>Şekiller</b> kaynaktandır; numaraları kaynaktakiyle aynıdır.',
 ], [
     'Bu not yeniden öğretmek için değil, <b>tekrar</b> için yazıldı: her başlıkta bilmen gereken her bilgi madde madde, '
     'formüller numaralarıyla, eğilimler oklarla (↑ artar, ↓ azalır, → sonuç) verildi.',
     'Turuncu kutular sınavda en çok sorulan / karıştırılan noktalar, mavi kutular tanımlar, konu renginde kutular bölüm sonu '
-    'hızlı kontrol listesidir. Sonda tüm "neyi değiştirirsem ne olur" eğilimleri tek tabloda, problem sonuçları ve '
-    'Kendini Sına sorularının cevapları vardır.',
+    'hızlı kontrol listesidir. Sonda tüm "neyi değiştirirsem ne olur" eğilimleri tek tabloda ve '
+    'formül özeti vardır.',
 ])
 
 # ======================================================================
@@ -90,8 +91,6 @@ B(['Aynı ΔT her yolda → iletkenlikler (1/R) toplanır: <b>1/R_{top} = 1/R_1 
 F('3.1', 'İki katmanlı duvar ve eşdeğer ısıl devre: seri dirençler; en büyük sıcaklık düşüşü en büyük dirençli katmanda.', maxh=190)
 X('onemli', ['<b>Isı kaybı nasıl azaltılır? (4 yol — ezberle)</b>',
              '(a) k ↓ (yalıtkan malzeme) · (b) L ↑ · (c) A ↓ · (d) ΔT ↓'])
-X('ornek', ['<b>Örnek 3.1 (yalıtım):</b> 10 m^2, 20 cm tuğla (k = 0,7), ΔT = 20 °C; üstüne 5 cm cam yünü (k = 0,04).',
-            'Tuğla: Q = 0,7 × 10 × 20/0,2 = <b>700 W</b>. R_1 = 0,0286, R_2 = 0,125 K/W → Q = 20/0,1536 ≈ <b>130 W</b> (<b>%81</b> azalma).'])
 BX('ozet', ['Q = kAΔT/L; L ↑ → Q ↓ (ters orantı).',
             'R = L/(kA); taşınım R = 1/(hA); seri → R toplanır, paralel → 1/R toplanır.',
             'En büyük ΔT en büyük dirençli katmanda; ince ama düşük k\'lı katman toplam direnci belirler.'], 'BÖLÜM 3 HIZLI KONTROL')
@@ -100,11 +99,6 @@ BX('ozet', ['Q = kAΔT/L; L ↑ → Q ↓ (ters orantı).',
 d.h1('4. Problem Çözme ve Kaynak Soruları')
 X('onemli', ['<b>Çözüm sırası:</b> 1) her katmanın R = L/(kA), yüzeylerde R = 1/(hA) → 2) R_{top} (seri/paralel) → 3) Q = ΔT_{top}/R_{top} → '
              '4) ara yüz sıcaklıkları: T_{i+1} = T_i − Q R_i.'])
-T([['Problem', 'Konu', 'Yol ve sonuç'],
-   ['P1', 'Beton duvar', 'k = 1,4, A = 8 m^2, L = 0,3 m, ΔT = 15 °C → Q = 1,4 × 8 × 15/0,3 = <b>560 W</b>.'],
-   ['P2', 'Gereken yalıtım', 'Tuğla duvar (R_1 = 0,0286 K/W), Q ≤ 200 W, ΔT = 20 → R_{top} = 0,1 → R_2 = 0,0714 → L_2 = R_2 k A = <b>≈ 2,9 cm</b> cam yünü.'],
-   ['P3', 'Çelik levha', 'k = 50, A = 1 m^2, L = 1 cm, ΔT = 2 °C → Q = <b>10 kW</b>: metalde küçük ΔT bile büyük ısı akışı.']],
-  [0.13, 0.19, 0.68], 'Problemlerin özeti')
 d.h2('Kaynak sorularına kısa yanıtlar')
 B(['<b>1</b> Eksi işareti: akı, sıcaklığın azaldığı yönde. <b>2</b> Kararlı hal: hiçbir noktada sıcaklık zamanla değişmez.',
    '<b>3</b> Gözenekli yalıtkanlar: katı iskelet ince, gözeneklerdeki hava hareketsiz → k havanınkine yakın.'])
@@ -126,13 +120,6 @@ T([['Konu', 'Bağıntı'],
    ['Düzlem duvar', 'Q = kA(T_1 − T_2)/L; L = kAΔT/Q'],
    ['Isıl direnç', 'R = L/(kA); R_{taş} = 1/(hA); Q = ΔT/R'],
    ['Katmanlar', 'seri: R_{top} = ΣR_i; paralel: 1/R_{top} = Σ1/R_i; ΔT_i = Q R_i']], [0.24, 0.76])
-
-# ======================================================================
-d.h1('7. Kendini Sına — Kısa Cevaplı')
-B(['<b>1.</b> Kalınlık iki katına çıkarsa? Q ∝ 1/L → <b>yarıya iner</b>.',
-   '<b>2.</b> 10 cm bakır levhada ΔT = 10 °C → q = 400 × 10/0,1 = <b>40 000 W/m^2</b>.',
-   '<b>3.</b> Seri iki katmanda en büyük sıcaklık düşüşü nerede? <b>Direnci en büyük</b> katmanda (ΔT_i = Q R_i).',
-   '<b>4.</b> Neden pencere ısı kaybını belirler? Paralel yolda en düşük direnç → ısıl köprü.'])
 
 d.make()
 print('ok')

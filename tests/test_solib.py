@@ -107,6 +107,20 @@ class KartTest(unittest.TestCase):
         s = self.derle(lambda: solib.soru('1.1', ['K'], 'M', ['A']), cevap=True)
         self.assertNotIn('cevap anahtarı yoktur', ' '.join(s[0].split()))
 
+    def test_kismen_kaynakli_kapak_ve_kart_etiketi(self):
+        def icerik():
+            solib.soru('1.1', ['K'], 'M', ['KAYNAKADIM'])
+            solib.soru('1.2', ['K'], 'M', ['CLAUDEADIM'], claude=True)
+            solib.soru('1.3', ['K'], 'M', ['A'], claude="(c) şıkkı Claude'a aittir.")
+        s = self.derle(icerik, cevap='kismen')
+        kapak, govde = ' '.join(s[0].split()), ' '.join(' '.join(s[1:]).split())
+        self.assertIn('Çözüm Claude\'a aittir', kapak)
+        self.assertNotIn('cevap anahtarı yoktur', kapak)
+        self.assertEqual(govde.count("Çözüm Claude'a aittir (kaynakta çözüm yok)."), 1)
+        self.assertLess(govde.index("Çözüm Claude'a aittir (kaynakta çözüm yok)."), govde.index('CLAUDEADIM'))
+        self.assertIn("(c) şıkkı Claude'a aittir.", govde)
+        self.assertIn('CLAUDE ÇÖZÜMÜ: 1.2, 1.3', self.hata)
+
     def test_varsayim_raporu(self):
         s = self.derle(lambda: solib.soru('1.1', ['K'], 'M', ['A'], varsayim='k = 50 alındı'))
         self.assertIn('Varsayım:', ''.join(s))

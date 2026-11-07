@@ -51,6 +51,8 @@ ss['h3'] = ParagraphStyle('h3', fontName='Body-B', fontSize=11.5, leading=15, te
 ss['cap'] = ParagraphStyle('cap', fontName='Body', fontSize=9.3, leading=12, textColor=GREY, alignment=TA_JUSTIFY)
 ss['eq'] = ParagraphStyle('eq', fontName='Math', fontSize=12, leading=17, alignment=TA_CENTER)
 ss['eqn'] = ParagraphStyle('eqn', fontName='Body', fontSize=10, leading=17, alignment=2, textColor=GREY)
+_CEQ = ParagraphStyle('ceq', parent=ss['eq'], fontSize=10.8, leading=15.5)   # cozum() adım denklemleri
+_KFS = ParagraphStyle('kfs', parent=ss['cap'], alignment=TA_CENTER, fontSize=8.8, leading=10.5)
 ss['boxt'] = ParagraphStyle('boxt', fontName='Body-B', fontSize=9.5, leading=12, spaceAfter=3)
 ss['boxb'] = ParagraphStyle('boxb', parent=ss['body'], fontSize=10.3, leading=14, spaceAfter=3)
 ss['cell'] = ParagraphStyle('cell', fontName='Body', fontSize=9.3, leading=11.5)
@@ -344,6 +346,53 @@ class Doc(BaseDocTemplate):
         p = Paragraph(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), ss['eq'])
         self._wrapcheck(p, FW - 32, n)
         return p
+
+    def ceq(self, t, n=''):
+        """Çözüm adımı denklemi (cozum içinde): metne yakın boyutta (10,8 pt), ortalı."""
+        p = Paragraph(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), _CEQ)
+        self._wrapcheck(p, FW - 32, n)
+        return p
+
+    def kf(self, num, cap, h=100, terms=None):
+        """cozum() içinde çizim: ortalı görsel ve altında kısa açıklama (sekil= ile verilir)."""
+        rc = self.figs[num][1]
+        w = h * (rc[2] - rc[0]) / (rc[3] - rc[1])
+        if w > FW - 40:
+            w, h = FW - 40, (FW - 40) * (rc[3] - rc[1]) / (rc[2] - rc[0])
+        capt = '<b>Şekil %s</b> – %s' % (num, cap)
+        if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
+        t = Table([[Image(os.path.join(self.work, 'fig', num + '.png'), width=w, height=h)], [Paragraph(capt, _KFS)]], colWidths=[FW - 32])
+        t.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 1), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]))
+        return t
+
+    def cozum(self, title, soru, sekil, verilen, kabuller, adimlar, sonuc, yorum=None):
+        """Tam çözümlü örnek: SORU, çizim, Verilen/İstenen, KABULLER, numaralı ÇÖZÜM adımları, çerçeveli SONUÇ, Yorum.
+        sekil: d.kf(...) ya da None. verilen: (verilenler, istenenler). adimlar: [(açıklama, [denklem | (denklem, no), ...]), ...].
+        sonuc: [satırlar]. Kutu satırlara bölünür: uzun örnek yalnız adım sınırında sayfaya bölünür;
+        başlık, soru ve çizim ilk satırda birlikte kalır."""
+        bg, fg, lab = BOXES['ornek']
+        P = lambda t, st=ss['boxb']: Paragraph(t, st)
+        etk = ParagraphStyle('etk', parent=ss['boxb'], fontName='Body-B', textColor=colors.HexColor(fg), spaceBefore=5, spaceAfter=2, keepWithNext=1)
+        kab = ParagraphStyle('kab', parent=ss['boxb'], leftIndent=12, bulletIndent=2, spaceAfter=1.5)
+        adm = ParagraphStyle('adm', parent=ss['boxb'], spaceBefore=3, spaceAfter=1.5, keepWithNext=1)
+        satir = [[Paragraph('<font color="%s">%s</font>' % (fg, title), ss['boxt']), P('SORU', etk), P(soru)] + ([sekil] if sekil else []) + [
+                  Spacer(1, 4), P('<b>Verilen:</b> ' + verilen[0] + '<br/><b>İstenen:</b> ' + verilen[1])]]
+        if kabuller:
+            satir.append([P('KABULLER', etk)] + [Paragraph(k, kab, bulletText='•') for k in kabuller])
+        for i, (txt, eqs) in enumerate(adimlar, 1):
+            ic = [P('<b>%d)</b> %s' % (i, txt), adm)] + [self.ceq(*e) if isinstance(e, tuple) else self.ceq(e) for e in eqs]
+            satir.append(([P('ÇÖZÜM', etk)] if i == 1 else []) + ic)
+        st = Table([[[x if not isinstance(x, str) else P(x) for x in sonuc]]], colWidths=[FW - 32])
+        st.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor(fg)), ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                                ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]))
+        satir.append([P('SONUÇ', etk), st] + ([P('<i>Yorum:</i> ' + yorum)] if yorum else []))
+        t = Table([[x] for x in satir], colWidths=[FW])
+        t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(bg)), ('LINEBEFORE', (0, 0), (0, -1), 3.5, colors.HexColor(fg)),
+                               ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                               ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                               ('TOPPADDING', (0, 0), (-1, 0), 6), ('BOTTOMPADDING', (0, -1), (-1, -1), 6)]))
+        self.story += [Spacer(1, 3), t, Spacer(1, 7)]
 
     def fig(self, num, cap, scale=1.0, maxw=None, maxh=320, terms=None, keep=None):
         pg, rc = self.figs[num]

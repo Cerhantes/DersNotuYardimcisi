@@ -31,7 +31,23 @@ genel bir konuyu (ısı iletimi) anlatır. Örnekten içeriği değil **kalıbı
 | `ozet` | Her h1 bölümünün sonu | `'• '` ile başlayan 4–6 madde, her biri tek cümle; `title='BÖLÜM n ÖZETİ'` |
 | `terim` | Nadiren: şekil dışında bir terim listesi | `English = Türkçe; …` |
 
-Çözümlü örnek kalıbı:
+Çözümlü örnek kalıbı (kullanıcının onayladığı tam biçim): SORU, çizim, Verilen/İstenen, KABULLER, numaralı ÇÖZÜM adımları, çerçeveli SONUÇ, Yorum. Adım denklemleri metne yakın boyuttadır (10,8 pt); uzun örnek yalnız adım sınırında sayfaya bölünür.
+
+```python
+d.cozum('ÇÖZÜMLÜ ÖRNEK n.m – kısa konu adı',
+        'Soru metni, kaynaktaki gibi tam.',
+        d.kf('H2.11', 'Çizimin kısa açıklaması (slayt).', h=110),   # çizim yoksa None
+        ('verilenler; ...', 'istenenler'),
+        ['Sürekli rejim, tek boyutlu iletim.', 'k sabit.'],              # kabuller
+        [('Fourier yasası, birim alan için:', ['q″ = k (T<sub>1</sub> − T<sub>2</sub>)/L', ('q″ = 1,4 × 10/0,005 = 2800 W/m²', '(1.2)')]),
+         ('Isı kaybı:', ['q = q″ A = 2800 × 3 = 8400 W'])],             # (açıklama, [denklemler]) adımları
+        ['<b>q = 8400 W</b>'],                                           # sonuç satırları
+        yorum='Sonucun ne anlama geldiği (bir cümle).')
+```
+
+- Tek işlemlik adımlar birleştirilir; ana kaynaktaki ara denklemler atlanmaz.
+- Kaynakta yazmayan kabul ve yorumlar raporda "benim eklediklerim" olarak listelenir.
+- Kısa, tek hesaplık bir örnek için eski kısa kutu da kullanılabilir:
 
 ```python
 d.box('ornek', [

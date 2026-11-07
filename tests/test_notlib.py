@@ -164,6 +164,32 @@ class Bolunme(unittest.TestCase):
         self.d.eq('a = 1', '(1.1)'); self.d.eq('b = 2', '(1.2)')
         self.assertFalse(isinstance(self.d.story[-1], notlib.KeepTogether))
 
+    def cozum(self, adim=3):
+        self.d.cozum('ÇÖZÜMLÜ ÖRNEK 1.1 – ORNEKBASLIK', 'SORUMETNI', None, ('VERILENLER', 'ISTENENLER'), ['KABULBIR'],
+                     [('ADIM%d açıklaması:' % i, ['x = %d' % i, ('y = %d' % i, '(1.%d)' % i)]) for i in range(1, adim + 1)],
+                     ['SONUCSATIRI'], yorum='YORUMCUMLESI')
+
+    def test_cozum_bolumleri_sirayla(self):
+        self.cozum()
+        self.d.make()
+        t = ' '.join(fitz.open(self.pdf)[-1].get_text().split())
+        sira = ['ORNEKBASLIK', 'SORU', 'SORUMETNI', 'Verilen: VERILENLER', 'İstenen: ISTENENLER', 'KABULLER', 'KABULBIR',
+                'ÇÖZÜM 1) ADIM1', '2) ADIM2', 'SONUÇ', 'SONUCSATIRI', 'Yorum: YORUMCUMLESI']
+        yer = [t.index(s) for s in sira]
+        self.assertEqual(yer, sorted(yer))
+
+    def test_uzun_cozum_adim_sinirinda_bolunur(self):
+        self.doldur(30)
+        self.cozum(adim=30)
+        self.d.make()
+        d = fitz.open(self.pdf)
+        sayfa = lambda m: [i for i, p in enumerate(d) if m in p.get_text()]
+        self.assertGreater(len(set(sayfa('ADIM'))), 1)                     # kutu sayfaya bölündü
+        self.assertEqual(sayfa('ORNEKBASLIK'), sayfa('SORUMETNI'))         # başlık ve soru birlikte
+        for i in range(1, 31):                                             # adım ve denklemleri ayrılmaz
+            self.assertEqual(sayfa('ADIM%d ' % i), sayfa('(1.%d)' % i), i)
+
+
 class Kopyalar(unittest.TestCase):
     def test_iki_notlib_kopyasi_ayni(self):
         a, b = (os.path.join(KOK, 'skills', k, 'scripts', 'notlib.py') for k in ('ders-notu', 'tekrar-notu'))

@@ -46,20 +46,17 @@ Sayı başlıkta yazılır ve listenin **tamamı** verilir. Ezber gerektiren kı
 
 **Şekil**: `F()` tek, `F2()` ikili. Altyazı şeklin **söylediği bilgi**: ne gösterdiği + dikkat edilecek nokta, `(a) …; (b) …` biçiminde.
 
-**Çözümlü örnek** (`X('ornek', ...)`): `'<b>Örnek n.m (konu):</b> verilenler.'` + tek satırda yol ve sonuç (sonuçlar kalın).
+**Çözümlü örnek, problem özeti ve Kendini Sına yazılmaz** (SKILL.md'deki karar); kullanıcı açıkça isterse `X('ornek', ...)` kullanılır.
 
 **Sezgi** (`X('ipucu', ...)`): grafik okuma, akılda tutma yolu, benzetme. En fazla 2 cümle.
 
 ## Kitabın sonundaki bölümler
 
 - **Semboller** (`d.h1('0. Semboller (hepsini tanıyabilmelisin)')`): dört sütun `['Sembol', 'Anlamı', 'Sembol', 'Anlamı']`, genişlik `[0.12, 0.38, 0.1, 0.4]`.
-- **Problem çözme**: `X('onemli', ['<b>Çözüm sırası:</b> 1) … → 2) … → 3) …'])` + tablo `['Problem', 'Konu', 'Yol ve sonuç']`, genişlik `[0.13, 0.19, 0.68]`, sonuçlar kalın.
-  Çok sonuç veren problemin bütün sonuçları ayrı bir `T()` ile.
+- **Problem çözme**: yalnız `X('onemli', ['<b>Çözüm sırası:</b> 1) … → 2) … → 3) …'])`; problem özeti tablosu yok.
 - **Kaynak sorularına kısa yanıtlar**: `B(['<b>n.m</b> yanıt.', ...])`. Kısa yanıtlı iki soru tek maddede birleşebilir.
 - **"Neyi Değiştirirsem Ne Olur?"**: ilk sütun `'Değişiklik'` (`'Kalınlık L ↑'`), sonra etkilenen büyüklükler, son sütun `'Diğer'`. Hücreler `↑ ↓ ↓↓ —`, kısa neden parantezde.
 - **Formül Özeti**: `['Konu', 'Bağıntı']`, genişlik `[0.24, 0.76]`; aynı konudaki bağıntılar `;` ile tek hücrede.
-- **Kendini Sına — Kısa Cevaplı**: `B(['<b>1.</b> Soru? Kısa cevap → hesap → <b>sonuç</b>.', ...])`. Sayısal cevaplar Python ile hesaplanıp doğrulanır.
-  Kaynakta olmayan ek sorular `d.h3('Ek sorular')` altında ve raporda "benim eklediklerim" olarak belirtilir.
 
 ## Kapak
 

@@ -18,16 +18,17 @@ Belge şu parçalardan oluşur, bu sırayla:
    - **Formüller** (`E`): kaynaktaki her numaralı denklem, numarasıyla; problemlerde gereken ters çözülmüş biçimler de.
    - **Tablolar** (`T`): kaynaktaki her tablo, numarası ve **tüm değerleriyle**.
    - **Şekiller** (`F`, `F2`): kaynağın kendi şekilleri, numaralarıyla; altyazı = şeklin söylediği bilgi (ne gösterdiği + dikkat edilecek nokta). İkili şekiller yan yana (`F2`).
-   - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ornek` (yeşil) çözümlü örnek: verilen → yol → sonuç · `ipucu` sezgi · `ozet` (konunun rengi) bölüm sonu **HIZLI KONTROL** listesi.
+   - **Kutular** (`X`/`BX`): `tanim` (mavi) tanımlar · `onemli` (turuncu) sınavda kritik / karıştırılan noktalar · `ipucu` sezgi · `ozet` (konunun rengi) bölüm sonu **HIZLI KONTROL** listesi.
 4. **"Neyi değiştirirsem ne olur?" tablosu** — konu parametre–sonuç ilişkileri içeriyorsa: satır = değiştirilen parametre (↑), sütun = etkilenen büyüklükler (↑ ↓ —), son sütun "Diğer".
-5. **Problem çözme**: çözüm sırası kutusu + kaynaktaki her çözümlü problemin özeti tablosu (problem no · konu · yol ve sonuç); bir problem çok sonuç veriyorsa (ör. tüm büyüklükler tablosu) sonuçların **tamamı** ayrı tablo.
+5. **Problem çözme**: yalnız çözüm sırası kutusu (hangi adım hangi sırayla).
 6. **Kitap/kaynak sorularına kısa yanıtlar** — kaynakta varsa hepsi (bölüm sonu problemleri yalnız kullanıcı isterse).
 7. **Formül özeti** tablosu.
-8. **Kendini Sına — kısa cevaplı**: kapsamdaki soruların hepsi, **cevabıyla** (bölüm sonu problemleri yalnız kullanıcı isterse). Sayısal cevaplar Python ile hesaplanıp doğrulanır.
+
+**Tekrar notunda çözümlü örnek ve Kendini Sına yoktur** (kullanıcının kararı): örnek kutusu, problem özeti tablosu, örnek sorular ve Kendini Sına soruları yazılmaz; çözümlü örnekler ders notunda ve soru kitapçığındadır. Kapakta bunu bir cümleyle söyle. Kullanıcı bu belge için açıkça isterse eklenir.
 
 Diğer kurallar:
 - Dil Türkçe; ondalık ayırıcı virgül. Eğilim gösterimi: `↑` artar, `↓` azalır, `→` sonuç/sebep zinciri.
-- Kaynakta olmayan bilgi uydurulmaz. Kendi eklediğin derleme (eğilim tablosu, Kendini Sına cevapları) raporda "benim eklediklerim" olarak söylenir.
+- Kaynakta olmayan bilgi uydurulmaz. Kendi eklediğin derleme (eğilim tablosu) raporda "benim eklediklerim" olarak söylenir.
 - Birden çok kaynak istenirse her biri **ayrı PDF**: `<kaynağın klasörü>\<Kaynak adı kökü>_Tekrar_Notu.pdf` (ör. `Isi_Ders_Notu.pdf` → `Isi_Tekrar_Notu.pdf`).
 
 ## Ortam (Windows / Mac / Linux)
@@ -65,7 +66,8 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
   3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
 - **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
 - **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
-- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli.
+- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli. Görüntü aracının sonucu boş ya da `media removed` dönerse o görsel görülmemiş sayılır: yeniden aç; görmediğin sayfa için "temiz" deme.
+- **Kırpık şekil:** `$PY -W ignore $SK/../../ortak/sekil_kenar.py <work>/fig` → her `KENAR` satırının şeklini kaynağıyla karşılaştır; kesik yazı/çizgi varsa kesimi genişlet, komşu yazıdan kalan izi beyazlat. Küçük ölçekli temas sayfasında bu kesikler kolay kaçar.
 
 ## Akış
 
@@ -81,16 +83,16 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
    - **Sayfa bölünmesi**: çok satırlı denklem, türetim adımları ve `:` ile biten giriş cümlesi kütüphanece denklemle aynı sayfada tutulur. Aynı konunun formül ve şekli bir bütünse `g = d.grup_bas(); ...; d.grup_son(g)` ile sar. Ayrı konuların (silindirik, küresel) her biri kendi başlığıyla başlar; bir konu başlıksız sayfa sonuna düşmez. Gözle kontrolde bir denklem grubunun iki sayfaya bölündüğü her yeri düzelt.
 6. **Kapsam denetimi**: `$PY -W ignore $SK/scripts/kapsam.py $B <work>/out.pdf --from <ilk içerik sayfası>`
    - Tablo / Şekil numarası eksikse → ekle (şekil görsel olarak konmadıysa en azından atıfla anılmalı).
-   - **Denklem kapsamı**: `$PY -W ignore $SK/../../ortak/denklem_kapsam.py $B <work>/out.pdf --from <ilk> --to <son>` (kaynak sayfa aralığı). **Ölçü, o işteki ana kaynaktır.** Kullanıcı hoca notlarını ana kaynak dediyse kitap değil onlar karşılaştırılır; `$B` ana kaynaktır, birden çok dosyaysa her biri için çalıştırılır. Ana kaynaktaki her denklem, numaralı numarasız, türetimin ve çözümlü örneklerin ara adımları dahil yazılı olur: `y ve z için benzer şekilde` demek, ara adımı atlamak ya da numarayı metinde anmak yetmez. `YOK` ve `YALNIZ ANILMIŞ` listesi boşalmadan belge teslim edilmez. Yalnız kullanıcının kapsam dışı bıraktığı alt bölümler `--disarida <dosya>` ile, gerekçesiyle dışarıda kalır ve raporda yazılır; önemsiz görmek gerekçe değildir. Çıkış kodu 2 ise ya da kaynağın denklemleri numarasızsa (slayt, görsel denklem) araç güvence vermez: ana kaynağın her sayfası görüntü olarak açılır, her denklem betikle tek tek karşılaştırılır; bu karşılaştırma yapılmadan belge teslim edilmez. Kaynak bir ders notuysa ve kitap aynı klasördeyse kitapla da çalıştır: notun atladığı denklem buraya da geçer.
+   - **Denklem kapsamı**: `$PY -W ignore $SK/../../ortak/denklem_kapsam.py $B <work>/out.pdf --from <ilk> --to <son>` (kaynak sayfa aralığı). **Ölçü, o işteki ana kaynaktır.** Kullanıcı hoca notlarını ana kaynak dediyse kitap değil onlar karşılaştırılır; `$B` ana kaynaktır, birden çok dosyaysa her biri için çalıştırılır. Ana kaynaktaki her denklem, numaralı numarasız, türetimin ara adımları dahil yazılı olur: `y ve z için benzer şekilde` demek, ara adımı atlamak ya da numarayı metinde anmak yetmez. Çözümlü örneklerin denklemleri bu notta yazılmaz; listede yalnız onlar kalırsa raporda "çözümlü örnek" diye geçer. `YOK` ve `YALNIZ ANILMIŞ` listesinde çözümlü örnek dışında satır kaldıkça belge teslim edilmez. Yalnız kullanıcının kapsam dışı bıraktığı alt bölümler `--disarida <dosya>` ile, gerekçesiyle dışarıda kalır ve raporda yazılır; önemsiz görmek gerekçe değildir. Çıkış kodu 2 ise ya da kaynağın denklemleri numarasızsa (slayt, görsel denklem) araç güvence vermez: ana kaynağın her sayfası görüntü olarak açılır, her denklem betikle tek tek karşılaştırılır; bu karşılaştırma yapılmadan belge teslim edilmez. Kaynak bir ders notuysa ve kitap aynı klasördeyse kitapla da çalıştır: notun atladığı denklem buraya da geçer.
    - "bilgi — HER BİRİNE BAK" listesindeki her satırı oku; bilgi taşıyorsa nota ekle. Hedef: bu listede yalnız bilerek dışarıda bırakılmış öğeler kalması.
-   - "ara hesap" listesi: çözümün **sonucu** notta varsa bırak; sonuç yoksa ekle.
+   - "ara hesap" listesi ve çözümlü örneklerin sayıları: tekrar notunda örnek olmadığından bırak; başlıktaki bilginin kendisi (tipik değer, aralık, sabit) eksikse ekle.
    - 5–6'yı liste temizlenene kadar tekrarla.
 7. **Düzen denetimi**: `$PY -W ignore $SK/scripts/duzen.py <work>/out.pdf <work>` → şüpheli satırlar + `rv_*.png`.
    - Şüpheli satırların gerçek hata türleri: yalnız kalan `↑.` ya da tek kelime; kelime/sayı ortasından bölünmüş tablo hücresi (`83–86 HR | A`, `4000–500 | 0`); `HAM ALT ÇİZGİ` (`F_c` S()'den geçmemiş); `HAM İŞARETLEME` (`&amp;`).
    - Yanlış alarm: bilerek `<br/>` ile bölünmüş başlık, yan yana birleşik okunan tablo hücreleri (`246698`), tek hücreli `—`.
-   - Sonra ilk derlemede **bütün** `rv_*.png` görüntülerini aç, sonraki derlemelerde yalnız `sayfa_fark.py`'nin `AÇILACAK` listesini (bkz. Token tasarrufu): içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
+   - Sonra ilk derlemede **bütün** `rv_*.png` görüntülerini aç, sonraki derlemelerde yalnız `sayfa_fark.py`'nin `AÇILACAK` listesini (bkz. Token tasarrufu): içindekiler tek sayfa mı, sayfa sonunda yalnız başlık var mı, şekil okunur mu, kenarında kesik yazı var mı (küçük yazılı şekil → `F(..., maxh=330, scale=1.0)` tek başına), büyük boşluk var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`). Şüpheli sayfayı `pymupdf` ile 110–120 dpi render edip yakından bak.
 8. **Kopyala**: `cp <work>/out.pdf "<dirname $B>/<kök>_Tekrar_Notu.pdf"`; `cmp` ile doğrula. `tekrar.py` ve `figs.json`'u `<dirname $B>/.kaynak/<kök>_Tekrar_Notu/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz.
-9. **Rapor**: dosya yolu, sayfa sayısı, kapsanan bölümler, kapsam denetimi sonucu (kalan bilerek dışarıda bırakılanlar), "benim eklediklerim" (eğilim tablosu, cevaplar). Sonuna şu öneriyi ekle: formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar ona da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi önerilir.
+9. **Rapor**: dosya yolu, sayfa sayısı, kapsanan bölümler, kapsam denetimi sonucu (kalan bilerek dışarıda bırakılanlar), "benim eklediklerim" (eğilim tablosu). Sonuna şu öneriyi ekle: formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar ona da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi önerilir.
 
 ## tnlib API (`from tnlib import *`)
 
@@ -131,6 +133,6 @@ Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` →
 | Sayfa altında büyük boşluk, sonraki sayfa büyük şekille başlıyor | Şekil sığmadığı için kaçınılmaz; boşluk %40'ı aşıyorsa şekli `maxh` küçülterek ya da şekilden sonraki 1–2 maddeyi şeklin önüne alarak dene |
 | `kaynak.py` sıralamada `TypeError` | Eski sürüm; `6.18a` gibi harfli numaralar için sıralama anahtarı düzeltildi — skill'deki güncel betiği kullan |
 | Bölüm başlığı sayfa sonunda tek kaldı | `d.h2(..., need=12–14)` |
-| Kapsam denetiminde çözümlü problem değerleri eksik | Problemin tüm sonuçları ayrı tabloyla verilmeli, yalnız seçilmiş birkaçı değil |
+| Kapsam denetiminde çözümlü örnek/problem değerleri eksik | Tekrar notunda örnek yoktur; bırak. Kullanıcı bu belge için örnek istediyse sonuçların tamamını ver |
 | `kaynak.py` hiç şekil bulmadı | Başlık biçimi farklı (`--cap`) ya da şekiller vektör → ders-notu skill'inin detect/crop adımları |
 | `ModuleNotFoundError` / `python` bulunamadı / `UnicodeEncodeError` | Ortam bölümündeki kurulum betiğinin verdiği `$PY` ile çalıştır / `PYTHONIOENCODING=utf-8` |

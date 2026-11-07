@@ -2,7 +2,7 @@
 
     from solib import *
     d = start(out, work, 'KONU', 'Konu – Çözümlü Sorular', 'Kaynak: ...')
-    kapak(['Kapsam: ...'], kaynakta_cevap=False, kapsam_notu='Çıkarılanlar ve nedenleri')
+    kapak(['Kapsam: ...'], kaynakta_cevap=False, kapsam_notu='Çıkarılanlar ve nedenleri')   # True | False | 'kismen'
     bolum('Bölüm 5 – Döküm')
     konu('5.2 Metallerin Katılaşması')
     soru('5.82', ['5.2 Katılaşma', '5.8 Kum Döküm'], 'Soru metni', ['Adım', H('C = 3/12,5^2'), M(['madde']), TB(satirlar)],
@@ -53,7 +53,7 @@ def start(out, work, title, header, source, subtitle='Çözümlü Sorular', renk
             json.dump({}, f)
     _work = work
     d = tnlib.start(out, work, title, header, source, subtitle=subtitle, renk=renk)
-    d._dizin, d._varsayimlar, d._dizin_yeri, d._kapsam_notu = {}, [], None, None
+    d._dizin, d._varsayimlar, d._dizin_yeri, d._kapsam_notu, d._claude = {}, [], None, None, []
     d._bloklar, d._bolum_var = [], False
     return d
 
@@ -61,7 +61,10 @@ def start(out, work, title, header, source, subtitle='Çözümlü Sorular', renk
 def kapak(kapsam, kaynakta_cevap, kapsam_notu=None):
     icerik = ['Her soru, sorusu ve çözümüyle birlikte tek kart hâlindedir. Kartın üstündeki bant sorunun konusunu söyler; '
               '<b>KARMA</b> etiketli sorularda birden çok konu birlikte kullanılır. Sorular sayfa düzenine göre dizildiği için numara sırasında olmayabilir.']
-    if not kaynakta_cevap:
+    if kaynakta_cevap == 'kismen':
+        icerik.append('Kaynakta çözümü olan sorular kaynağın çözümünü izler. Çözümü olmayanlarda kartın başında '
+                      '<b>"Çözüm Claude\'a aittir"</b> yazar; sayısal sonuçlar Python ile hesaplanmıştır.')
+    elif not kaynakta_cevap:
         icerik.append('Kaynakta cevap anahtarı yoktur; çözümler Claude tarafından yapılmıştır, sayısal sonuçlar Python ile hesaplanmıştır.')
     d.cover(kapsam, icerik, kutu='BU KİTAPÇIĞI NASIL KULLANMALISIN?')
     d._dizin_yeri = len(d.story) - 1    # içindekilerin ardı, son PageBreak'ten önce
@@ -272,16 +275,21 @@ def _sekil_parcalari(no, sekil):
     return parca
 
 
-def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=(), ek=(), bagli=None):
+def soru(no, konular, metin, adimlar, sonuc=None, notu=None, varsayim=None, sekil=(), ek=(), bagli=None, claude=False):
     """no: kaynaktaki numara. konular: ilki ana konu; birden çoksa KARMA. adimlar: str | H | M | TB | G | flowable.
     ek: sorunun kendi verisi (ör. TB), soru metninin ardına, ÇÖZÜM'den önce konur.
-    bagli: bu sorunun dayandığı sorunun numarası; ikisi yan yana kalır."""
+    bagli: bu sorunun dayandığı sorunun numarası; ikisi yan yana kalır.
+    claude: kaynakta çözüm yokken True ("Çözüm Claude'a aittir"); çözümün yalnız bir kısmı Claude'unsa o kısmı söyleyen metin."""
     kutu = Table([[Paragraph(S(metin), _st_soru)]], colWidths=[_IW])
     kutu.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F7F8FA')),
                               ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
     baslik = Paragraph('<b><font color="%s">ÇÖZÜM</font></b>' % d.ana, ss['boxt'])
     bas = [kutu] + list(ek) + _sekil_parcalari(no, sekil) + [baslik]
     parcalar = []
+    if claude:
+        etiket = "Çözüm Claude'a aittir (kaynakta çözüm yok)." if claude is True else claude
+        parcalar.append(Paragraph('<b>%s</b>' % S(etiket), _st_adim))
+        d._claude.append(no)
     for a in adimlar:
         if isinstance(a, str):
             parcalar.append(Paragraph(S(a), _st_adim))
@@ -372,4 +380,6 @@ def make():
     _yerlestir()
     for no, metin in d._varsayimlar:
         print('VARSAYIM %s: %s' % (no, metin), file=sys.stderr)
+    if d._claude:
+        print('CLAUDE ÇÖZÜMÜ: %s' % ', '.join(d._claude), file=sys.stderr)
     d.make()

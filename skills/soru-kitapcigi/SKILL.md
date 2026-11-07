@@ -47,6 +47,8 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
 ## Akış
 
 0. **Yalnızca kaynak yolunu iste.** Birden çok kaynak verilebilir (ör. toplu soru PDF'i + kitap). Toplu soru PDF'i verildiyse aynı klasörde ya da mesajda kitap var mı bak; şekil ve tablolar kitaptan gelir.
+   - **Birden çok soru kaynağı** (ör. bölüm bölüm problem slaytları + ayrı örnek soru PDF'i): her kaynak kendi `bolum()`'ünde, kaynağın adıyla ("Bölüm 3 Problemleri", "Bölüm 3 Örnek Soruları (PDF)"); konular bölümün içinde. Kaynaklar konulara karıştırılmaz. Numara biçimi kaynağı göstermiyorsa (iki kaynakta da `3-42` gibi) kapakta açıkla.
+   - **PowerPoint (.pptx):** `$PY -W ignore $SK/../../ortak/pptx_slayt.py <sunum.pptx> <work>/sl --onek b3` → sunum sırasıyla slayt PNG'leri ve `slaytlar.txt`. Yalnız metin içeren slayt PNG'de boş görünür, metni `slaytlar.txt`'tedir; el yazısı ve görsel sorular PNG'den görerek okunur. Şekiller bu PNG'lerden kesilir.
 1. **Envanter:** `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri. Konuları ve problem sayfalarını belirle, sonra `envanter.py $B <problem aralıkları> --work <work>`. Bu adımda yalnız soru sayfaları okunur; konu anlatımı için 4. adıma bak. Metni okunmayan (taranmış) sayfaları `$SK/../formul-kagidi/scripts/review.py $B <work> 130 --pages n` ile render edip görerek oku.
 2. **Sınıflandır:** kapsama giren soruları `<work>/sorular.json`'a yaz:
    ```json
@@ -66,13 +68,17 @@ Bütün yollar mutlak. `<work>` = oturum scratchpad'i varsa `<scratch>/sk-<konu>
 8. **İçerik:** önce `$SK/USLUP.md` ve `$SK/examples/ornek_soru_kitapcigi.py`'yi oku. Konu konu `<work>/p01.py`, `p02.py`… **Write aracıyla** yaz (ilki `start` ve `kapak`, sonuncusu `make()`), `cat p*.py > kitapcik.py`. Sonuçlar elle değil `R(no, ad)` ile yazılır.
 9. **Derle:** `PYTHONPATH=$SK/scripts $PY -W ignore <work>/kitapcik.py <work>/out.pdf <work>`. stderr'deki `VARSAYIM` ve `UYARI` satırlarına bak.
 10. **Denetle:** `$PY -W ignore $SK/scripts/denetim.py <work>/out.pdf <work>`. `DENETİM TAMAM` görmeden bitirme. `UZUN KART` sayfalarına bak, `CEVAP KARŞILAŞTIR` satırlarını çözümle karşılaştır.
-11. **Gözle kontrol:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider.
+    - **Kaynak listesiyle karşılaştır:** her kaynağın sorularını (slayt slayt, sayfa sayfa) `sorular.json` ile eşle; eksik ya da kaynakta olmayan soru kalmasın, her kart doğru bölümde dursun. Denetim betiği yalnız `sorular.json` ile kitapçığı karşılaştırır, kaynağa bakmaz.
+11. **Gözle kontrol:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görüntü aracının sonucu boş ya da `media removed` dönerse o görsel görülmemiş sayılır: yeniden aç; görmediğin sayfa için "temiz" deme.
+    - **Kırpık şekil:** `$PY -W ignore $SK/../../ortak/sekil_kenar.py <work>/fig` → her `KENAR` satırının şeklini kaynağıyla karşılaştır; kesik yazı/çizgi varsa kesimi genişlet, komşu yazıdan kalan izi beyazlat. Küçük ölçekli temas sayfasında bu kesikler kolay kaçar.
 12. **Kopyala ve raporla:** PDF'i `dirname $B`'ye; `kitapcik.py`, `hesap.py`, `sorular.json`, `sonuc.json`'u `<dirname $B>/.kaynak/<PDF adı>/` içine kopyala. Rapor: yol, sayfa ve soru sayısı, çıkarılanlar ve nedenleri, varsayımlar, cevap karşılaştırması, soru dışında okunan sayfalar.
 
 ## Çözümlerin güvenilirliği
 
 - Kaynakta cevap yoksa çözümü Claude yapar; `kapak(..., kaynakta_cevap=False)` bunu kapağa yazar.
 - Kaynakta cevap varsa `kaynakta_cevap=True`, çözüm cevapla karşılaştırılır.
+- **Bir kısmının çözümü kaynakta varsa** `kaynakta_cevap='kismen'`; çözümü olmayan her kartta `soru(..., claude=True)` → kartın başında "Çözüm Claude'a aittir". Çözümün yalnız bir şıkkı Claude'unsa `claude="(c) şıkkı Claude'a aittir."`. Derleme bu kartları `CLAUDE ÇÖZÜMÜ:` satırında listeler; raporda say.
+- Soruda ve kaynakta olmayan sayısal veri (malzeme özelliği vb.) kitaptan alınırsa `varsayim=` ile hangi tablodan alındığı yazılır.
 - Emin olunmayan çözüm kesin gibi yazılmaz: `notu=` ile söylenir ve raporda listelenir.
 - Kitapta karşılığı bulunmayan açıklama genel bilgi olarak `notu=` ile belirtilir; kitabın verdiği bilgiyle karıştırılmaz.
 
@@ -85,7 +91,7 @@ bolum('Bölüm 5 – Döküm')                 # içindekilerde 1. düzey
 konu('5.2 Metallerin Katılaşması')       # 2. düzey, sıradaki renk
 soru('5.82', ['5.2 Katılaşma', '5.8 Kum Döküm'], 'Soru metni',
      ['paragraf adım', H('hesap satırı'), M(['madde', 'madde']), TB([['Başlık', 'B'], ['a', 'b']], [0.6, 0.4], baslik='Tablo 8.5 – Açıklama'), G(work + '/grafik.png', 'Altyazı')],
-     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')], ek=[TB(soruda_verilen_tablo)], bagli='5.84')
+     sonuc='≈ %s' % R('5.82', 't'), notu='kısa not', varsayim='k = 50 W/m·K alındı', sekil=[('5.10', 'Türkçe altyazı')], ek=[TB(soruda_verilen_tablo)], bagli='5.84', claude=True)
 make()
 ```
 
