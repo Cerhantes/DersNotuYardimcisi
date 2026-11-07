@@ -93,5 +93,26 @@ class PptxSlaytTest(unittest.TestCase):
         self.assertEqual(im.getpixel((300, 250)), (255, 255, 255))
 
 
+
+import drive_klasor as dk
+
+_SAYFA = {
+    'KOK': '<div class="flip-entry" id="entry-ALT1" tabindex="0"><div><a href="https://drive.google.com/drive/folders/ALT1"><div class="flip-entry-title">Vize &amp; 1</div></a></div></div>'
+           '<div class="flip-entry" id="entry-F1" tabindex="0"><div><a href="https://drive.google.com/file/d/F1/view"><div class="flip-entry-title">genel.pdf</div></a></div></div>',
+    'ALT1': '<div class="flip-entry" id="entry-F2" tabindex="0"><div><a href="https://drive.google.com/file/d/F2/view"><div class="flip-entry-title">2014 sınav.pdf</div></a></div></div>',
+}
+
+
+class DriveKlasorTest(unittest.TestCase):
+    def test_baglantidan_id(self):
+        self.assertEqual(dk.klasor_id('https://drive.google.com/drive/u/0/folders/1abc-XY_z?usp=sharing'), '1abc-XY_z')
+        self.assertEqual(dk.klasor_id('1abc'), '1abc')
+
+    def test_alt_klasorler_gezilir(self):
+        getir = lambda url: _SAYFA.get(url.rsplit('=', 1)[1], '')
+        t = dk.tara('KOK', getir=getir)
+        self.assertEqual([(x['yol'], x['ad']) for x in t], [('/Vize & 1', '2014 sınav.pdf'), ('', 'genel.pdf')])
+
+
 if __name__ == '__main__':
     unittest.main()
