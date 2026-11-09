@@ -209,12 +209,12 @@ class Baglama(unittest.TestCase):
 class SekilBoslugu(unittest.TestCase):
     """Şekil sayfaya sığmayınca sayfanın kalanı boş kalmasın."""
 
-    def kur(self, dolgu, yukseklik, baslik=False):
+    def kur(self, dolgu, yukseklik, baslik=False, genislik=300, ek=''):
         self.k = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, self.k)
         os.makedirs(os.path.join(self.k, 'fig'))
         fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 40, 40), 0).save(os.path.join(self.k, 'fig', '1.1.png'))
         with open(os.path.join(self.k, 'figs.json'), 'w') as f:
-            f.write('{"1.1": [1, [0, 0, 300, %d]]}' % yukseklik)
+            f.write('{"1.1": [1, [0, 0, %d, %d]]}' % (genislik, yukseklik))
         self.pdf = os.path.join(self.k, 'o.pdf')
         d = notlib.Doc(self.pdf, 'T', 'A', 'B', self.k, 'K')
         d.cover(['x'], ['y'])
@@ -222,7 +222,7 @@ class SekilBoslugu(unittest.TestCase):
             d.p('Dolgu satırı %d' % i)
         if baslik:
             d.h3('ARABASLIK')
-        d.fig('1.1', 'SEKILALTI', maxh=1000)
+        d.fig('1.1', 'SEKILALTI ' + ek, maxh=1000)
         for i in range(6):
             d.p('SONRAKI%d metni.' % i)
         d.make()
@@ -230,14 +230,44 @@ class SekilBoslugu(unittest.TestCase):
         sayfa = lambda m: [i for i, p in enumerate(doc) if m in p.get_text()][0]
         self.s = {m: sayfa(m) for m in ('Dolgu satırı %d' % (dolgu - 1), 'SEKILALTI', 'SONRAKI0', 'SONRAKI5')}
         self.s['son'] = self.s.pop('Dolgu satırı %d' % (dolgu - 1))
-        self.resimler = [r['bbox'] for r in doc[self.s['SEKILALTI']].get_image_info()]
+        sp = doc[self.s['SEKILALTI']]
+        self.resimler = [r['bbox'] for r in sp.get_image_info()]
+        self.aciklama = next(b for b in sp.get_text('blocks') if 'SEKILALTI' in b[4])
         doc.close()
 
-    def test_az_farkla_sigmayan_sekil_kucultulur(self):
-        tam = 310 * 0.92                                # fig() ölçüsü: (300 + 10) × 0,92
+    def yanda_mi(self):
+        r, a = self.resimler[0], self.aciklama
+        return a[0] >= r[2] - 1 and a[1] < r[3]
+
+    UZUN = 'kelime ' * 70   # dar yan sütunda şeklin boyunu aşar, altta ise daha çok yer tutar
+
+    def test_dar_sekilde_aciklama_yanda(self):
+        self.kur(dolgu=3, yukseklik=300)
+        self.assertTrue(self.yanda_mi())
+
+    def test_genis_sekilde_aciklama_altta(self):
+        self.kur(dolgu=3, yukseklik=300, genislik=480)
+        self.assertFalse(self.yanda_mi())
+
+    def test_sekilden_uzun_aciklama_altta(self):
+        self.kur(dolgu=3, yukseklik=150, ek=self.UZUN)
+        self.assertFalse(self.yanda_mi())
+
+    def test_sigmayan_sekilde_alttaki_aciklama_yana_alinir(self):
+        yana = 0
+        for dolgu in range(14, 40):
+            self.kur(dolgu, yukseklik=150, ek=self.UZUN)
+            if self.yanda_mi():
+                yana += 1
+                self.assertEqual(self.s['son'], self.s['SEKILALTI'], dolgu)   # yana alınca aynı sayfada kaldı
+        self.assertGreater(yana, 0)
+
+    def test_az_farkla_sigmayan_genis_sekil_kucultulur(self):
+        tam = 310 * 0.92                                # fig(): h = (300 + 10) × 0,92; genişlik 451 pt, yanda yer yok
         kucultulen = 0
         for dolgu in range(14, 34):
-            self.kur(dolgu, yukseklik=300)
+            self.kur(dolgu, yukseklik=300, genislik=480)
+            self.assertFalse(self.yanda_mi())
             if self.s['son'] != self.s['SEKILALTI']:
                 continue
             h = self.resimler[0][3] - self.resimler[0][1]

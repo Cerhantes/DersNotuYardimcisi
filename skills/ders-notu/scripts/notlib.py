@@ -53,6 +53,7 @@ ss['cap'] = ParagraphStyle('cap', fontName='Body', fontSize=9.3, leading=12, tex
 ss['eq'] = ParagraphStyle('eq', fontName='Math', fontSize=12, leading=17, alignment=TA_CENTER)
 ss['eqn'] = ParagraphStyle('eqn', fontName='Body', fontSize=10, leading=17, alignment=2, textColor=GREY)
 _CEQ = ParagraphStyle('ceq', parent=ss['eq'], fontSize=10.8, leading=15.5)   # cozum() adım denklemleri
+_YANCAP = ParagraphStyle('yancap', parent=ss['cap'], alignment=TA_LEFT)   # şeklin yanına alınan açıklama
 _KFS = ParagraphStyle('kfs', parent=ss['cap'], alignment=TA_CENTER, fontSize=8.8, leading=10.5)
 ss['boxt'] = ParagraphStyle('boxt', fontName='Body-B', fontSize=9.5, leading=12, spaceAfter=3)
 ss['boxb'] = ParagraphStyle('boxb', parent=ss['body'], fontSize=10.3, leading=14, spaceAfter=3)
@@ -210,6 +211,7 @@ class Doc(BaseDocTemplate):
         self.story = []
         self.title_, self.subtitle = title, subtitle
         self._hn = 0
+        self._fig_say = [0, 0]   # [açıklaması altta, yanda]
         self.tema = Tema(title, renk)
         self._kapak = (colors.HexColor(self.tema.ana), colors.HexColor(self.tema.zemin))
 
@@ -243,6 +245,7 @@ class Doc(BaseDocTemplate):
     def beforeDocument(self):
         self._hn = 0
         self._ertelenen = set()
+        self._sekil_sonuc = {}
 
     def afterFlowable(self, fl):
         if isinstance(fl, _P) and getattr(fl, '_toc', None) is not None:
@@ -464,22 +467,42 @@ class Doc(BaseDocTemplate):
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
         heads = self._heads()
 
-        def yap(oran=1.0):
+        def yap(oran=1.0, yan=False):
+            """yan=True: açıklama şeklin sağına yazılır (yalnız sığmayan şekilde; yanda yer yoksa None)."""
             img = Image(os.path.join(self.work, 'fig', num + '.png'), width=w * oran, height=h * oran)
-            ct = Table([[img], [Paragraph(capt, ss['cap'])]], colWidths=[min(FW, max(w + 20, 12 * cm))])
-            ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
-                                    ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 1), (-1, 1), 6)]))
+            if yan:
+                sol = w * oran + 14
+                if FW - sol < self.YAN_MIN:
+                    return None
+                ct = Table([[img, Paragraph(capt, _YANCAP)]], colWidths=[sol, FW - sol])
+                ct.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                        ('LINEBELOW', (0, 0), (-1, 0), 0.5, colors.HexColor('#BBBBBB')),
+                                        ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                                        ('LEFTPADDING', (1, 0), (1, 0), 4)]))
+            else:
+                ct = Table([[img], [Paragraph(capt, ss['cap'])]], colWidths=[min(FW, max(w + 20, 12 * cm))])
+                ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
+                                        ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 1), (-1, 1), 6)]))
             flow = [Spacer(1, 4), ct, Spacer(1, 8)]
             if keep:  # keep figure together with some preceding/following paragraph text
                 flow = keep(flow)
             kt = KeepTogether(heads + list(flow))
-            kt._sekil = (yap, h, bool(heads))   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
+            kt._sekil = (yap, h, bool(heads), yan0)   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
             return kt
-        self.story.append(yap())
+
+        # Açıklama yana sığıyorsa (yanda en az YAN_MIN sütun kalır ve açıklama şeklin boyunu aşmaz) yana yazılır
+        sutun = FW - (w + 14) - 10
+        yan0 = sutun + 10 >= self.YAN_MIN and Paragraph(capt, _YANCAP).wrap(sutun, 10000)[1] <= h
+        self._fig_say[yan0] += 1
+        self.story.append(yap(1.0, yan0))
 
     # ---------- şekil sığmayınca sayfa yarı boş kalmasın ----------
     SEKIL_MIN_OLCEK = 0.8     # sığdırmak için şekil en çok bu orana küçülür
     SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
+    YAN_MIN = 5.5 * cm        # açıklamanın şeklin yanına alınması için gereken en dar sütun
+
+    def _sonuc(self, ne):
+        self._sekil_sonuc[ne] = self._sekil_sonuc.get(ne, 0) + 1
 
     @staticmethod
     def _baslik_mi(f):
@@ -512,32 +535,48 @@ class Doc(BaseDocTemplate):
         H = self._yukseklik(f, W)
         if H <= bos + 0.5:
             return
-        yap, h, basli = sk          # yap None: yalnız akıtılır (ör. yan yana iki şekil)
-        # 1) küçültülerek sığıyorsa küçült
-        oran = (h - (H - bos) - 1) / h if yap else 0
-        while oran >= self.SEKIL_MIN_OLCEK:
-            yeni = yap(oran)
-            if self._yukseklik(yeni, W) <= bos + 0.5:
-                flowables[0] = yeni
-                return
-            oran -= 0.02
+        yap, h, basli, yan0 = sk    # yap None: yalnız akıtılır (ör. yan yana iki şekil)
+        # Açıklaması alttaysa: 1) yana al, 2) küçült, 3) küçült + yana al. Zaten yandaysa yalnız 3.
+        # İlk sığan kullanılır.
+        if yap:
+            adaylar = []
+            if not yan0:
+                adaylar.append((1.0, True))
+                oran = (h - (H - bos) - 1) / h
+                while oran >= self.SEKIL_MIN_OLCEK:
+                    adaylar.append((oran, False))
+                    oran -= 0.02
+            oran = 0.98
+            while oran >= self.SEKIL_MIN_OLCEK:
+                adaylar.append((oran, True))
+                oran -= 0.02
+            for oran, yan in adaylar:
+                yeni = yap(oran, yan)
+                if yeni is not None and self._yukseklik(yeni, W) <= bos + 0.5:
+                    flowables[0] = yeni
+                    self._sonuc('küçük' if yan0 or not yan else 'küçük + yan' if oran < 1 else 'yan')
+                    return
         self._ertelenen.add(id(f))
         if basli:      # şeklin başlığı var: arkasındaki metin başlığın altına ait, öne alınmaz
+            self._sonuc('sonraki sayfa')
             return
         # 2) sonraki metni boşluğa akıt, şekil sonraki sayfanın başına geçsin
         kalan, i = bos, 1
         while i < len(flowables) and kalan > 0 and self._akabilir(flowables[i]):
             g = flowables[i]
             hg = self._yukseklik(g, W)
-            if hg > kalan and not isinstance(g, _P):
-                # çözümlü örnek adım sınırında bölünebilir: ilk satırı (başlık, soru, çizim) sığıyorsa akar;
-                # kutu, tablo, denklem bölünmez: sığmıyorsa şekilden sonra kalır
-                if not (getattr(g, '_bolunur', False) and g._rowHeights[0] <= kalan):
+            if hg > kalan:
+                # paragraf ve çözümlü örnek (adım sınırında, ilk satırı sığıyorsa) bölünerek akar; kutu, tablo,
+                # denklem bölünmez. Taşan kısım şekille birlikte sonraki sayfaya sığmıyorsa akmaz: yoksa şekil
+                # bir sayfa daha kayar, yeni boşluk açılır
+                bolunur = isinstance(g, _P) or (getattr(g, '_bolunur', False) and g._rowHeights[0] <= kalan)
+                if not bolunur or hg - kalan + H > fr._aH:
                     break
             kalan -= hg
             i += 1
         if i > 1:
             flowables[:i] = flowables[1:i] + [f]
+        self._sonuc('metin aktı' if i > 1 else 'sonraki sayfa')
 
     def _heads(self):
         """story sonundaki başlıkları (keepWithNext'li paragraflar) çıkarıp döndürür."""
@@ -557,7 +596,7 @@ class Doc(BaseDocTemplate):
         heads = self._heads()
         kt = KeepTogether(heads + list(flow))
         if sekil:
-            kt._sekil = (None, 0, bool(heads))
+            kt._sekil = (None, 0, bool(heads), False)
         self.story.append(kt)
 
     def table(self, rows, widths=None, title=None, small=False):
@@ -602,5 +641,9 @@ class Doc(BaseDocTemplate):
 
     def make(self):
         self.multiBuild(self.story)
+        if sum(self._fig_say):
+            print('BİLGİ: %d şeklin açıklaması yanda, %d şeklinki altta' % (self._fig_say[1], self._fig_say[0]))
+        if self._sekil_sonuc:
+            print('BİLGİ: sayfaya sığmayan şekiller: ' + ', '.join('%s %d' % kv for kv in sorted(self._sekil_sonuc.items())))
         if _KUCULEN:
             print('BİLGİ: %d paragraf, taşan satır yüzünden en çok 1,5 pt küçültüldü' % len(_KUCULEN))
