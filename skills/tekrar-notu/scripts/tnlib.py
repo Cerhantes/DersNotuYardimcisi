@@ -118,4 +118,4 @@ def F2(a, b, capa, capb, h=150):
                            ('VALIGN', (0, 1), (-1, 1), 'TOP'),
                            ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
                            ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6)]))
-    d.keep([Spacer(1, 4), t, Spacer(1, 8)])
+    d.keep([Spacer(1, 4), t, Spacer(1, 8)], sekil=True)

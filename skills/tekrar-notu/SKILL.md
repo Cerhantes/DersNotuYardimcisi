@@ -131,7 +131,7 @@ Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` →
 | Kapsam denetiminde "Şekil numaraları eksik" | O şekiller notta hiç anılmamış: ilgili maddenin yanına `F`/`F2` ekle (fotoğraf/ürün şekilleri dahil — kaynakta varsa notta da olmalı) |
 | `h1` başlığı sayfa sonunda yalnız, tablosu sonraki sayfada | Artık otomatik: `T`/`F`/`F2` hemen önündeki başlıkları kendi bloğuna alır. Hâlâ oluyorsa başlık ile şekil/tablo arasına başka bir öğe (ör. `B`, `P`) girmiştir → `d.h1('...', need=16–18)` |
 | Sayfa altında büyük boşluk, uzun tablo sonraki sayfada bütün halde | Artık otomatik: sayfanın 1/3'ünden uzun tablolar satır arasından bölünür (başlık satırı tekrar eder; başlık + tablo adı + ilk 3 satır birlikte kalır). Kısa tablolar tek parça kalır |
-| Sayfa altında büyük boşluk, sonraki sayfa büyük şekille başlıyor | Şekil sığmadığı için kaçınılmaz; boşluk %40'ı aşıyorsa şekli `maxh` küçülterek ya da şekilden sonraki 1–2 maddeyi şeklin önüne alarak dene |
+| Sayfa altında büyük boşluk, sonraki sayfa büyük şekille başlıyor | Artık otomatik (`F`, `F2`): `F` şekli %80'e kadar küçülterek sığdırır; olmazsa ardındaki maddeler boşluğa akar, şekil sonraki sayfaya geçer. Şeklin önünde başlık varsa ya da ardından hemen başlık geliyorsa akmaz: orada `maxh` küçült |
 | `kaynak.py` sıralamada `TypeError` | Eski sürüm; `6.18a` gibi harfli numaralar için sıralama anahtarı düzeltildi — skill'deki güncel betiği kullan |
 | Bölüm başlığı sayfa sonunda tek kaldı | `d.h2(..., need=12–14)` |
 | Kapsam denetiminde çözümlü örnek/problem değerleri eksik | Tekrar notunda örnek yoktur; bırak. Kullanıcı bu belge için örnek istediyse sonuçların tamamını ver |

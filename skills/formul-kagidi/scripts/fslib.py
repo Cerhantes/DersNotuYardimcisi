@@ -69,10 +69,32 @@ def _fix_glyphs(t):
     return ''.join(out)
 
 
+_BAG_KELIME = re.compile(r'(?<![\w])(Bölüm|Şekil|Tablo|Örnek|Soru|Problem|Denklem|Kitap|Sayfa|Ek|Madde|Adım|Fig\.|Eq\.|Table|Chapter|Sec\.)[ \t]+(?=[(\[]?[\dA-Z])')
+_BAG_BIRIM = re.compile(r'(\d)[ \t]+(?=(?:mm|cm|km|m|kg|g|N|kN|Pa|kPa|MPa|bar|atm|W|kW|MW|hp|J|kJ|s|sn|dk|h|saat|K|°C|°F|°|L|lt|ft|in|lbf|slug|rad|d/d|mmHg|mSS)(?![\wçğıöşü]))')
+_BAG_ISARET = re.compile(r'(?<=[=≈≅<>≤≥±×→∝~])[ \t]+(?=[\d−\-+(])')
+# Tek harf yalnız ardından işaret geliyorsa bağlanır ('V = ...'); madde numarası '1)' sonraki sözcükle kalır.
+_BAG_TEK = re.compile(r'(?<![\w])([a-zA-Zçğıöşü](?=[ \t]+[=≈≅<>≤≥±×→∝~])|\d+\))[ \t]+(?=\S)')
+
+
+def _baglar(t):
+    """Satır sonunda ayrılmaması gereken parçaları bölünmez boşlukla (U+00A0) bağlar:
+    'Bölüm 7', 'Şekil 6.13', '4,1 m', '= 0,5', '1) Keskin', 'V ='."""
+    out = []
+    for s in re.split(r'(<[^>]+>|&#?\w+;)', t):
+        if not s or s[0] in '<&':
+            out.append(s); continue
+        s = _BAG_KELIME.sub(lambda m: m.group(1) + ' ', s)
+        s = _BAG_BIRIM.sub(lambda m: m.group(1) + ' ', s)
+        s = _BAG_ISARET.sub(' ', s)
+        s = _BAG_TEK.sub(lambda m: m.group(1) + ' ', s)
+        out.append(s)
+    return ''.join(out)
+
+
 def Paragraph(t, *a, **k):
     # Küçük yazıda alt simge alttaki satıra binmesin
     t = t.replace('<sub>', '<sub rise="1.6" size="6.2">').replace('@ANA@', _ANA)
-    return _P(_fix_glyphs(t), *a, **k)
+    return _P(_fix_glyphs(_baglar(t)), *a, **k)
 
 
 # ---------------------------------------------------------------- düzen ve stiller

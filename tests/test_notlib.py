@@ -190,6 +190,72 @@ class Bolunme(unittest.TestCase):
             self.assertEqual(sayfa('ADIM%d ' % i), sayfa('(1.%d)' % i), i)
 
 
+class Baglama(unittest.TestCase):
+    B = ' '
+
+    def test_numara_birim_ve_isaret_baglanir(self):
+        self.assertEqual(notlib._baglar('Bölüm 7 ve Şekil 6.13'), 'Bölüm%s7 ve Şekil%s6.13' % (self.B, self.B))
+        self.assertEqual(notlib._baglar('L = 4,1 m'), 'L%s=%s4,1%sm' % (self.B, self.B, self.B))
+        self.assertEqual(notlib._baglar('1) Keskin'), '1)%sKeskin' % self.B)
+
+    def test_isaretten_once_gelmeyen_tek_harf_baglanmaz(self):
+        for t in ('a ve b', 'x ile y artar', 'o zaman'):
+            self.assertEqual(notlib._baglar(t), t)
+
+    def test_etiket_icine_dokunulmaz(self):
+        self.assertEqual(notlib._baglar('<font name="Math">x</font>'), '<font name="Math">x</font>')
+
+
+class SekilBoslugu(unittest.TestCase):
+    """Şekil sayfaya sığmayınca sayfanın kalanı boş kalmasın."""
+
+    def kur(self, dolgu, yukseklik, baslik=False):
+        self.k = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, self.k)
+        os.makedirs(os.path.join(self.k, 'fig'))
+        fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 40, 40), 0).save(os.path.join(self.k, 'fig', '1.1.png'))
+        with open(os.path.join(self.k, 'figs.json'), 'w') as f:
+            f.write('{"1.1": [1, [0, 0, 300, %d]]}' % yukseklik)
+        self.pdf = os.path.join(self.k, 'o.pdf')
+        d = notlib.Doc(self.pdf, 'T', 'A', 'B', self.k, 'K')
+        d.cover(['x'], ['y'])
+        for i in range(dolgu):
+            d.p('Dolgu satırı %d' % i)
+        if baslik:
+            d.h3('ARABASLIK')
+        d.fig('1.1', 'SEKILALTI', maxh=1000)
+        for i in range(6):
+            d.p('SONRAKI%d metni.' % i)
+        d.make()
+        doc = fitz.open(self.pdf)
+        sayfa = lambda m: [i for i, p in enumerate(doc) if m in p.get_text()][0]
+        self.s = {m: sayfa(m) for m in ('Dolgu satırı %d' % (dolgu - 1), 'SEKILALTI', 'SONRAKI0', 'SONRAKI5')}
+        self.s['son'] = self.s.pop('Dolgu satırı %d' % (dolgu - 1))
+        self.resimler = [r['bbox'] for r in doc[self.s['SEKILALTI']].get_image_info()]
+        doc.close()
+
+    def test_az_farkla_sigmayan_sekil_kucultulur(self):
+        tam = 310 * 0.92                                # fig() ölçüsü: (300 + 10) × 0,92
+        kucultulen = 0
+        for dolgu in range(14, 34):
+            self.kur(dolgu, yukseklik=300)
+            if self.s['son'] != self.s['SEKILALTI']:
+                continue
+            h = self.resimler[0][3] - self.resimler[0][1]
+            self.assertGreaterEqual(h, tam * notlib.Doc.SEKIL_MIN_OLCEK - 1, dolgu)
+            kucultulen += h < tam - 1
+        self.assertGreater(kucultulen, 0)               # sınırda en az bir kez küçültülüp aynı sayfada kaldı
+
+    def test_cok_buyuk_sekilde_sonraki_metin_bosluga_akar(self):
+        self.kur(dolgu=20, yukseklik=560)
+        self.assertEqual(self.s['son'], self.s['SONRAKI0'])     # metin boşluğu doldurdu
+        self.assertEqual(self.s['SEKILALTI'], self.s['son'] + 1)
+
+    def test_basligi_olan_sekilde_metin_one_gecmez(self):
+        self.kur(dolgu=20, yukseklik=560, baslik=True)
+        self.assertGreater(self.s['SONRAKI0'], self.s['son'])
+        self.assertGreaterEqual(self.s['SONRAKI0'], self.s['SEKILALTI'])
+
+
 class Kopyalar(unittest.TestCase):
     def test_iki_notlib_kopyasi_ayni(self):
         a, b = (os.path.join(KOK, 'skills', k, 'scripts', 'notlib.py') for k in ('ders-notu', 'tekrar-notu'))

@@ -23,7 +23,9 @@ def imza(p):
 
 
 def sag_kenar(p):
-    x = [fitz.Rect(b[:4]).x1 for b in p.get_text('blocks') if b[4].strip()]
+    # görünen son karakter esas alınır: satır sonundaki boşluk karakteri taşma sayılmaz
+    x = [c['bbox'][2] for b in p.get_text('rawdict')['blocks'] for l in b.get('lines', [])
+         for s in l['spans'] for c in s['chars'] if not c['c'].isspace()]
     x += [fitz.Rect(i['bbox']).x1 for i in p.get_image_info()]
     return max(x, default=0)
 

@@ -11,6 +11,7 @@ from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph,
                                 Table, TableStyle, KeepTogether, PageBreak, CondPageBreak, NextPageTemplate)
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.platypus import paraparser
+from reportlab.platypus.flowables import _listWrapOn
 
 # Varsayılan 0,5 ile alt simge alt satıra ve noktalamaya, üst simge üst satıra çarpıyor
 paraparser.subFraction = 0.22
@@ -133,9 +134,65 @@ def _fix_glyphs(t):
     return ''.join(out)
 
 
+_BAG_KELIME = re.compile(r'(?<![\w])(Bölüm|Şekil|Tablo|Örnek|Soru|Problem|Denklem|Kitap|Sayfa|Ek|Madde|Adım|Fig\.|Eq\.|Table|Chapter|Sec\.)[ \t]+(?=[(\[]?[\dA-Z])')
+_BAG_BIRIM = re.compile(r'(\d)[ \t]+(?=(?:mm|cm|km|m|kg|g|N|kN|Pa|kPa|MPa|bar|atm|W|kW|MW|hp|J|kJ|s|sn|dk|h|saat|K|°C|°F|°|L|lt|ft|in|lbf|slug|rad|d/d|mmHg|mSS)(?![\wçğıöşü]))')
+_BAG_ISARET = re.compile(r'(?<=[=≈≅<>≤≥±×→∝~])[ \t]+(?=[\d−\-+(])')
+# Tek harf yalnız ardından işaret geliyorsa bağlanır ('V = ...'): her tek harfi bağlamak satırda kırılacak yeri
+# azaltıp paragrafı gereksiz küçültüyordu. Madde numarası '1)' sonraki sözcükle kalır.
+_BAG_TEK = re.compile(r'(?<![\w])([a-zA-Zçğıöşü](?=[ \t]+[=≈≅<>≤≥±×→∝~])|\d+\))[ \t]+(?=\S)')
+
+
+def _baglar(t):
+    """Satır sonunda ayrılmaması gereken parçaları bölünmez boşlukla (U+00A0) bağlar:
+    'Bölüm 7', 'Şekil 6.13', '4,1 m', '= 0,5', '1) Keskin', 'V ='."""
+    out = []
+    for s in re.split(r'(<[^>]+>|&#?\w+;)', t):
+        if not s or s[0] in '<&':
+            out.append(s); continue
+        s = _BAG_KELIME.sub(lambda m: m.group(1) + ' ', s)
+        s = _BAG_BIRIM.sub(lambda m: m.group(1) + ' ', s)
+        s = _BAG_ISARET.sub(' ', s)
+        s = _BAG_TEK.sub(lambda m: m.group(1) + ' ', s)
+        out.append(s)
+    return ''.join(out)
+
+
+_KUCULEN = set()   # yazısı küçültülen paragraflar (make() sonunda sayılır)
+
+
+class _SigP(_BP):
+    """Sığmayan satır kalırsa (genişliği aşan satır) yalnız bu paragrafın yazısını 0,25 pt adımlarla küçültür (en çok 1,5 pt)."""
+
+    def _tasan(self):
+        for l in getattr(self, 'blPara', None).lines if getattr(self, 'blPara', None) else []:
+            es = l[0] if isinstance(l, tuple) else getattr(l, 'extraSpace', 0)
+            if es < -0.05:
+                return True
+        return False
+
+    def wrap(self, aW, aH):
+        r = _BP.wrap(self, aW, aH)
+        adim = 0
+        while adim < 6 and self._tasan():
+            adim += 1
+            st = self.style.clone('%s_k%d' % (self.style.name, adim))
+            st.fontSize = self.style.fontSize - 0.25
+            st.spaceShrinkage = 0
+            self.__init__(self._sig_metin, st, *self._sig_ek, **self._sig_k)
+            r = _BP.wrap(self, aW, aH)
+        if adim:
+            _KUCULEN.add(self._sig_metin)
+        return r
+
+
 def Paragraph(t, *a, **k):
     stil = a[0] if a else k.get('style')
-    return _BP(_fix_glyphs(_buyuk_nokta(t, stil)), *a, **k)
+    if stil is not None:
+        stil.spaceShrinkage = 0      # bölünmez boşluklu satırlarda reportlab'in daraltma hesabı taşmaya yol açıyor
+    metin = _fix_glyphs(_baglar(_buyuk_nokta(t, stil)))
+    p = _SigP(metin, *a, **k)
+    p._sig_metin, p._sig_ek, p._sig_k = metin, a[1:], {x: y for x, y in k.items() if x != 'style'}
+    return p
 
 
 class Doc(BaseDocTemplate):
@@ -185,6 +242,7 @@ class Doc(BaseDocTemplate):
 
     def beforeDocument(self):
         self._hn = 0
+        self._ertelenen = set()
 
     def afterFlowable(self, fl):
         if isinstance(fl, _P) and getattr(fl, '_toc', None) is not None:
@@ -392,6 +450,7 @@ class Doc(BaseDocTemplate):
                                ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
                                ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                                ('TOPPADDING', (0, 0), (-1, 0), 6), ('BOTTOMPADDING', (0, -1), (-1, -1), 6)]))
+        t._bolunur = True
         self.story += [Spacer(1, 3), t, Spacer(1, 7)]
 
     def fig(self, num, cap, scale=1.0, maxw=None, maxh=320, terms=None, keep=None):
@@ -401,16 +460,84 @@ class Doc(BaseDocTemplate):
         w = min(w, maxw or FW)
         h = w * hpt / wpt
         if h > maxh: h = maxh; w = h * wpt / hpt
-        img = Image(os.path.join(self.work, 'fig', num + '.png'), width=w, height=h)
         capt = '<b><font color="%s">Şekil %s</font></b> – %s' % (self.ana, num, cap)
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
-        ct = Table([[img], [Paragraph(capt, ss['cap'])]], colWidths=[min(FW, max(w + 20, 12 * cm))])
-        ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
-                                ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 1), (-1, 1), 6)]))
-        flow = [Spacer(1, 4), ct, Spacer(1, 8)]
-        if keep:  # keep figure together with some preceding/following paragraph text
-            flow = keep(flow)
-        self.keep(flow)
+        heads = self._heads()
+
+        def yap(oran=1.0):
+            img = Image(os.path.join(self.work, 'fig', num + '.png'), width=w * oran, height=h * oran)
+            ct = Table([[img], [Paragraph(capt, ss['cap'])]], colWidths=[min(FW, max(w + 20, 12 * cm))])
+            ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LINEBELOW', (0, 1), (-1, 1), 0.5, colors.HexColor('#BBBBBB')),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 1), (-1, 1), 6)]))
+            flow = [Spacer(1, 4), ct, Spacer(1, 8)]
+            if keep:  # keep figure together with some preceding/following paragraph text
+                flow = keep(flow)
+            kt = KeepTogether(heads + list(flow))
+            kt._sekil = (yap, h, bool(heads))   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
+            return kt
+        self.story.append(yap())
+
+    # ---------- şekil sığmayınca sayfa yarı boş kalmasın ----------
+    SEKIL_MIN_OLCEK = 0.8     # sığdırmak için şekil en çok bu orana küçülür
+    SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
+
+    @staticmethod
+    def _baslik_mi(f):
+        return isinstance(f, _P) and (getattr(f.style, 'keepWithNext', 0) or getattr(f, '_toc', None) is not None)
+
+    def _akabilir(self, f):
+        """Şeklin önüne alınabilecek öğe: paragraf, boşluk, denklem, kutu, tablo. Başlık (ya da başlık taşıyan
+        grup), sayfa atlatıcı ve başka şekil sınırdır: şekil kendi konusunun dışına taşınmaz."""
+        if getattr(f, '_sekil', None) or isinstance(f, (CondPageBreak, PageBreak)):
+            return False
+        if isinstance(f, KeepTogether):
+            return not any(self._baslik_mi(x) for x in f._content)
+        if isinstance(f, _P):
+            return not self._baslik_mi(f)
+        return isinstance(f, (Spacer, Table))
+
+    def _yukseklik(self, f, W):
+        return _listWrapOn(f._content if isinstance(f, KeepTogether) else [f], W, self.canv)[1]
+
+    def filterFlowables(self, flowables):
+        f = flowables[0] if flowables else None
+        sk = getattr(f, '_sekil', None)
+        if not sk or id(f) in self._ertelenen:
+            return
+        fr = self.frame
+        bos = fr._y - fr._y1p
+        if getattr(fr, '_atTop', 1) or bos < self.SEKIL_BOSLUK:
+            return
+        W = fr._aW
+        H = self._yukseklik(f, W)
+        if H <= bos + 0.5:
+            return
+        yap, h, basli = sk          # yap None: yalnız akıtılır (ör. yan yana iki şekil)
+        # 1) küçültülerek sığıyorsa küçült
+        oran = (h - (H - bos) - 1) / h if yap else 0
+        while oran >= self.SEKIL_MIN_OLCEK:
+            yeni = yap(oran)
+            if self._yukseklik(yeni, W) <= bos + 0.5:
+                flowables[0] = yeni
+                return
+            oran -= 0.02
+        self._ertelenen.add(id(f))
+        if basli:      # şeklin başlığı var: arkasındaki metin başlığın altına ait, öne alınmaz
+            return
+        # 2) sonraki metni boşluğa akıt, şekil sonraki sayfanın başına geçsin
+        kalan, i = bos, 1
+        while i < len(flowables) and kalan > 0 and self._akabilir(flowables[i]):
+            g = flowables[i]
+            hg = self._yukseklik(g, W)
+            if hg > kalan and not isinstance(g, _P):
+                # çözümlü örnek adım sınırında bölünebilir: ilk satırı (başlık, soru, çizim) sığıyorsa akar;
+                # kutu, tablo, denklem bölünmez: sığmıyorsa şekilden sonra kalır
+                if not (getattr(g, '_bolunur', False) and g._rowHeights[0] <= kalan):
+                    break
+            kalan -= hg
+            i += 1
+        if i > 1:
+            flowables[:i] = flowables[1:i] + [f]
 
     def _heads(self):
         """story sonundaki başlıkları (keepWithNext'li paragraflar) çıkarıp döndürür."""
@@ -423,10 +550,15 @@ class Doc(BaseDocTemplate):
         if cpb is not None: self.story.append(cpb)   # en üstteki "yer yoksa sayfa atla" geri konur
         return h
 
-    def keep(self, flow):
+    def keep(self, flow, sekil=False):
         """flow'u tek parça tut; hemen önündeki başlıkları da içine al. (reportlab'in keepWithNext'i
-        KeepTogether'a bağlanmaz: başlık + şekil/tablo varsa başlık sayfa sonunda yalnız kalabiliyordu.)"""
-        self.story.append(KeepTogether(self._heads() + list(flow)))
+        KeepTogether'a bağlanmaz: başlık + şekil/tablo varsa başlık sayfa sonunda yalnız kalabiliyordu.)
+        sekil=True: sayfaya sığmazsa ardındaki metin boşluğa akar (bkz. filterFlowables)."""
+        heads = self._heads()
+        kt = KeepTogether(heads + list(flow))
+        if sekil:
+            kt._sekil = (None, 0, bool(heads))
+        self.story.append(kt)
 
     def table(self, rows, widths=None, title=None, small=False):
         data = []
@@ -470,3 +602,5 @@ class Doc(BaseDocTemplate):
 
     def make(self):
         self.multiBuild(self.story)
+        if _KUCULEN:
+            print('BİLGİ: %d paragraf, taşan satır yüzünden en çok 1,5 pt küçültüldü' % len(_KUCULEN))

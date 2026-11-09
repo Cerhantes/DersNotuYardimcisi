@@ -128,5 +128,7 @@ Metin reportlab paragraf işaretlemesi kullanır: `<b>`, `<i>`, `<sub>`, `<super
 | İçindekilerde sayfa numaraları yanlış/boş | `d.make()` (multiBuild) kullan, `build` değil; içerik betiğinde `build` adlı değişken/fonksiyon tanımlama |
 | Başlık sayfa sonunda yalnız, şekli/tablosu sonraki sayfada | Artık otomatik (`fig`/`table`/`end_keep` önceki başlıkları kendi bloğuna alır); hâlâ oluyorsa araya başka öğe girmiştir → `h1(..., need=...)` / `h2(..., need=...)` büyüt |
 | Uzun tablo yüzünden sayfa altında büyük boşluk | Artık otomatik: sayfanın 1/3'ünden uzun tablolar satır arasından bölünür, başlık satırı tekrar eder |
+| Şekil sığmadı, sayfa altı boş kaldı | Artık otomatik: şekil %80'e kadar küçülerek sığıyorsa küçülür; sığmıyorsa ardındaki paragraf, denklem ve kutular boşluğa akar, şekil sonraki sayfanın başına geçer. Başlıklı şekilde ve şekilden hemen sonra başlık geliyorsa metin akmaz (konu dışına taşmasın): orada `maxh` küçült |
+| Bir paragraf çevresinden biraz küçük yazılmış | `notlib`, genişliğe sığmayan bölünmez satır kalırsa yalnız o paragrafı en çok 1,5 pt küçültür ve `BİLGİ: n paragraf ... küçültüldü` basar; çoksa paragraftaki uzun bölünmez parçayı (uzun formül, birimli sayı zinciri) böl |
 | Şekil sayfa sonunda metninden koptu | `fig(..., keep=...)` ya da `begin_keep/end_keep` ile paragrafla birlikte tut; `maxh` küçült |
 | Kesimde gövde metni / denklem görünüyor | `over.json` ile elle kesim ver (otomatik tespit her kitapta birkaç şekilde bunu yapar; temas sayfalarını atlama). Şekil başlıkları otomatik silinir |
