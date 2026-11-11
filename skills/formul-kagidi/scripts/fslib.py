@@ -125,9 +125,19 @@ def P(html, style=None):
 _EQD = None
 
 
+# Sınırsız integral (\int i, \int f): Computer Modern'de işaretin eğik kuyruğu sonraki harfe biner.
+# Sınırı olanlarda (\int_0^t) sınır yazısı zaten aralık açar; elle aralık verilmişse (\, \; \! \quad) dokunulmaz.
+_INT_ARALIK = re.compile(r'\\(iiint|iint|int|oint)(?![A-Za-z])(?!\s*[_^])(?!\s*\\[,;:!]|\s*\\q?quad)\s*')
+
+
+def _tex_duzelt(tex):
+    tex = tex.replace(r'\frac', r'\dfrac').replace(r'\ddfrac', r'\dfrac')
+    return _INT_ARALIK.sub(lambda m: '\\' + m.group(1) + r'\;', tex)
+
+
 def eq_img(tex, fs=12.5):
     """mathtext formülünü PNG'ye çizer (önbellekli); (yol, genişlik_pt, yükseklik_pt) döndürür."""
-    tex = tex.replace(r'\frac', r'\dfrac').replace(r'\ddfrac', r'\dfrac')
+    tex = _tex_duzelt(tex)
     key = hashlib.md5(('%s|%s' % (tex, fs)).encode()).hexdigest()[:16]
     p = os.path.join(_EQD, key + '.png')
     if not os.path.exists(p):
