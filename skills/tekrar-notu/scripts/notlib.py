@@ -159,6 +159,7 @@ def _baglar(t):
 
 
 _KUCULEN = set()   # yazısı küçültülen paragraflar (make() sonunda sayılır)
+EQ_MIN_ORAN = 0.75   # sığmayan denklem en çok bu orana küçülür; daha uzunu UYARI verir, elle bölünür
 
 
 class _SigP(_BP):
@@ -212,6 +213,7 @@ class Doc(BaseDocTemplate):
         self.title_, self.subtitle = title, subtitle
         self._hn = 0
         self._fig_say = [0, 0]   # [açıklaması altta, yanda]
+        self._eq_kucuk = []       # tek satıra sığsın diye küçültülen denklemlerin oranları
         self.tema = Tema(title, renk)
         self._kapak = (colors.HexColor(self.tema.ana), colors.HexColor(self.tema.zemin))
 
@@ -307,17 +309,39 @@ class Doc(BaseDocTemplate):
         self.story.append(Spacer(1, 3))
 
     @staticmethod
-    def _wrapcheck(p, width, n):
-        # denklem satıra sığmazsa derleme sırasında uyar (bölüp iki d.eq satırı yaz ya da sadeleştir)
+    def _satir(p, width):
         p.wrap(width, 10000)
         bp = getattr(p, 'blPara', None)
-        if bp is not None and len(bp.lines) > 1:
-            print('UYARI denklem tek satıra sığmadı %s: %s' % (n, p.getPlainText()[:70]))
+        return len(bp.lines) if bp is not None else 1
+
+    @staticmethod
+    def _wrapcheck(p, width, n):
+        # denklem satıra sığmazsa derleme sırasında uyar (bölüp iki d.eq satırı yaz ya da sadeleştir)
+        if Doc._satir(p, width) > 1:
+            print('UYARI denklem %%%d\'e küçültüldüğü hâlde tek satıra sığmadı %s: %s'
+                  % (round(EQ_MIN_ORAN * 100), n, p.getPlainText()[:70]))
+
+    def _denklem(self, t, st, width, n):
+        """Denklem paragrafı. Tek satıra sığmıyorsa satırı bölmek yerine yazıyı %3 adımlarla küçültür
+        (en çok EQ_MIN_ORAN'a kadar; alt/üst simgeler ve satır aralığı aynı oranda). Yine sığmazsa uyarır."""
+        p = Paragraph(t, st)
+        if self._satir(p, width) == 1:
+            return p
+        oran = 1.0
+        while oran - 0.03 >= EQ_MIN_ORAN - 1e-9:
+            oran -= 0.03
+            k = st.clone('%s_d%d' % (st.name, round(oran * 100)))
+            k.fontSize, k.leading = st.fontSize * oran, st.leading * oran
+            p = Paragraph(t, k)
+            if self._satir(p, width) == 1:
+                self._eq_kucuk.append(oran)
+                return p
+        self._wrapcheck(p, width, n)
+        return p
 
     def eq(self, t, n=''):
         nw = 2.2 * cm   # '(6.16–6.18)' gibi aralık numaraları için
-        pe = Paragraph(t, ss['eq'])
-        self._wrapcheck(pe, FW - 2 * nw - 12, n)
+        pe = self._denklem(t, ss['eq'], FW - 2 * nw - 12, n)
         tb = Table([[Paragraph('', ss['eqn']), pe, Paragraph(n, ss['eqn'])]],
                    colWidths=[nw, FW - 2 * nw, nw])
         tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2),
@@ -404,15 +428,11 @@ class Doc(BaseDocTemplate):
 
     def beq(self, t, n=''):
         """equation flowable for use inside boxes"""
-        p = Paragraph(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), ss['eq'])
-        self._wrapcheck(p, FW - 32, n)
-        return p
+        return self._denklem(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), ss['eq'], FW - 32, n)
 
     def ceq(self, t, n=''):
         """Çözüm adımı denklemi (cozum içinde): metne yakın boyutta (10,8 pt), ortalı."""
-        p = Paragraph(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), _CEQ)
-        self._wrapcheck(p, FW - 32, n)
-        return p
+        return self._denklem(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), _CEQ, FW - 32, n)
 
     def kf(self, num, cap, h=100, terms=None):
         """cozum() içinde çizim: ortalı görsel ve altında kısa açıklama (sekil= ile verilir)."""
@@ -647,3 +667,6 @@ class Doc(BaseDocTemplate):
             print('BİLGİ: sayfaya sığmayan şekiller: ' + ', '.join('%s %d' % kv for kv in sorted(self._sekil_sonuc.items())))
         if _KUCULEN:
             print('BİLGİ: %d paragraf, taşan satır yüzünden en çok 1,5 pt küçültüldü' % len(_KUCULEN))
+        if self._eq_kucuk:
+            print('BİLGİ: %d denklem tek satıra sığsın diye küçültüldü (en küçük %%%d)'
+                  % (len(self._eq_kucuk), round(min(self._eq_kucuk) * 100)))

@@ -7,6 +7,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORTAK = os.path.join(KOK, 'ortak')
 sys.path.insert(0, ORTAK)
 import sekil_kenar
+import sekil_atif
 
 
 def calistir(*arg):
@@ -112,6 +113,43 @@ class DriveKlasorTest(unittest.TestCase):
         getir = lambda url: _SAYFA.get(url.rsplit('=', 1)[1], '')
         t = dk.tara('KOK', getir=getir)
         self.assertEqual([(x['yol'], x['ad']) for x in t], [('/Vize & 1', '2014 sınav.pdf'), ('', 'genel.pdf')])
+
+
+
+
+class SekilAtifTest(unittest.TestCase):
+    """ortak/sekil_atif.py: metinde anılıp belgede olmayan şekil yakalanır."""
+
+    def setUp(self):
+        self.k = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.k)
+
+    def pdf(self, satirlar):
+        import pymupdf as fitz
+        yol = os.path.join(self.k, 'b.pdf')
+        d = fitz.open()
+        p = d.new_page()
+        p.insert_htmlbox(fitz.Rect(50, 50, 550, 800), '<br/>'.join(satirlar))
+        d.save(yol)
+        return yol
+
+    def test_eksik_sekil_yakalanir(self):
+        yol = self.pdf(['Şekil 3-13 – RC devresi.', 'Devre Şekil 3-13a ve Şekil 2-2\'de gösterilmiştir.'])
+        sekil, yok, anilmamis = sekil_atif.denetle(yol)
+        self.assertEqual(set(sekil), {'3-13'})
+        self.assertEqual(set(yok), {'2-2'})           # 3-13a, 3-13'ün parçası sayılır
+        self.assertEqual(anilmamis, [])
+
+    def test_haric_ve_cikis_kodu(self):
+        yol = self.pdf(['Şekil E-1 – temel fonksiyonlar.', 'Bkz. Şekil 3-34.'])
+        h = os.path.join(self.k, 'haric.txt')
+        with open(h, 'w', encoding='utf-8') as f:
+            f.write('3-34  kapsam dışı\n')
+        kod, cikti = calistir(os.path.join(ORTAK, 'sekil_atif.py'), yol)
+        self.assertEqual(kod, 1); self.assertIn('ANILAN AMA YOK: 3-34', cikti)
+        kod, cikti = calistir(os.path.join(ORTAK, 'sekil_atif.py'), yol, '--haric', h)
+        self.assertEqual(kod, 0); self.assertIn('HARİÇ: 3-34', cikti)
+        self.assertIn('VAR AMA ANILMAMIŞ', cikti)     # E-1 metinde anılmıyor
 
 
 if __name__ == '__main__':

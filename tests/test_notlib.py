@@ -286,6 +286,39 @@ class SekilBoslugu(unittest.TestCase):
         self.assertGreaterEqual(self.s['SONRAKI0'], self.s['SEKILALTI'])
 
 
+class DenklemBoyutu(unittest.TestCase):
+    """Sığmayan denklem önce küçültülür (en çok EQ_MIN_ORAN), ancak yine sığmazsa uyarılır."""
+
+    def setUp(self):
+        self.k = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, self.k)
+        os.makedirs(os.path.join(self.k, 'fig'))
+        with open(os.path.join(self.k, 'figs.json'), 'w') as f:
+            f.write('{}')
+        self.d = notlib.Doc(os.path.join(self.k, 'o.pdf'), 'T', 'A', 'B', self.k, 'K')
+        self.w = notlib.FW - 2 * 2.2 * notlib.cm - 12
+
+    def test_sigan_denklem_kuculmez(self):
+        p = self.d._denklem('x = a + b', notlib.ss['eq'], self.w, '')
+        self.assertEqual(p.style.fontSize, notlib.ss['eq'].fontSize)
+        self.assertEqual(self.d._eq_kucuk, [])
+
+    def test_biraz_uzun_denklem_kuculup_tek_satirda_kalir(self):
+        t = 'Δ(s) = (m<sub>1</sub>s² + bs + k<sub>1</sub> + k<sub>2</sub>)(m<sub>2</sub>s² + bs + k<sub>2</sub> + k<sub>3</sub>) − (bs + k<sub>2</sub>)²'
+        self.assertGreater(self.d._satir(notlib.Paragraph(t, notlib.ss['eq']), self.w), 1)
+        p = self.d._denklem(t, notlib.ss['eq'], self.w, '')
+        self.assertEqual(self.d._satir(p, self.w), 1)
+        self.assertLess(p.style.fontSize, notlib.ss['eq'].fontSize)
+        self.assertGreaterEqual(p.style.fontSize, notlib.ss['eq'].fontSize * notlib.EQ_MIN_ORAN - 1e-6)
+
+    def test_cok_uzun_denklem_uyarir(self):
+        import io, contextlib
+        t = ' + '.join('a<sub>%d</sub>x<super>%d</super>' % (i, i) for i in range(60))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.d._denklem(t, notlib.ss['eq'], self.w, '(9.9)')
+        self.assertIn('UYARI denklem', out.getvalue())
+
+
 class Kopyalar(unittest.TestCase):
     def test_iki_notlib_kopyasi_ayni(self):
         a, b = (os.path.join(KOK, 'skills', k, 'scripts', 'notlib.py') for k in ('ders-notu', 'tekrar-notu'))
