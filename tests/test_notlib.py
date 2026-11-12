@@ -298,25 +298,53 @@ class DenklemBoyutu(unittest.TestCase):
         self.w = notlib.FW - 2 * 2.2 * notlib.cm - 12
 
     def test_sigan_denklem_kuculmez(self):
-        p = self.d._denklem('x = a + b', notlib.ss['eq'], self.w, '')
-        self.assertEqual(p.style.fontSize, notlib.ss['eq'].fontSize)
+        satirlar, oran = self.d._denklem('x = a + b', notlib.ss['eq'], self.w, '')
+        self.assertEqual((satirlar, oran), (['x = a + b'], 1.0))
         self.assertEqual(self.d._eq_kucuk, [])
 
     def test_biraz_uzun_denklem_kuculup_tek_satirda_kalir(self):
         t = 'Δ(s) = (m<sub>1</sub>s² + bs + k<sub>1</sub> + k<sub>2</sub>)(m<sub>2</sub>s² + bs + k<sub>2</sub> + k<sub>3</sub>) − (bs + k<sub>2</sub>)²'
         self.assertGreater(self.d._satir(notlib.Paragraph(t, notlib.ss['eq']), self.w), 1)
-        p = self.d._denklem(t, notlib.ss['eq'], self.w, '')
-        self.assertEqual(self.d._satir(p, self.w), 1)
-        self.assertLess(p.style.fontSize, notlib.ss['eq'].fontSize)
-        self.assertGreaterEqual(p.style.fontSize, notlib.ss['eq'].fontSize * notlib.EQ_MIN_ORAN - 1e-6)
+        satirlar, oran = self.d._denklem(t, notlib.ss['eq'], self.w, '')
+        self.assertEqual(len(satirlar), 1)
+        self.assertTrue(notlib.EQ_MIN_ORAN <= oran < 1)
 
-    def test_cok_uzun_denklem_uyarir(self):
+    def test_bilesik_denklem_virgulden_bolunur(self):
+        t = ('E<sub>i</sub> = Z<sub>1</sub>I + Z<sub>2</sub>I<sub>1</sub> = [Z<sub>1</sub> + Z<sub>2</sub>(Z<sub>3</sub> + Z<sub>4</sub>)/'
+             '(Z<sub>2</sub> + Z<sub>3</sub> + Z<sub>4</sub>)] I,&nbsp;&nbsp; E<sub>o</sub> = Z<sub>4</sub>I<sub>2</sub> = '
+             'Z<sub>2</sub>Z<sub>4</sub>I/(Z<sub>2</sub> + Z<sub>3</sub> + Z<sub>4</sub>)')
+        satirlar, oran = self.d._denklem(t, notlib.ss['eq'], self.w, '')
+        self.assertEqual(len(satirlar), 2)
+        self.assertTrue(satirlar[0].endswith('I,'))
+        self.assertTrue(notlib._duz(satirlar[1]).startswith('Eo'))
+        self.assertGreaterEqual(oran, notlib.EQ_BOLUNMUS_ORAN)
+
+    def test_esitlikten_bolunur_tek_terim_dusmez(self):
+        t = 'X(s) = [m x(0)s + m ẋ(0) + b x(0)]/(ms² + bs + k) = (0,1s + 0,35)/(s² + 3s + 2)'
+        satirlar, _ = self.d._denklem(t, notlib.ss['eq'], self.w, '')
+        self.assertEqual(len(satirlar), 2)
+        self.assertTrue(satirlar[1].startswith('= '))
+        uz = [len(notlib._duz(x)) for x in satirlar]
+        self.assertGreaterEqual(min(uz), 0.25 * sum(uz))
+
+    def test_parantez_icinden_bolunmez_uyarir(self):
         import io, contextlib
-        t = ' + '.join('a<sub>%d</sub>x<super>%d</super>' % (i, i) for i in range(60))
+        t = 'f(x) = [' + ' + '.join('a<sub>%d</sub>x' % i for i in range(40)) + ']'
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            self.d._denklem(t, notlib.ss['eq'], self.w, '(9.9)')
+            satirlar, oran = self.d._denklem(t, notlib.ss['eq'], self.w, '(9.9)')
+        self.assertEqual(len(satirlar), 1)
         self.assertIn('UYARI denklem', out.getvalue())
+        self.assertEqual(len(self.d._eq_elle), 1)
+
+    def test_eq_bolunen_denklemi_numarasi_son_satirda_olacak_bicimde_ekler(self):
+        self.d.eq('X(s) = [m x(0)s + m ẋ(0) + b x(0)]/(ms² + bs + k) = (0,1s + 0,35)/(s² + 3s + 2)', '(5-1)')
+        son = self.d.story[-1]
+        icerik = son._content if hasattr(son, '_content') else [son]
+        tablolar = [x for x in icerik if isinstance(x, notlib.Table)]
+        self.assertEqual(len(tablolar), 2)
+        self.assertEqual(tablolar[0]._cellvalues[0][2].getPlainText(), '')
+        self.assertEqual(tablolar[1]._cellvalues[0][2].getPlainText(), '(5-1)')
 
 
 class Kopyalar(unittest.TestCase):

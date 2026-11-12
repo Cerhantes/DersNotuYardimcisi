@@ -159,7 +159,13 @@ def _baglar(t):
 
 
 _KUCULEN = set()   # yazısı küçültülen paragraflar (make() sonunda sayılır)
-EQ_MIN_ORAN = 0.75   # sığmayan denklem en çok bu orana küçülür; daha uzunu UYARI verir, elle bölünür
+EQ_MIN_ORAN = 0.75   # sığmayan denklem en çok bu orana küçülür; daha uzunu anlamlı yerinden bölünür
+EQ_BOLUNMUS_ORAN = 0.9   # bölünen denklemin satırları en çok bu orana küçülür (bölündükten sonra küçültmeye gerek kalmasın)
+_EQ_AYRAC = re.compile(r'(?:&nbsp;|\s)*(⇒|,|;)(?:&nbsp;|\s)+|\s+(=|\+|−)\s+')   # denklem bölme yerleri
+
+
+def _duz(t):
+    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', t).replace('&nbsp;', ' ')).strip()
 
 
 class _SigP(_BP):
@@ -214,6 +220,8 @@ class Doc(BaseDocTemplate):
         self._hn = 0
         self._fig_say = [0, 0]   # [açıklaması altta, yanda]
         self._eq_kucuk = []       # tek satıra sığsın diye küçültülen denklemlerin oranları
+        self._eq_bolunen = []     # bölünen denklemlerin satır sayıları
+        self._eq_elle = []        # küçültülüp bölünemeyen (elle düzenlenecek) denklemler
         self.tema = Tema(title, renk)
         self._kapak = (colors.HexColor(self.tema.ana), colors.HexColor(self.tema.zemin))
 
@@ -315,38 +323,123 @@ class Doc(BaseDocTemplate):
         return len(bp.lines) if bp is not None else 1
 
     @staticmethod
-    def _wrapcheck(p, width, n):
-        # denklem satıra sığmazsa derleme sırasında uyar (bölüp iki d.eq satırı yaz ya da sadeleştir)
-        if Doc._satir(p, width) > 1:
-            print('UYARI denklem %%%d\'e küçültüldüğü hâlde tek satıra sığmadı %s: %s'
-                  % (round(EQ_MIN_ORAN * 100), n, p.getPlainText()[:70]))
+    def _stil(st, oran):
+        if oran >= 1:
+            return st
+        k = st.clone('%s_d%d' % (st.name, round(oran * 100)))
+        k.fontSize, k.leading = st.fontSize * oran, st.leading * oran
+        return k
+
+    def _oran(self, t, st, width, alt=None):
+        """t'nin tek satıra sığdığı en büyük yazı oranı (1, 0,97, … , alt = EQ_MIN_ORAN); hiçbirinde sığmazsa None."""
+        alt = EQ_MIN_ORAN if alt is None else alt
+        oran = 1.0
+        while oran >= alt - 1e-9:
+            if self._satir(Paragraph(t, self._stil(st, oran)), width) == 1:
+                return oran
+            oran = round(oran - 0.03, 2)
+        return None
+
+    @staticmethod
+    def _ayraclar(t):
+        """Parantez dışındaki (derinlik 0) bölme yerleri: [(başlangıç, bitiş, işaret)]. İşaret: ⇒ , ; = + −"""
+        n = len(t)
+        dz, etiket, derin, i = [0] * (n + 1), [False] * (n + 1), 0, 0
+        while i < n:
+            c = t[i]
+            if c == '<':
+                j = t.find('>', i)
+                j = n - 1 if j < 0 else j
+                for k in range(i, j + 1):
+                    etiket[k], dz[k] = True, derin
+                i = j + 1
+                continue
+            if c in '([{':
+                derin += 1
+            dz[i] = derin
+            if c in ')]}':
+                derin -= 1
+            i += 1
+        out = []
+        for m in _EQ_AYRAC.finditer(t):
+            g = 1 if m.group(1) else 2
+            k = m.start(g)
+            if dz[k] == 0 and not etiket[k]:
+                out.append((m.start(), m.end(), m.group(g)))
+        return out
+
+    def _bol(self, t, st, width, isaretler, derin=0):
+        """t'yi isaretler'deki parantez dışı ayraçlardan, her parça tek satıra (en çok EQ_MIN_ORAN'a küçülerek) sığana dek
+        ikiye böler (bölünmüş satırlar en çok EQ_BOLUNMUS_ORAN'a küçülür). Dengeli bölme seçilir: kısa parça bütünün en az %25'i (tek terim alt satıra düşmez); '⇒', ',' ve '='
+        öncelikli. Bölünemezse None."""
+        if self._oran(t, st, width, EQ_BOLUNMUS_ORAN) is not None:
+            return [t]
+        if derin > 4:
+            return None
+        L = len(_duz(t))
+        aday = []
+        for a, b, op in self._ayraclar(t):
+            if op not in isaretler:
+                continue
+            sol = t[:a] + (op if op in ',;' else '')
+            sag = ('' if op in ',;' else op + ' ') + t[b:]
+            kisa = min(len(_duz(sol)), len(_duz(sag)))
+            if kisa < 0.25 * L:
+                continue
+            aday.append((kisa * (1.25 if op in '⇒,;=' else 1.0), sol, sag))
+        for _, sol, sag in sorted(aday, key=lambda x: -x[0]):
+            a = self._bol(sol, st, width, isaretler, derin + 1)
+            b = a and self._bol(sag, st, width, isaretler, derin + 1)
+            if a and b:
+                return a + b
+        return None
+
+    def _birlestir(self, satirlar, st, width):
+        """İkiye bölme gereğinden çok satır üretebilir: yan yana satırlar birlikte sığıyorsa birleştirilir."""
+        out = [satirlar[0]]
+        for x in satirlar[1:]:
+            ek = out[-1] + (' ' if x[:1] in '=+−⇒' else '&nbsp;&nbsp; ') + x
+            if self._oran(ek, st, width, EQ_BOLUNMUS_ORAN) is not None:
+                out[-1] = ek
+            else:
+                out.append(x)
+        return out
 
     def _denklem(self, t, st, width, n):
-        """Denklem paragrafı. Tek satıra sığmıyorsa satırı bölmek yerine yazıyı %3 adımlarla küçültür
-        (en çok EQ_MIN_ORAN'a kadar; alt/üst simgeler ve satır aralığı aynı oranda). Yine sığmazsa uyarır."""
-        p = Paragraph(t, st)
-        if self._satir(p, width) == 1:
-            return p
-        oran = 1.0
-        while oran - 0.03 >= EQ_MIN_ORAN - 1e-9:
-            oran -= 0.03
-            k = st.clone('%s_d%d' % (st.name, round(oran * 100)))
-            k.fontSize, k.leading = st.fontSize * oran, st.leading * oran
-            p = Paragraph(t, k)
-            if self._satir(p, width) == 1:
+        """Denklem satırları ve ortak yazı oranı: ([metin, ...], oran).
+        1) Tek satıra sığıyorsa olduğu gibi; 2) değilse yazı %3 adımlarla en çok EQ_MIN_ORAN'a küçülür;
+        3) yine sığmazsa önce bileşik ayraçlardan (⇒, virgül ya da noktalı virgülle ayrılmış denklemler), olmazsa = + − işaretlerinden
+        anlamlı yerde bölünür (tek terim alt satıra düşmez), satırlar aynı oranda yazılır;
+        4) bölünemezse en küçük oranda bırakılır ve UYARI verilir (elle düzenlenir)."""
+        oran = self._oran(t, st, width)
+        if oran is not None:
+            if oran < 1:
                 self._eq_kucuk.append(oran)
-                return p
-        self._wrapcheck(p, width, n)
-        return p
+            return [t], oran
+        satirlar = self._bol(t, st, width, ('⇒', ',', ';')) or self._bol(t, st, width, ('⇒', ',', ';', '=', '+', '−'))
+        if not satirlar:
+            self._eq_elle.append(_duz(t)[:70])
+            print('UYARI denklem %%%d\'e küçültüldüğü ve bölünmeye çalışıldığı hâlde sığmadı %s: %s — elle böl ya da uzun '
+                  'parçaya ad ver' % (round(EQ_MIN_ORAN * 100), n, _duz(t)[:70]))
+            return [t], EQ_MIN_ORAN
+        satirlar = self._birlestir(satirlar, st, width)
+        self._eq_bolunen.append(len(satirlar))
+        return satirlar, min(self._oran(x, st, width, EQ_BOLUNMUS_ORAN) for x in satirlar)
+
+    @staticmethod
+    def _no_html(n):
+        return '&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''
 
     def eq(self, t, n=''):
         nw = 2.2 * cm   # '(6.16–6.18)' gibi aralık numaraları için
-        pe = self._denklem(t, ss['eq'], FW - 2 * nw - 12, n)
-        tb = Table([[Paragraph('', ss['eqn']), pe, Paragraph(n, ss['eqn'])]],
-                   colWidths=[nw, FW - 2 * nw, nw])
-        tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2),
-                                ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
-        self._denklem_ekle(tb, t, n)
+        satirlar, oran = self._denklem(t, ss['eq'], FW - 2 * nw - 12, n)
+        for i, x in enumerate(satirlar):
+            son = i == len(satirlar) - 1
+            tb = Table([[Paragraph('', ss['eqn']), Paragraph(x, self._stil(ss['eq'], oran)), Paragraph(n if son else '', ss['eqn'])]],
+                       colWidths=[nw, FW - 2 * nw, nw])
+            tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+            self._denklem_ekle(tb, x, n if son else '')
 
     @staticmethod
     def _giris_mi(f):
@@ -375,7 +468,7 @@ class Doc(BaseDocTemplate):
         once = self.story[-1] if self.story else None
         if getattr(once, '_denklem', False):
             icerik = once._content if isinstance(once, KeepTogether) else [once]
-            devam = duz and duz[0] in '=+−×'
+            devam = duz and duz[0] in '=+−×⇒'
             ayni = harf and getattr(once, '_harf', None) == harf
             if devam or ayni or (getattr(once, '_numarasiz', False) and len(icerik) < ZINCIR):
                 self.story.pop()
@@ -428,11 +521,13 @@ class Doc(BaseDocTemplate):
 
     def beq(self, t, n=''):
         """equation flowable for use inside boxes"""
-        return self._denklem(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), ss['eq'], FW - 32, n)
+        satirlar, oran = self._denklem(t, ss['eq'], FW - 32 - (len(n) * 5 + 14 if n else 0), n)
+        return Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(ss['eq'], oran))
 
     def ceq(self, t, n=''):
         """Çözüm adımı denklemi (cozum içinde): metne yakın boyutta (10,8 pt), ortalı."""
-        return self._denklem(t + ('&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''), _CEQ, FW - 32, n)
+        satirlar, oran = self._denklem(t, _CEQ, FW - 32 - (len(n) * 5 + 14 if n else 0), n)
+        return Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(_CEQ, oran))
 
     def kf(self, num, cap, h=100, terms=None):
         """cozum() içinde çizim: ortalı görsel ve altında kısa açıklama (sekil= ile verilir)."""
@@ -670,3 +765,7 @@ class Doc(BaseDocTemplate):
         if self._eq_kucuk:
             print('BİLGİ: %d denklem tek satıra sığsın diye küçültüldü (en küçük %%%d)'
                   % (len(self._eq_kucuk), round(min(self._eq_kucuk) * 100)))
+        if self._eq_bolunen:
+            print('BİLGİ: %d denklem anlamlı yerinden %d satıra bölündü' % (len(self._eq_bolunen), sum(self._eq_bolunen)))
+        if self._eq_elle:
+            print('ELLE DÜZENLENECEK DENKLEMLER (%d): ' % len(self._eq_elle) + ' | '.join(self._eq_elle))
