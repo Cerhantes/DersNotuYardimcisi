@@ -653,10 +653,12 @@ class Doc(BaseDocTemplate):
 
         def paket(bos, W):
             """Parçaları okuma sırasını koruyarak satırlara yeniden dizer; bos yüksekliğe sığan en büyük ölçekli düzen.
-            Ölçek s0'ı aşmaz ve PAKET_MIN'in altına inmez (parça kaynaktaki boyutunun en az %85'i). Olmuyorsa None."""
+            Ölçek s0'ı aşmaz ve PAKET_MIN'in altına inmez (parça kaynaktaki boyutunun en az %75'i). Olmuyorsa None."""
             if not olcu:
                 return None
-            n, ara = len(olcu), 8
+            # Her parça ince çerçeveli bir kutuya girer: yan yana gelen parçaların (ör. kötü/iyi satırları) hangisinin
+            # bir arada olduğu kutudan okunur. kp: kutu iç payı, ara: kutular arası boşluk.
+            n, ara, kp = len(olcu), 12, 4
             cap_h = Paragraph(capt, ss['cap']).wrap(W, FH)[1]
             bas_h = sum(x.wrap(W, FH)[1] for x in heads) if heads else 0
             en_iyi = None
@@ -669,8 +671,8 @@ class Doc(BaseDocTemplate):
                     else:
                         sat.append(k)
                 satirlar.append(sat)
-                s_w = min((W - ara * (len(r) - 1)) / sum(olcu[k][0] for k in r) for r in satirlar)
-                sabit = cap_h + bas_h + 4 + 8 + 10 + ara * (len(satirlar) - 1)
+                s_w = min((W - ara * (len(r) - 1) - 2 * kp * len(r)) / sum(olcu[k][0] for k in r) for r in satirlar)
+                sabit = cap_h + bas_h + 4 + 8 + 10 + ara * (len(satirlar) - 1) + 2 * kp * len(satirlar)
                 s_h = (bos - sabit) / sum(max(olcu[k][1] for k in r) for r in satirlar)
                 sc = min(s_w, s_h, s0)
                 if sc >= self.PAKET_MIN and (en_iyi is None or sc > en_iyi[0] + 1e-6):
@@ -680,9 +682,16 @@ class Doc(BaseDocTemplate):
             sc, satirlar = en_iyi
             ic = []
             for r in satirlar:
-                hucre = [Image(os.path.join(self.work, 'fig', num, '%d.png' % k), width=olcu[k][0] * sc,
-                               height=olcu[k][1] * sc) for k in r]
-                t = Table([hucre], colWidths=[olcu[k][0] * sc + (ara if j < len(r) - 1 else 0) for j, k in enumerate(r)])
+                hucre = []
+                for k in r:
+                    kutu = Table([[Image(os.path.join(self.work, 'fig', num, '%d.png' % k), width=olcu[k][0] * sc,
+                                         height=olcu[k][1] * sc)]], colWidths=[olcu[k][0] * sc + 2 * kp])
+                    kutu.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#9A9A9A')),
+                                              ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                              ('LEFTPADDING', (0, 0), (-1, -1), kp), ('RIGHTPADDING', (0, 0), (-1, -1), kp),
+                                              ('TOPPADDING', (0, 0), (-1, -1), kp), ('BOTTOMPADDING', (0, 0), (-1, -1), kp)]))
+                    hucre.append(kutu)
+                t = Table([hucre], colWidths=[olcu[k][0] * sc + 2 * kp + (ara if j < len(r) - 1 else 0) for j, k in enumerate(r)])
                 t.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 0),
                                        ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('TOPPADDING', (0, 0), (-1, -1), 0),
                                        ('BOTTOMPADDING', (0, 0), (-1, -1), ara)]))
@@ -703,11 +712,12 @@ class Doc(BaseDocTemplate):
 
     # ---------- şekil sığmayınca sayfa yarı boş kalmasın ----------
     # Küçültme sınırları ölçümle seçildi (2026-11-14; Kaynak ve Lehim notları, iPad tam sayfa görünümünde okunurluk testi):
-    # okunurluk ≈ kaynak boyutunun %70'inde biter; boşluk kazancı normal küçültmede %75'te, yeniden dizmede %85'te doyar.
+    # okunurluk ≈ kaynak boyutunun %70'inde biter; boşluk kazancı normal küçültmede %75'te, çerçeveli yeniden dizmede
+    # %76'da doyar (yeniden dizmede %75 seçildi: tek nota sıkı bağlanmamak için pay).
     SEKIL_MIN_OLCEK = 0.75    # sığdırmak için şekil en çok bu orana küçülür (nottaki boyutuna göre)
     # Parçalı şekil yeniden dizilirken parça, kaynaktaki (slayttaki) boyutunun en az bu oranında kalır. Notlar çoğunlukla
-    # tablette okunur ve şekiller 220 DPI kesilir; bu oranda sayfada ≈ 260 DPI, büyütünce net kalır.
-    PAKET_MIN = 0.85
+    # tablette okunur ve şekiller 220 DPI kesilir; bu oranda sayfada ≈ 290 DPI, büyütünce net kalır.
+    PAKET_MIN = 0.75
     SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
     YAN_MIN = 5.5 * cm        # açıklamanın şeklin yanına alınması için gereken en dar sütun
 

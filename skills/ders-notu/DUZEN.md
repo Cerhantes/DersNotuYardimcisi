@@ -24,7 +24,8 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
 - Notlar çoğunlukla tablette (iPad) okunur ve şekiller 220 DPI kesilir. Küçültme sınırları ölçümle seçilmiştir: tam sayfa
   görünümünde çizim ve formüller kaynak boyutunun ≈ %70'ine kadar okunuyor; sınırlar bunun üstünde, boşluk kazancının doyduğu yerde.
 - Parçalı slayt şekli (slayt_sekil.py) sığmazsa önce parçaları okuma sırasıyla yeniden dizilir (tek satır, iki satır …);
-  hiçbir parça slayttaki boyutunun %85'inin altına inmez (`PAKET_MIN`). Derleme `BİLGİ: … yeniden dizildi` basar.
+  hiçbir parça slayttaki boyutunun %75'inin altına inmez (`PAKET_MIN`). Her parça ince çerçeveli bir kutuya girer:
+  yan yana gelen parçalardan (ör. kötü/iyi satırları) hangilerinin bir arada olduğu kutudan okunur. Derleme `BİLGİ: … yeniden dizildi` basar.
 - Sığmayan şekilde önce açıklama yana alınır, olmazsa şekil %75'e kadar küçülür (`SEKIL_MIN_OLCEK`), o da olmazsa ardındaki metin boşluğa akar
   (konu başlığını geçmez) ve şekil sonraki sayfaya geçer. Bu yüzden şekle yer bildiren atıf ("aşağıdaki şekil") yanlış olur.
 - Şeklin ardından hemen başlık geliyorsa akacak metin yoktur. Bu durumda şekil, **önündeki denklem zinciri ya da paragrafla
