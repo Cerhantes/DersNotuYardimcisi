@@ -286,10 +286,17 @@ def denetle(kayit, etiketler=None):
               + ' → d.box(\'ozet\', [...], title=\'BÖLÜM n ÖZETİ\') bölümün son öğesi olur')
 
     # 3) şekil terimleri (kaynaktaki yazılı etiketlerle)
+    # Türkçe kaynakta etiketler Türkçedir ('Lehim alanları'): notun kendi Türkçe metninde (parantez içi İngilizce
+    # karşılıklar hariç) geçen kelime çevrilecek terim sayılmaz.
+    turkce = set()
+    for o in kayit:
+        for tur, ham in metinler(o):
+            if tur == 'nesir':
+                turkce |= set(re.findall(r'\w+', re.sub(r'\([^)]*\)', ' ', duz(ham)).lower()))
     for f in figler(kayit):
         if etiketler is None or f['no'] not in etiketler:
             continue
-        kel = etiket_kelimeleri(etiketler[f['no']])
+        kel = [k for k in etiket_kelimeleri(etiketler[f['no']]) if k.lower() not in turkce]
         terms = duz(f.get('terms') or '')
         if kel and not terms:
             K('şekil-terimi', 'Şekil %s' % f['no'], 'kitaptaki şekilde yazılı etiket var (%s) ama terim satırı yok → terms=\'English = Türkçe; …\''

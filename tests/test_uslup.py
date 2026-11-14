@@ -157,6 +157,16 @@ class SekilTerimi(unittest.TestCase):
         self.assertEqual(kesin, [])
         self.assertIn('şekil-terimi', oneri)
 
+    def test_turkce_kaynakta_turkce_etiket_terim_istemez(self):
+        # slayttaki 'Lehim alanları' notun Türkçe metninde de geçiyor: çevrilecek terim değil
+        kayit = not_(p('Her hesapta önce <b>lehim alanları</b> (joint area) belirlenir.'), self.FIG)
+        self.assertEqual(kurallar(kayit, {'2.1': ['Lehim', 'alanları']}), ([], []))
+
+    def test_parantez_ici_ingilizce_turkce_sayilmaz(self):
+        # 'clearance' yalnız parantez içinde geçiyor: şekildeki İngilizce etiket hâlâ terim ister
+        kayit = not_(p('Buna <b>lehim aralığı</b> (joint clearance) denir.'), self.FIG)
+        self.assertIn('şekil-terimi', kurallar(kayit, {'2.1': ['Joint', 'clearance']})[0])
+
     def test_cozumdeki_cizim_de_denetlenir(self):
         cz = {'t': 'cozum', 'baslik': 'Ö', 'soru': 'S', 'sekil': dict(self.FIG, no='H2.1'), 'verilen': ['v', 'i'],
               'kabuller': [], 'adimlar': [], 'sonuc': [], 'yorum': None}
