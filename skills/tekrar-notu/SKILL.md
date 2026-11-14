@@ -138,5 +138,5 @@ Yazım (hepsi `S()` süzgecinden geçer): `t_o` → t<sub>o</sub>, `D_{ort}` →
 | `kaynak.py` sıralamada `TypeError` | Eski sürüm; `6.18a` gibi harfli numaralar için sıralama anahtarı düzeltildi — skill'deki güncel betiği kullan |
 | Bölüm başlığı sayfa sonunda tek kaldı | `d.h2(..., need=12–14)` |
 | Kapsam denetiminde çözümlü örnek/problem değerleri eksik | Tekrar notunda örnek yoktur; bırak. Kullanıcı bu belge için örnek istediyse sonuçların tamamını ver |
-| `kaynak.py` hiç şekil bulmadı | Başlık biçimi farklı (`--cap`) ya da şekiller vektör → ders-notu skill'inin detect/crop adımları |
+| `kaynak.py` hiç şekil bulmadı | Başlık biçimi farklı (`--cap`) ya da şekiller vektör → ders-notu skill'inin `hazirla.py`'si ve `SEKIL.md`'si |
 | `ModuleNotFoundError` / `python` bulunamadı / `UnicodeEncodeError` | Ortam bölümündeki kurulum betiğinin verdiği `$PY` ile çalıştır / `PYTHONIOENCODING=utf-8` |

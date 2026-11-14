@@ -222,6 +222,7 @@ class Doc(BaseDocTemplate):
         self._eq_kucuk = []       # tek satıra sığsın diye küçültülen denklemlerin oranları
         self._eq_bolunen = []     # bölünen denklemlerin satır sayıları
         self._eq_elle = []        # küçültülüp bölünemeyen (elle düzenlenecek) denklemler
+        self.kayit = []           # notun iskeleti (başlık, paragraf, kutu, şekil, denklem): make() <work>/kayit.json'a yazar
         self.tema = Tema(title, renk)
         self._kapak = (colors.HexColor(self.tema.ana), colors.HexColor(self.tema.zemin))
 
@@ -232,6 +233,19 @@ class Doc(BaseDocTemplate):
     def _renkli(self, ad):
         """ss[ad] stilinin o anki konu rengindeki kopyası."""
         return ParagraphStyle('%s-%s' % (ad, self.ana), parent=ss[ad], textColor=colors.HexColor(self.ana))
+
+    # ---------- iskelet kaydı (üslup denetimi için; bkz. uslup_denetim.py) ----------
+    def _kaydet(self, tip, **alan):
+        alan['t'] = tip
+        self.kayit.append(alan)
+
+    @staticmethod
+    def _oge_kaydi(b):
+        """Kutu ya da çözüm içindeki öğenin kaydı: metin, beq/ceq denklemi ya da kf çizimi."""
+        if isinstance(b, str):
+            return {'t': 'metin', 'metin': b}
+        k = getattr(b, '_kayit', None)
+        return dict(k) if k else {'t': 'diger'}
 
     # ---------- page decorations ----------
     def _cover(self, c, d):
@@ -268,6 +282,7 @@ class Doc(BaseDocTemplate):
 
     # ---------- content API ----------
     def cover(self, lines, contents, kutu='BU NOTU NASIL KULLANMALISIN?'):
+        self._kaydet('kapak', satirlar=list(lines))
         s = self.story
         s.append(Spacer(1, 1.2 * cm))
         s.append(Paragraph(self.title_, ParagraphStyle('ct', fontName='Body-B', fontSize=30, leading=36, textColor=self._kapak[0])))
@@ -295,22 +310,28 @@ class Doc(BaseDocTemplate):
 
     def h1(self, t, newpage=False, need=9, renk=None):
         self.tema.sonraki(renk)
+        self._kaydet('h1', metin=t)
         if newpage: self.story.append(PageBreak())
         else: self.story.append(CondPageBreak(need * cm))
         self.story.append(self._hp(t, self._renkli('h1'), 0))
 
     def h2(self, t, need=6):
+        self._kaydet('h2', metin=t)
         self.story.append(CondPageBreak(need * cm))
         self.story.append(self._hp(t, self._renkli('h2'), 1))
 
     def h3(self, t):
+        self._kaydet('h3', metin=t)
         self.story.append(CondPageBreak(3.5 * cm))
         self.story.append(Paragraph(t, self._renkli('h3')))
 
     def p(self, *ts):
-        for t in ts: self.story.append(Paragraph(t, ss['body']))
+        for t in ts:
+            self._kaydet('p', metin=t)
+            self.story.append(Paragraph(t, ss['body']))
 
     def bl(self, items, num=False):
+        self._kaydet('bl', maddeler=list(items), num=num)
         for i, t in enumerate(items):
             b = '%d.' % (i + 1) if num else '•'
             self.story.append(Paragraph(t, ss['bullet'], bulletText=b))
@@ -431,6 +452,7 @@ class Doc(BaseDocTemplate):
         return '&nbsp;&nbsp;&nbsp;<font name="Body" size="9" color="#555555">%s</font>' % n if n else ''
 
     def eq(self, t, n=''):
+        self._kaydet('eq', metin=t, no=n)
         nw = 2.2 * cm   # '(6.16–6.18)' gibi aralık numaraları için
         satirlar, oran = self._denklem(t, ss['eq'], FW - 2 * nw - 12, n)
         for i, x in enumerate(satirlar):
@@ -515,6 +537,7 @@ class Doc(BaseDocTemplate):
         return t
 
     def box(self, kind, body, title=None):
+        self._kaydet('box', tur=kind, baslik=title, icerik=[self._oge_kaydi(b) for b in (body if isinstance(body, list) else [body])])
         self.story.append(Spacer(1, 3))
         self.story.append(self._boxflow(kind, body, title))
         self.story.append(Spacer(1, 7))
@@ -522,12 +545,16 @@ class Doc(BaseDocTemplate):
     def beq(self, t, n=''):
         """equation flowable for use inside boxes"""
         satirlar, oran = self._denklem(t, ss['eq'], FW - 32 - (len(n) * 5 + 14 if n else 0), n)
-        return Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(ss['eq'], oran))
+        p = Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(ss['eq'], oran))
+        p._kayit = {'t': 'eq', 'metin': t, 'no': n}
+        return p
 
     def ceq(self, t, n=''):
         """Çözüm adımı denklemi (cozum içinde): metne yakın boyutta (10,8 pt), ortalı."""
         satirlar, oran = self._denklem(t, _CEQ, FW - 32 - (len(n) * 5 + 14 if n else 0), n)
-        return Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(_CEQ, oran))
+        p = Paragraph('<br/>'.join(satirlar) + self._no_html(n), self._stil(_CEQ, oran))
+        p._kayit = {'t': 'eq', 'metin': t, 'no': n}
+        return p
 
     def kf(self, num, cap, h=100, terms=None):
         """cozum() içinde çizim: ortalı görsel ve altında kısa açıklama (sekil= ile verilir)."""
@@ -539,6 +566,7 @@ class Doc(BaseDocTemplate):
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
         t = Table([[Image(os.path.join(self.work, 'fig', num + '.png'), width=w, height=h)], [Paragraph(capt, _KFS)]], colWidths=[FW - 32])
         t.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 1), ('BOTTOMPADDING', (0, 0), (-1, -1), 3)]))
+        t._kayit = {'t': 'fig', 'no': num, 'cap': cap, 'terms': terms}
         return t
 
     def cozum(self, title, soru, sekil, verilen, kabuller, adimlar, sonuc, yorum=None):
@@ -546,6 +574,10 @@ class Doc(BaseDocTemplate):
         sekil: d.kf(...) ya da None. verilen: (verilenler, istenenler). adimlar: [(açıklama, [denklem | (denklem, no), ...]), ...].
         sonuc: [satırlar]. Kutu satırlara bölünür: uzun örnek yalnız adım sınırında sayfaya bölünür;
         başlık, soru ve çizim ilk satırda birlikte kalır."""
+        self._kaydet('cozum', baslik=title, soru=soru, sekil=self._oge_kaydi(sekil) if sekil else None,
+                     verilen=list(verilen), kabuller=list(kabuller or []),
+                     adimlar=[{'metin': txt, 'denklemler': [e[0] if isinstance(e, tuple) else e for e in eqs]} for txt, eqs in adimlar],
+                     sonuc=[x for x in sonuc if isinstance(x, str)], yorum=yorum)
         bg, fg, lab = BOXES['ornek']
         P = lambda t, st=ss['boxb']: Paragraph(t, st)
         etk = ParagraphStyle('etk', parent=ss['boxb'], fontName='Body-B', textColor=colors.HexColor(fg), spaceBefore=5, spaceAfter=2, keepWithNext=1)
@@ -572,6 +604,7 @@ class Doc(BaseDocTemplate):
         self.story += [Spacer(1, 3), t, Spacer(1, 7)]
 
     def fig(self, num, cap, scale=1.0, maxw=None, maxh=320, terms=None, keep=None):
+        self._kaydet('fig', no=num, cap=cap, terms=terms)
         pg, rc = self.figs[num]
         wpt, hpt = rc[2] - rc[0] + 10, rc[3] - rc[1] + 10
         w = wpt * 0.92 * scale
@@ -715,6 +748,7 @@ class Doc(BaseDocTemplate):
         self.story.append(kt)
 
     def table(self, rows, widths=None, title=None, small=False):
+        self._kaydet('table', baslik=title, satirlar=[[str(c) for c in r] for r in rows])
         data = []
         for i, r in enumerate(rows):
             st = ss['cellh'] if i == 0 else ss['cell']
@@ -741,7 +775,9 @@ class Doc(BaseDocTemplate):
         self.story.append(KeepTogether(heads + fl + [Spacer(1, 0.1)]) if heads else KeepTogether(fl))
         self.story += [t, Spacer(1, 9)]
 
-    def raw(self, f): self.story.append(f)
+    def raw(self, f):
+        self._kaydet('raw')
+        self.story.append(f)
 
     def begin_keep(self): self._kstart = len(self.story)
 
@@ -755,6 +791,8 @@ class Doc(BaseDocTemplate):
         self.keep(k)
 
     def make(self):
+        with open(os.path.join(self.work, 'kayit.json'), 'w', encoding='utf-8') as f:
+            json.dump(self.kayit, f, ensure_ascii=False, indent=0)
         self.multiBuild(self.story)
         if sum(self._fig_say):
             print('BİLGİ: %d şeklin açıklaması yanda, %d şeklinki altta' % (self._fig_say[1], self._fig_say[0]))
@@ -769,3 +807,6 @@ class Doc(BaseDocTemplate):
             print('BİLGİ: %d denklem anlamlı yerinden %d satıra bölündü' % (len(self._eq_bolunen), sum(self._eq_bolunen)))
         if self._eq_elle:
             print('ELLE DÜZENLENECEK DENKLEMLER (%d): ' % len(self._eq_elle) + ' | '.join(self._eq_elle))
+        # denetle.py derleme çıktısını görmez: düzeltilmesi gerekenler dosyaya da yazılır
+        with open(os.path.join(self.work, 'derleme.json'), 'w', encoding='utf-8') as f:
+            json.dump({'elle_denklem': self._eq_elle, 'eksik_glif': sorted(_missing)}, f, ensure_ascii=False)

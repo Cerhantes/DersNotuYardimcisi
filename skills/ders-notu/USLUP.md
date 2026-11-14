@@ -74,6 +74,16 @@ d.box('ornek', [
 - Şekilde İngilizce etiket varsa **hepsi** `terms='English = Türkçe; …'` içinde.
 - Boyut: tam genişlik şekil `scale=0.85`; küçük yazılı şekil `maxh=280–320`; basit şema `maxh=200–230`.
 
+## Sayfa düzeni için yazım
+
+Kütüphane bölünmeleri çoğunlukla kendisi yönetir; yazarken şu dördüne dikkat et (sorun çıkarsa DUZEN.md):
+
+- Aynı konunun formülü ve şekli bir bütünse `g = d.grup_bas(); ...; d.grup_son(g)` ile sar.
+- Ayrı konuların (silindirik, küresel) her biri kendi başlığıyla başlar; bir konu başlıksız sayfa sonuna düşmez.
+- Bir paragraf şekli adım adım okutuyorsa ("1 noktasından 2'ye …") ikisini `fig(..., keep=lambda f: [d_paragrafi] + f)`
+  ya da `begin_keep/end_keep` ile kenetle.
+- Renk yazma (otomatik; hex renk ve koyu dolgulu bant kullanılmaz). Elle seçim gerekirse DUZEN.md › Renk.
+
 ## Listeler
 
 - Madde kalıbı `'<b>Başlık:</b> açıklama cümlesi.'` Maddeler paralel yapıda olsun: hepsi aynı türden şeyleri saysın.

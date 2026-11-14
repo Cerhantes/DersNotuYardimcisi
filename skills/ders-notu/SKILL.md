@@ -17,6 +17,16 @@ Bir ders kitabı PDF'inin verilen sayfa aralığından, konuyu **sıfırdan öğ
 - Kullanıcı sayfa numarası verirse bunlar **PDF görüntüleyici numarasıdır** (kitabın basılı numarası değil).
 - Skill hiçbir kitaba bağlı değildir: kitap adı, yazar, ders adı, bölüm sınırları ve yazı tipleri her seferinde kitabın kendisinden çıkarılır.
 
+## Ek dosyalar: ne zaman okunur
+
+| Dosya | Ne zaman |
+|---|---|
+| `$SK/USLUP.md` + `$SK/examples/ornek_ders_notu.py` | **Her işte**, içerik betiğini yazmadan önce, baştan sona |
+| `$SK/SEKIL.md` | `hazirla.py` `UYARI`/`ŞEKİL BAŞLIĞI BULUNAMADI` dedi, temas sayfasında kötü kesim gördün, `KENAR` satırı var ya da bir şekli elle kesmen gerekiyor |
+| `$SK/DUZEN.md` | Derleme `UYARI`/`ELLE DÜZENLENECEK` bastı, `denetle.py` `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?` dedi, sayfa görselinde düzen sorunu gördün ya da renk seçeceksin |
+
+Tetikleyici durum oluştuğunda dosyayı açmadan düzeltmeye girişme: oradaki yol çoğu zaman kısadır ve tahminle yapılan düzeltme yeni sorun açar.
+
 ## Ortam (Windows / Mac / Linux)
 
 Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tipleri aşağıdaki adımla hazır olur.
@@ -30,15 +40,6 @@ Kullanıcının elle bir şey kurması gerekmez; Python, paketler ve yazı tiple
 - Her komutta `PYTHONIOENCODING=utf-8` ve `$PY -W ignore`. Komutlar Bash sözdizimindedir; yalnız PowerShell varsa `$env:PYTHONPATH="..."; & $PY ...` biçimine çevir.
 - Yazı tipleri repoda gömülüdür (metin Carlito, matematik DejaVu Serif), kurulmaz.
 
-## Renk
-
-Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otomatik çalışır, içerik betiğinde renk yazmak gerekmez.
-
-- Renkler yalnız `ortak/tema.py`'deki paletten gelir: `petrol kiremit yesil hardal mavi kirmizi turkuaz zeytin`. Mor ve lacivert palette yoktur, hex renk yazma.
-- Zeminler açık, başlıklar ana renkte metindir; koyu dolgulu bant kullanma.
-- Her `h1` sıradaki rengi alır. Konuya uyan rengi seçmek için `d.h1('...', renk='yesil')`; tüm notu tek renk yapmak için `Doc(..., renk='petrol')`. `ozet` kutusu ve tablolar o anki konunun rengindedir.
-
-
 ## Konum bağımsızlığı
 
 Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; çalışma klasörüne (cwd) hiçbir şey yazmaz ve ondan hiçbir şey beklemez.
@@ -49,51 +50,50 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 - Ders belgesi (DUB/izlence) kitabın klasöründe ve üst klasöründe aranır, cwd'de değil.
 - Kitap cwd'nin dışındaysa dosya erişimi için izin istenebilir. Bu normal, yolu değiştirmeye gerek yok.
 
-`B=<kitap.pdf, mutlak yol>` olarak:
-
-## Token tasarrufu: envanter ve sayfa farkı
-
-- **İşe başlarken, sırayla, kaynak metnini okumadan önce:**
-  1. `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler ve önceki içerik betikleri; kapsamı belirle. Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez.
-  2. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını içindekilerden aralıklara ekle. Çözümlü kitapçık istenirse `soru-kitapcigi` skill'i kullanılır.
-  3. `envanter.py $B 368-449 478-529 --work <work>` → bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
-- **Kaynak bir kez okunur:** kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku. Betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betik yoksa `metin.txt`'yi oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
-- **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
-- **Her derlemeden sonra:** `$PY -W ignore $SK/../../ortak/sayfa_fark.py <work>/out.pdf <work>` → yalnız `AÇILACAK` satırındaki `rv<n>.png` görsellerini aç, `TAŞMA` ve `BÖLÜNMÜŞ HÜCRE?` satırlarını gider. Görülmüş sayfayı yeniden açma; düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli. Görüntü aracının sonucu boş ya da `media removed` dönerse o görsel görülmemiş sayılır: yeniden aç; görmediğin sayfa için "temiz" deme.
-
 ## Akış
 
+`B=<kitap.pdf, mutlak yol>` olarak:
+
 0. **Başlangıç: sadece kaynak yolunu iste.** Kullanıcı kitabın yolunu vermediyse tek soru sor: kitabın PDF yolu. Ders adı, konu, sayfa aralığı sorma; bunlar kitaptan çıkar. (Yol tırnaklı, `~`, `Masaüstü` gibi verilebilir; `Masaüstü` = `~/Desktop`. Dosya bulunamazsa `ls` ile yakın adları göster.)
-1. **Kitabı tanı**
-   `$PY -W ignore $SK/scripts/book_info.py $B` → künye (başlık, yazar), PDF ↔ basılı sayfa farkı, bölümler ve PDF sayfa aralıkları, şekil başlığı/etiket yazı tipleri.
+1. **Kitabı tanı ve kapsamı belirle** (kaynak metnini okumadan önce)
+   - `$PY -W ignore $SK/../../ortak/envanter.py $B` → içindekiler (PDF sayfa aralıklarıyla) ve aynı klasörde daha önce üretilmiş içerik betikleri.
+   - `$PY -W ignore $SK/scripts/book_info.py $B` → künye (başlık, yazar), PDF ↔ basılı sayfa farkı. Künyeden Doc'un `source` satırını ve kapaktaki kaynak paragrafını kur; ders/kapak adı konunun Türkçesi olur. Yer imi yoksa kitabın kendi "Contents" sayfasını `extract_text.py $B <ilk> <son> <dosya>` ile oku, basılı numaralara farkı ekle.
    - Kullanıcı konuyu bir ders belgesine atıfla verirse (ör. "DUB'de ilk vizeye kadar", "izlencedeki 3. hafta") kitabın klasöründe ve üst klasöründe o belgeyi ara (`*DUB*`, `*izlence*`, `*syllabus*`; .docx ise `word/document.xml`'den metni çıkar), haftalık konu listesini kitabın alt bölümleriyle eşle ve raporda bu eşlemeyi söyle.
-   - Kullanıcı mesajında konu/sayfa aralığı zaten varsa doğrudan onu kullan. Yoksa bölüm listesini (ad + PDF aralığı) kısa bir tablo olarak göster ve hangi bölüm(ler)in istendiğini sor (`AskUserQuestion`, çok seçimli; uzun listede en olası 3–4 bölüm + "Other"). Alt bölüm gerekirse `--toc-depth 2/3`.
-   - Yer imi yoksa kitabın kendi "Contents" sayfasını `extract_text.py` ile oku, basılı numaralara ofseti ekle.
-   - Yazı tipi çıktısından `detect_figs.py` bayraklarını belirle: başlık satırları kalın bir yazı tipiyle başlıyorsa varsayılan `--cap-font` yeter, değilse o yazı tipini ver. Şekil etiketleri gövde metninden **farklı** bir yazı tipindeyse (ör. Helvetica'ya karşı Sabon) `--label-font <o yazı tipi>` ver (daha temiz); aynıysa varsayılan `auto` kalsın. Başlık "Şekil 3-2", "Fig 4.1" gibi farklı biçimdeyse `--cap` regex'ini uyarla.
-   - Künyeden Doc'un `source` satırını ve kapaktaki kaynak paragrafını kur; ders/kapak adı konunun Türkçesi olur.
-2. **Metni çıkar ve ofseti doğrula**
-   `$PY -W ignore $SK/scripts/extract_text.py $B <ilk> <son> <work>/metin.txt`
-   Basılı sayfa numaralarıyla book_info'daki farkı doğrula. Aralık bir bölümün ortasında başlıyor ya da bitiyorsa raporda hangi alt bölümleri kapsadığını söyle.
-3. **Metnin tamamını oku** (`Read` ile, parça parça; envanterin `metin.txt`'si varsa yeniden çıkarma, önceki içerik betiği varsa bkz. Token tasarrufu). İçeriği yazmadan önce tüm aralığı oku; şekil numaralarını ve denklemleri listele.
-4. **Şekilleri tespit et** (envanter şekilleri hazır diyorsa `envanter.py $B --sekil-al <work>` ile al, 5. adıma kadar atla)
-   `$PY -W ignore $SK/scripts/detect_figs.py $B <work> <ilk> <son> [1. adımdaki bayraklar]`
-5. **Kes ve gözle kontrol et**
-   `$PY -W ignore $SK/scripts/crop_figs.py $B <work> [--cap-above]` → `<work>/sheet_*.png` temas sayfalarının **hepsini** `Read` ile aç. Kümeler her başlığa otomatik atanır (en yakın küme + aynı satır/sütundaki alt şekiller); kitapta başlık şeklin üstündeyse `--cap-above` ver. `UYARI` satırları kontrol edilecek sayfaları gösterir. Tipik hatalar ve düzeltmeleri:
-   - Küme yanlış şekle gitmiş / alt şekil eksik → `split.json`: `{"225": {"5.6": [0], "5.7": [1, 2]}}` (küme sırası det.json'daki sıradır).
-   - Kesime gövde metni ya da denklem girmiş, veya şeklin bir parçası dışarıda kalmış → `over.json`: `{"5.18": [255, [x0, y0, x1, y1]]}`. Koordinatları det.json kümelerinden ve `page.get_text('dict')` satır kutularından türet. Şekil başlığı elle silinmez: `crop_figs.py` başlık alanını (`det.json` → `capboxes`) over.json kesimlerinde de siler ve boş kenarı kırpar; başlık hâlâ görünüyorsa `--cap` ve `--cap-font` bayraklarına bak.
-   - Hatalar çoksa (ör. etiketler kesik ya da her şekle metin giriyor) önce 1. adımdaki bayrakları gözden geçir (`--label-font`, `--label-len`, `--pad`).
-   Düzeltip `crop_figs.py`'yi yeniden çalıştır; temas sayfaları temiz olana kadar tekrarla. Temizse **Kırpık şekil:** `$PY -W ignore $SK/../../ortak/sekil_kenar.py <work>/fig` → her `KENAR` satırının şeklini kaynağıyla karşılaştır; kesik yazı/çizgi varsa kesimi genişlet, komşu yazıdan kalan izi beyazlat. Küçük ölçekli temas sayfasında bu kesikler kolay kaçar. Sonra `envanter.py $B --sekil-kaydet <work>`.
-6. **İçerik betiğini yaz** (`<work>/<konu>.py`). Önce `$SK/USLUP.md`'yi (üslup rehberi) ve `$SK/examples/ornek_ders_notu.py`'yi baştan sona oku, aynı kalıbı izle. Örnek kitaptan bağımsız genel bir konudur; içerik, künye ve numaralar 1. adımdan ve kitaptan gelir. API aşağıda.
-7. **Derle**: `PYTHONPATH=$SK/scripts $PY -W ignore <work>/<konu>.py <work>/out.pdf <work>`
-   - **Denklem kapsamı**: `$PY -W ignore $SK/../../ortak/denklem_kapsam.py $B <work>/out.pdf --from <ilk> --to <son>` (kaynak sayfa aralığı). **Ölçü, o işteki ana kaynaktır.** Kullanıcı hoca notlarını ana kaynak dediyse kitap değil onlar karşılaştırılır; `$B` ana kaynaktır, birden çok dosyaysa her biri için çalıştırılır. Ana kaynaktaki her denklem, numaralı numarasız, türetimin ve çözümlü örneklerin ara adımları dahil yazılı olur: `y ve z için benzer şekilde` demek, ara adımı atlamak ya da numarayı metinde anmak yetmez. `YOK` ve `YALNIZ ANILMIŞ` listesi boşalmadan belge teslim edilmez. Yalnız kullanıcının kapsam dışı bıraktığı alt bölümler `--disarida <dosya>` ile, gerekçesiyle dışarıda kalır ve raporda yazılır; önemsiz görmek gerekçe değildir. Çıkış kodu 2 ise ya da kaynağın denklemleri numarasızsa (slayt, görsel denklem) araç güvence vermez: ana kaynağın her sayfası görüntü olarak açılır, her denklem betikle tek tek karşılaştırılır; bu karşılaştırma yapılmadan belge teslim edilmez.
-   - **Metinde kalan denklem:** Numaralı denklem yalnız metin içinde anılmaz (`… = … (3.27).` yetmez): kendi satırında numarasıyla gösterilir. Denetim: `$PY -W ignore $SK/../../ortak/denklem_kapsam.py - <work>/out.pdf` → `BELGEDE YALNIZ ANILMIŞ` listesi; denklemi tabloda/kutuda formülüyle yazılı olanlar ve gösterilmiş gruba atıflar hariç boşalmalı. Ana kaynak slaytsa (çıkış kodu 2) bu kip kaynak karşılaştırmasının yerini tutmaz, yanına eklenir.
-   - **Şekil atıf denetimi:** `$PY -W ignore $SK/../../ortak/sekil_atif.py <work>/out.pdf` → `ANILAN AMA YOK` listesi boşalmadan belge teslim edilmez: metinde "Şekil n" diye anılan her şekil belgede açıklamasıyla bulunur. Ya şekli ekle ya da atfı kaldır/yeniden yaz. Kaynağın şekli bilerek konmadıysa (kapsam dışı) `--haric <dosya>` ile, her satıra `<no>  gerekçe` yazarak dışarıda bırak ve raporda söyle. `VAR AMA ANILMAMIŞ` bilgi içindir: şekle metinde numarayla atıf eklenmesi önerilir. `3-13a` gibi alt şekil atıfları `3-13` şekline sayılır.
+   - Kullanıcı mesajında konu/sayfa aralığı zaten varsa doğrudan onu kullan. Yoksa bölüm listesini (ad + PDF aralığı) kısa bir tablo olarak göster ve hangi bölüm(ler)in istendiğini sor (`AskUserQuestion`, çok seçimli; uzun listede en olası 3–4 bölüm + "Other"). Alt bölüm gerekirse `book_info.py --toc-depth 3`.
+   - Çözümlü örnekler kapsamdadır; özet, kaynakça ve kapsam dışı bölümler aralığa girmez. İçindekilerde bölüm sonu problemleri varsa `AskUserQuestion` ile sor: dahil edilsin mi (önerilen: hayır)? Evetse sayfalarını aralıklara ekle. Çözümlü kitapçık istenirse `soru-kitapcigi` skill'i kullanılır.
+2. **Hazırla** (metin, sayfa farkı, şekiller — tek komut)
+   `$PY -W ignore $SK/scripts/hazirla.py $B <ilk-son> [<ilk-son> ...] --work <work>`
+   - Bu işin metni `<work>/metin.txt`'ye yazılır; numara dizini ve şekiller `<dirname $B>/.kaynak/envanter/<kaynak adı>/` altında kalır.
+   - Aralıktaki PDF ↔ basılı sayfa farkını raporda kullan. Aralık bir bölümün ortasında başlıyor ya da bitiyorsa raporda hangi alt bölümleri kapsadığını söyle.
+   - Şekil bayrakları aralığın sayfalarından seçilir ve gerekçesi yazılır. `hepsi envanterde` derse şekiller daha önce gözden geçirilmiştir: 3. adıma geç.
+   - Değilse **gözle kontrol atlanamaz**: `AÇILACAK TEMAS SAYFALARI`'nın **hepsini** `Read` ile aç. Kötü kesim, `UYARI` ya da `KENAR` satırı varsa **SEKIL.md'yi oku** ve oradaki yolla düzelt; temas sayfaları temiz olana kadar tekrarla. Temizse `$PY -W ignore $SK/../../ortak/envanter.py $B --sekil-kaydet <work>`.
+3. **Kaynağı oku** (bir kez)
+   - Kapsamı tutan önceki içerik betiği varsa `metin.txt`'yi baştan okuma, betiği oku; betikte olmayan aralığın yalnız sayfalarını (`===== PDF sayfa N`) oku. Önceki betikten çalışacaksan başlarken tek cümleyle hatırlat: o belgedeki hata ve eksikler bu belgeye de geçebilir, incelenmediyse önce incelenmesi önerilir. Kullanıcı yine de devam derse bekleme; raporda hangi betikten çalışıldığını yaz.
+   - Önceki betik yoksa `metin.txt`'nin tamamını `Read` ile parça parça oku. İçeriği yazmadan önce tüm aralığı oku; şekil numaralarını ve denklemleri listele.
+   - **Formülleri kaynakla karşılaştır** (önceki betikten alınanlar dahil; hatalar belgeden belgeye geçer): `$PY -W ignore $SK/../../ortak/envanter.py $B --serit <work> [--aralik 6.1 6.40 | --no 6.1,6.2]` → numaralı denklemlerin kırpıntıları. Kaynak ders notuysa ve kitap aynı klasördeyse kitapla karşılaştır. Kesik görünen grup denklemlerde sayfaya bak.
+4. **İçerik betiğini yaz** (`<work>/<konu>.py`). Önce `$SK/USLUP.md`'yi ve `$SK/examples/ornek_ders_notu.py`'yi baştan sona oku, aynı kalıbı izle. Örnek kitaptan bağımsız genel bir konudur; içerik, künye ve numaralar kitaptan gelir. API aşağıda.
+   - Ana kaynaktaki her denklem, numaralı numarasız, türetimin ve çözümlü örneklerin ara adımları dahil yazılı olur: `y ve z için benzer şekilde` demek, ara adımı atlamak ya da numarayı metinde anmak yetmez. Numaralı denklem kendi satırında numarasıyla gösterilir (`… = … (3.27).` yetmez).
+   - Şekle numarayla atıf yap ("Şekil 6.6'da …"); "aşağıdaki şekil", "yukarıdaki şekilde" deme: sığmayan şekil sonraki sayfaya geçebilir.
+5. **Derle ve denetle** (her derlemeden sonra ikisi birlikte)
+   - `PYTHONPATH=$SK/scripts $PY -W ignore <work>/<konu>.py <work>/out.pdf <work>`
+   - `$PY -W ignore $SK/scripts/denetle.py <work>/out.pdf <work> --kaynak $B --aralik <ilk-son> [...]` → üslup, denklem kapsamı (kaynakla ve belge içi), şekil atfı, sayfa farkı; her aracın çıktısı kendi başlığı altında, sonda `ENGEL` / `GÖZLE` / `AÇ` satırları.
+   - `ENGEL` satırlarını gider, yeniden derle, yeniden denetle. `ÖNERİ` satırlarına bak, yerindeyse düzelt. `ANILAN AMA YOK`: ya şekli ekle ya da atfı kaldır/yeniden yaz (`3-13a` gibi alt şekil atfı `3-13`'e sayılır). `VAR AMA ANILMAMIŞ` bilgi içindir: şekle metinde numarayla atıf ekle. Derleme `UYARI` bastıysa ya da `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?` varsa **DUZEN.md'yi oku**.
+   - **Ölçü, o işteki ana kaynaktır.** Kullanıcı hoca notlarını ana kaynak dediyse kitap değil onlar karşılaştırılır: `--kaynak` o dosyadır; birden çok dosyaysa her biri için `$SK/../../ortak/denklem_kapsam.py <kaynak> <work>/out.pdf --from <ilk> --to <son>` ayrıca çalıştırılır.
+   - Yalnız kullanıcının kapsam dışı bıraktığı alt bölümler dışarıda kalır: denklemler `--disarida <dosya>`, şekiller `--haric <dosya>` ile, her satırda gerekçesiyle; raporda yazılır. Önemsiz görmek gerekçe değildir.
    - **Belgeden bir şey çıkarınca ona atıf yapan yerleri de güncelle:** düzeltme/hata kutusu, kapak (kaynak listesi, sayfa sayısı), içindekiler, çapraz atıflar. Çıkan içeriğe ait madde ya silinir ya da yeni yerini söyler.
-   - **Sayfa bölünmesi**: çok satırlı denklem, türetim adımları ve `:` ile biten giriş cümlesi kütüphanece denklemle aynı sayfada tutulur. Aynı konunun formül ve şekli bir bütünse `g = d.grup_bas(); ...; d.grup_son(g)` ile sar. Ayrı konuların (silindirik, küresel) her biri kendi başlığıyla başlar; bir konu başlıksız sayfa sonuna düşmez. Gözle kontrolde bir denklem grubunun iki sayfaya bölündüğü her yeri düzelt.
-   - **Şekle numarayla atıf yap** ("Şekil 6.6'da …"); "aşağıdaki şekil", "yukarıdaki şekilde" deme. Sığmayan şeklin ardındaki metin kütüphanece öne akar (konu başlığını geçmez), şekil sonraki sayfaya geçebilir; yer bildiren atıf o zaman yanlış olur. Bir paragraf şekli adım adım okutuyorsa ("1 noktasından 2'ye …") ikisini `fig(..., keep=lambda f: [d_paragrafi] + f)` ya da `begin_keep/end_keep` ile kenetle.
-   - **Şekil açıklaması** yana sığıyorsa (yanda ≥ 5,5 cm sütun ve açıklama şeklin boyunu aşmıyor) kütüphanece şeklin sağına yazılır, değilse altta kalır; derleme sonunda `BİLGİ: n şeklin açıklaması yanda` basılır. Elle ayar gerekmez.
-8. **Sayfa düzenini gözle kontrol et**: `$PY $SK/scripts/sheets.py <work>/out.pdf <work>/rv` → ilk derlemede `rv_*.png` sayfalarının hepsini aç, sonraki derlemelerde yalnız `sayfa_fark.py`'nin `AÇILACAK` listesini (bkz. Token tasarrufu). Şüpheli sayfayı tek başına yüksek çözünürlükte render edip bak. Kontrol listesi: içindekiler tek sayfa mı, şekil kendi paragrafıyla aynı sayfada mı, sayfa sonunda yalnız başlık/yarım kutu var mı, büyük boşluk var mı, denklemlerde kutucuk (eksik glif) var mı, sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı (notlib paragrafları zaten üstte ≥2 / altta ≥3 satır kalacak şekilde böler — `MIN_HEAD`, `MIN_TAIL`; görürsen o metin `d.p` dışında bir yolla eklenmiştir).
-9. **Kopyala ve raporla**: PDF'leri kitabın klasörüne (`dirname $B`, ya da kullanıcının söylediği yere) kopyala, `ls` ile doğrula. İçerik betiğini ve `figs.json`'u `<pdf klasörü>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, PDF ↔ kitap sayfa eşlemesini ve kapsanan bölümleri açıkça yaz ve işin bittiğini söyle. Sonuna şu öneriyi ekle: tekrar notu ve formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar onlara da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi, sonra sıradaki belgeyi istemesi önerilir.
+6. **Sayfa düzenini gözle kontrol et**: ilk derlemede `AÇ` satırındaki **bütün** sayfaları, sonraki derlemelerde yalnız yeni `AÇ` listesini aç; görülmüş sayfayı yeniden açma, düzen akışı değiştiyse sayfa dengesi için `rv_ov.png` yeterli. Kontrol listesi: içindekiler tek sayfa mı; şekil kendi paragrafıyla aynı sayfada mı; sayfa sonunda yalnız başlık/yarım kutu var mı; büyük boşluk var mı; denklemlerde kutucuk (eksik glif) var mı; bir denklem grubu iki sayfaya bölünmüş mü; sayfa başında önceki paragraftan kalmış 1–2 satırlık artık var mı. Sorun görürsen DUZEN.md.
+7. **Kopyala ve raporla**: PDF'leri kitabın klasörüne (`dirname $B`, ya da kullanıcının söylediği yere) kopyala, `ls` ile doğrula. İçerik betiğini ve `figs.json`'u `<pdf klasörü>/.kaynak/<PDF adı>/` içine de kopyala; sonradan düzeltme istenirse iş baştan yapılmaz. Son mesajda yolları, sayfa sayılarını, PDF ↔ kitap sayfa eşlemesini, kapsanan bölümleri, dışarıda bırakılanları gerekçesiyle ve kaynakta yazmayan, senin eklediğin kabul ve yorumları açıkça yaz ve işin bittiğini söyle. Sonuna şu öneriyi ekle: tekrar notu ve formül kağıdı bu notun içerik betiğinden üretilecek, kaçan hata ve ayrıntılar onlara da geçebilir; bu yüzden önce notu inceleyip düzeltmeleri bildirmesi, sonra sıradaki belgeyi istemesi önerilir.
+
+## Teslim şartları
+
+Hepsi sağlanmadan belge teslim edilmez ve "bitti" denmez:
+
+- [ ] `denetle.py` son çalıştırmada **ENGEL** satırı vermedi: üslup `KESİN` listesi, denklem kapsamında `YOK` ve `YALNIZ ANILMIŞ`, belge içi `BELGEDE YALNIZ ANILMIŞ`, şekil atfında `ANILAN AMA YOK` boş; `TAŞMA` yok.
+- [ ] Denklem kapsamı çıkış kodu 2 verdiyse ya da kaynağın denklemleri numarasızsa (slayt, görsel denklem) araç güvence vermez: ana kaynağın her sayfası görüntü olarak açıldı ve her denklem betikle tek tek karşılaştırıldı.
+- [ ] Dışarıda bırakılan her denklem ve şekil kullanıcının kapsam dışı bıraktığı bir alt bölümdendir ve gerekçesi dosyada yazılıdır.
+- [ ] Şekil temas sayfalarının hepsi açıldı ve temiz (ya da şekiller envanterden geldi).
+- [ ] İlk derlemede bütün sayfa görselleri, sonrakilerde her `AÇ` listesi açıldı. Görüntü aracının sonucu boş ya da `media removed` dönerse o görsel görülmemiş sayılır: yeniden aç; görmediğin sayfa için "temiz" deme.
+- [ ] İçindekiler tek sayfa.
 
 ## notlib API (`from notlib import *`)
 
@@ -108,31 +108,23 @@ d.h3('Isıl Direnç'); d.p('paragraf', 'paragraf2'); d.bl(['madde', ...], num=Fa
 d.box('tanim' | 'onemli' | 'ornek' | 'ozet' | 'ipucu' | 'terim', 'metin' veya [liste], title=None)
 d.eq('q = − k dT/dx', '(2.1)')        # numaralı denklem; kutu içinde d.beq(...)
 d.fig('2.1', 'Türkçe açıklama', terms='Heat flux = ısı akısı; ...', scale=0.85, maxh=300)
+d.cozum(...)                          # tam çözümlü örnek, kalıbı USLUP.md'de; çizimi d.kf(no, açıklama, h=…)
 d.table([[başlık...], [satır...]], widths=[0.2, 0.8], title='Tablo 2.1 – ...')
-d.begin_keep(); ...; d.end_keep()       # aradakileri aynı sayfada tut (ör. soru listesi)
-d.make()                                # multiBuild: içindekiler sayfa numaraları için 2 geçiş
+g = d.grup_bas(); ...; d.grup_son(g)  # formül + şekil bütününü aynı sayfada tut
+d.begin_keep(); ...; d.end_keep()     # aradakileri aynı sayfada tut (ör. soru listesi)
+d.make()                              # multiBuild (içindekiler için 2 geçiş) + <work>/kayit.json (üslup denetimi)
 ```
 
 Metin reportlab paragraf işaretlemesi kullanır: `<b>`, `<i>`, `<sub>`, `<super>`, `<br/>`, `<font color=...>`. `&`, `<` için `&amp;`, `&lt;`.
 
 ## Sık hatalar
 
+Şekil kesimiyle ilgili belirtiler SEKIL.md'de, sayfa düzeni ve denklem dizgisiyle ilgililer DUZEN.md'dedir.
+
 | Belirti | Neden / Çözüm |
 |---|---|
 | `ModuleNotFoundError` / `python` bulunamadı | Sistem Python'u kullanılmış; Ortam bölümündeki kurulum betiğinin verdiği `$PY` ile çalıştır |
 | `UnicodeEncodeError` konsola yazarken | `PYTHONIOENCODING=utf-8` |
-| Yanlış sayfalar okundu | Kullanıcı numarası PDF numarasıdır; betikler 1 tabanlı alır, indeks = no − 1. Bölüm aralıkları book_info.py'den (zaten PDF numarası) |
-| Hiç şekil bulunmadı | Başlık biçimi farklı (`--cap`) ya da başlık kalın değil (`--cap-font`); book_info.py'nin yazı tipi çıktısına bak |
-| Şekil etiketleri kesimin dışında | Etiket yazı tipi `--label-font`'a uymuyor; `auto` kullan ya da doğru yazı tipini ver, uzun etiketler için `--label-len` artır |
-| Şekil yanlış numarayla kesildi | Metin içi "Fig. 5.7" atfı başlık sanıldı; `--cap-font` kalın yazı tipini eşlemeli |
-| `BİLGİ: n denklem tek satıra sığsın diye küçültüldü` / `… anlamlı yerinden bölündü` | Normal, bir şey yapma. Sığmayan denklem önce %3 adımlarla en çok %75'e küçülür (`EQ_MIN_ORAN`); yine sığmazsa önce bileşik ayraçlardan (`⇒`, virgül, noktalı virgül), olmazsa parantez dışındaki `=`, `+`, `−`'den bölünür. Kısa parça bütünün en az dörtte biridir (tek terim alt satıra düşmez), satırlar aynı boyutta (en az %90) yazılır, numara son satırdadır. Bölmeyi elle yapmak gerekmez |
-| `UYARI denklem … bölünmeye çalışıldığı hâlde sığmadı` / `ELLE DÜZENLENECEK DENKLEMLER` | Uzun kısım tek bir parantezin içinde: uzun parçaya ad ver (ör. paydayı `Δ(s) = …` diye ayrı satırda tanımla, denklemde `…/Δ(s)` yaz) ya da `d.eq` satırlarına kendin böl (ikincinin numarası `''`) |
-| Denklemde/metinde boş kutu | Carlito'da olmayan glif (∛ ∝ ≃ vb.). `notlib.Paragraph` bunları otomatik olarak matematik ya da yedek yazı tipine çevirir; hiçbirinde yoksa `UYARI` basar, simgeyi değiştir |
-| İçindekiler iki sayfaya taştı | İçerik betiğinde `ss['toc1']`/`ss['toc2']` fontSize/leading'i küçült (ör. 9.6/11 ve 8.4/9.4; satır dolgusu notlib'de zaten 1 pt) veya küçük alt başlıkları `h2` yerine `h3` yap (h3 içindekilere girmez). İki bölümlük uzun notlarda ~55 girdi sınırdır |
-| İçindekilerde sayfa numaraları yanlış/boş | `d.make()` (multiBuild) kullan, `build` değil; içerik betiğinde `build` adlı değişken/fonksiyon tanımlama |
-| Başlık sayfa sonunda yalnız, şekli/tablosu sonraki sayfada | Artık otomatik (`fig`/`table`/`end_keep` önceki başlıkları kendi bloğuna alır); hâlâ oluyorsa araya başka öğe girmiştir → `h1(..., need=...)` / `h2(..., need=...)` büyüt |
-| Uzun tablo yüzünden sayfa altında büyük boşluk | Artık otomatik: sayfanın 1/3'ünden uzun tablolar satır arasından bölünür, başlık satırı tekrar eder |
-| Şekil sığmadı, sayfa altı boş kaldı | Artık otomatik: açıklaması alttaki şekilde önce açıklama yana alınır; olmazsa şekil %80'e kadar küçülür (gerekirse yan açıklamayla); o da olmazsa ardındaki paragraf, denklem, kutu ve çözümlü örnek boşluğa akar, şekil sonraki sayfanın başına geçer. Başlıklı şekilde ve şekilden hemen sonra başlık geliyorsa metin akmaz (konu dışına taşmasın): orada `maxh` küçült. Derleme sonunda `BİLGİ: sayfaya sığmayan şekiller: …` hangi yolun kullanıldığını sayar |
-| Bir paragraf çevresinden biraz küçük yazılmış | `notlib`, genişliğe sığmayan bölünmez satır kalırsa yalnız o paragrafı en çok 1,5 pt küçültür ve `BİLGİ: n paragraf ... küçültüldü` basar; çoksa paragraftaki uzun bölünmez parçayı (uzun formül, birimli sayı zinciri) böl |
-| Şekil sayfa sonunda metninden koptu | `fig(..., keep=...)` ya da `begin_keep/end_keep` ile paragrafla birlikte tut; `maxh` küçült |
-| Kesimde gövde metni / denklem görünüyor | `over.json` ile elle kesim ver (otomatik tespit her kitapta birkaç şekilde bunu yapar; temas sayfalarını atlama). Şekil başlıkları otomatik silinir |
+| Yanlış sayfalar okundu | Kullanıcı numarası PDF numarasıdır; betikler 1 tabanlı alır, indeks = no − 1. Bölüm aralıkları envanter.py / book_info.py'den (zaten PDF numarası) |
+| `kayit.json yok` (üslup denetimi) | Not eski bir notlib ile ya da `d.make()` çağrılmadan derlenmiş; güncel `$SK/scripts` ile yeniden derle |
+| Üslup `KESİN` satırı yanlış görünüyor | Alıntıyı içerik betiğinde arat. Kural Türkçede gerçekten doğru bir yazımı yakalıyorsa (ör. "bu şekilde" anlamında bir cümle) cümleyi yeniden kur; denetçiyi devre dışı bırakma, raporda kullanıcıya bildir |

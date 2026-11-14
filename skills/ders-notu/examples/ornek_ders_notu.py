@@ -49,6 +49,9 @@ d.p('Isı üç yolla aktarılır: katı içinde ya da birbirine değen cisimler 
 d.box('onemli', ['Bir duvardan geçen ısıyı belirleyen <b>dört büyüklük</b> vardır ve notun geri kalanı bunların etrafında şekillenir:',
                  '1) İki yüz arasındaki <b>sıcaklık farkı</b>,<br/>2) Duvarın <b>alanı</b>,<br/>3) Duvarın <b>kalınlığı</b>,<br/>4) Malzemenin <b>ısıl iletkenliği</b>.'],
       title='İLETİMİN DÖRT BELİRLEYİCİSİ')
+d.box('ozet', ['• Sıcaklık farkı olan her yerde ısı sıcaktan soğuğa akar.',
+               '• Üç aktarım yolu vardır: iletim, taşınım, ışınım; bu not iletimi anlatır.'],
+      title='BÖLÜM 1 ÖZETİ')
 
 # =====================================================================
 d.h1('2. Fourier Yasası')

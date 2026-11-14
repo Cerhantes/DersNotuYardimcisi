@@ -53,6 +53,7 @@ jobs:
           PYTHONPATH=skills/soru-kitapcigi/scripts "$PY" -W ignore skills/soru-kitapcigi/examples/ornek_soru_kitapcigi.py out/sk.pdf out/sk
           cp skills/soru-kitapcigi/examples/ornek_sorular.json out/sk/sorular.json
           "$PY" -W ignore skills/soru-kitapcigi/scripts/denetim.py out/sk.pdf out/sk | grep 'DENETİM TAMAM'
+          "$PY" -W ignore skills/ders-notu/scripts/denetle.py out/dn.pdf out/dn | grep 'OTOMATİK DENETİMLER TEMİZ'
           test -s out/dn.pdf && test -s out/tn.pdf && test -s out/fk.pdf && test -s out/sk.pdf
 
       - name: Envanter ve sayfa farkı
