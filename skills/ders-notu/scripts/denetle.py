@@ -7,7 +7,7 @@ Kullanım:
     python -W ignore denetle.py <out.pdf> <work>          (kaynaksız: üslup, belge içi denklem, şekil atfı, sayfa farkı)
 
 Çalışanlar:
-  0. <work>/derleme.json  notlib'in derleme uyarıları (sığmayan denklem, yazı tipinde olmayan simge)
+  0. <work>/derleme.json  notlib'in derleme uyarıları (sığmayan denklem, yazı tipinde olmayan simge, şeklin bıraktığı boşluk)
   1. uslup_denetim.py   KESİN listesi boşalmalı (--kaynak varsa şekil etiketleri de)
   2. denklem_kapsam.py  her aralık için kaynakla (YOK / YALNIZ ANILMIŞ boşalmalı) + belge içi kip
   3. sekil_atif.py      ANILAN AMA YOK boşalmalı
@@ -58,7 +58,16 @@ def main(argv=None):
             engel.append('%d denklem sığmıyor (DUZEN.md: uzun parçaya ad ver ya da elle böl)' % len(dr['elle_denklem']))
         if dr.get('eksik_glif'):
             engel.append('yazı tipinde olmayan simge: %s (simgeyi değiştir)' % ' '.join(dr['eksik_glif']))
-        if not dr.get('elle_denklem') and not dr.get('eksik_glif'):
+        esik = dr.get('bosluk_engel_cm', 6.0)
+        buyuk = []
+        for no, sayfa, b in dr.get('bosluk', []):
+            print('BOŞLUK: s.%d altında %.1f cm (Şekil %s sığmadı, sonraki sayfaya geçti)%s'
+                  % (sayfa, b, no, '' if b >= esik else ' — küçük, bilgi'))
+            if b >= esik:
+                buyuk.append('s.%d %.1f cm (Şekil %s)' % (sayfa, b, no))
+        if buyuk:
+            engel.append('sayfa altında büyük boşluk: %s (DUZEN.md › Büyük boşluk)' % ', '.join(buyuk))
+        if not dr.get('elle_denklem') and not dr.get('eksik_glif') and not dr.get('bosluk'):
             print('temiz')
 
     arg = [a.work] + (['--kaynak', a.kaynak] if a.kaynak else [])

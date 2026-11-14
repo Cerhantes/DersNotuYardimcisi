@@ -219,6 +219,7 @@ class Doc(BaseDocTemplate):
         self.title_, self.subtitle = title, subtitle
         self._hn = 0
         self._fig_say = [0, 0]   # [açıklaması altta, yanda]
+        self._fig_meta = {}      # şekil no -> (açıklama, en, boy): yan yerleşim için
         self._eq_kucuk = []       # tek satıra sığsın diye küçültülen denklemlerin oranları
         self._eq_bolunen = []     # bölünen denklemlerin satır sayıları
         self._eq_elle = []        # küçültülüp bölünemeyen (elle düzenlenecek) denklemler
@@ -270,6 +271,8 @@ class Doc(BaseDocTemplate):
         self._hn = 0
         self._ertelenen = set()
         self._sekil_sonuc = {}
+        self._bosluk = []        # (şekil no, sayfa, boşluk pt): sığmayıp sonraki sayfaya geçen şeklin bıraktığı boşluk
+        self._yan_yana = set()   # önündeki denklemlerle yan yana alınan şekiller
 
     def afterFlowable(self, fl):
         if isinstance(fl, _P) and getattr(fl, '_toc', None) is not None:
@@ -461,6 +464,7 @@ class Doc(BaseDocTemplate):
                        colWidths=[nw, FW - 2 * nw, nw])
             tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 2),
                                     ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+            tb._eqsrc = (x, n if son else '')   # yan yerleşimde dar sütuna yeniden dizmek için
             self._denklem_ekle(tb, x, n if son else '')
 
     @staticmethod
@@ -613,6 +617,7 @@ class Doc(BaseDocTemplate):
         if h > maxh: h = maxh; w = h * wpt / hpt
         capt = '<b><font color="%s">Şekil %s</font></b> – %s' % (self.ana, num, cap)
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
+        self._fig_meta[num] = (capt, wpt, hpt, h)
         heads = self._heads()
 
         def yap(oran=1.0, yan=False):
@@ -635,7 +640,8 @@ class Doc(BaseDocTemplate):
             if keep:  # keep figure together with some preceding/following paragraph text
                 flow = keep(flow)
             kt = KeepTogether(heads + list(flow))
-            kt._sekil = (yap, h, bool(heads), yan0)   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
+            kt._sekil = (yap, h, bool(heads), yan0)
+            kt._no = num   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
             return kt
 
         # Açıklama yana sığıyorsa (yanda en az YAN_MIN sütun kalır ve açıklama şeklin boyunu aşmaz) yana yazılır
@@ -672,6 +678,9 @@ class Doc(BaseDocTemplate):
 
     def filterFlowables(self, flowables):
         f = flowables[0] if flowables else None
+        if f is not None and len(flowables) > 1 and not getattr(f, '_sekil', None) and getattr(flowables[1], '_sekil', None):
+            if self._yan_yana_akista(flowables):
+                return
         sk = getattr(f, '_sekil', None)
         if not sk or id(f) in self._ertelenen:
             return
@@ -707,6 +716,7 @@ class Doc(BaseDocTemplate):
         self._ertelenen.add(id(f))
         if basli:      # şeklin başlığı var: arkasındaki metin başlığın altına ait, öne alınmaz
             self._sonuc('sonraki sayfa')
+            self._bosluk.append((getattr(f, '_no', None), self.page, bos))
             return
         # 2) sonraki metni boşluğa akıt, şekil sonraki sayfanın başına geçsin
         kalan, i = bos, 1
@@ -725,6 +735,8 @@ class Doc(BaseDocTemplate):
         if i > 1:
             flowables[:i] = flowables[1:i] + [f]
         self._sonuc('metin aktı' if i > 1 else 'sonraki sayfa')
+        if i == 1:     # akacak metin yok (ardında başlık var): boşluk kalır
+            self._bosluk.append((getattr(f, '_no', None), self.page, bos))
 
     def _heads(self):
         """story sonundaki başlıkları (keepWithNext'li paragraflar) çıkarıp döndürür."""
@@ -790,10 +802,95 @@ class Doc(BaseDocTemplate):
         if need: self.story.append(CondPageBreak(need))
         self.keep(k)
 
+    # ---------- sığmayan şekil: önündeki denklemlerle yan yana ----------
+    YAN_YANA_ORAN = 0.55      # yan yerleşimde şeklin genişliği (FW'nin oranı)
+    YAN_YANA_SOL_MIN = 6 * cm  # sol sütun bundan dar olmaz
+    BOSLUK_ENGEL = 6 * cm     # bundan büyük boşluk denetle.py'de ENGEL
+
+    def _dar_ogeler(self, g, colw):
+        """g'nin (denklem zinciri ya da paragraf) colw genişliğe yeniden dizilmiş öğeleri; olmuyorsa None."""
+        out = []
+        for e in (g._content if isinstance(g, KeepTogether) else [g]):
+            if hasattr(e, '_eqsrc'):
+                x, n = e._eqsrc
+                nw = 1.6 * cm if n else 0
+                w = colw - nw
+                oran = self._oran(x, ss['eq'], w - 6)
+                if oran is None:
+                    return None
+                hucre = [Paragraph(x, self._stil(ss['eq'], oran))] + ([Paragraph(n, ss['eqn'])] if n else [])
+                t = Table([hucre], colWidths=[w] + ([nw] if n else []))
+                t.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                       ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('TOPPADDING', (0, 0), (-1, -1), 2),
+                                       ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+                out.append(t)
+            elif isinstance(e, _P) and not self._baslik_mi(e):
+                out.append(e)
+            elif isinstance(e, Spacer):
+                continue
+            else:
+                return None   # başlık, kutu, tablo: dar sütuna alınmaz
+        return out
+
+    def _yan_yana_blok(self, g, no, W):
+        """g (denklem zinciri ya da paragraf) solda, Şekil no sağda (FW·YAN_YANA_ORAN genişlikte, açıklaması altında)
+        tek blok; olmuyorsa None."""
+        capt, wpt, hpt, h0 = self._fig_meta[no]
+        figw = W * self.YAN_YANA_ORAN
+        figh = min(figw * hpt / wpt, h0)
+        figw = figh * wpt / hpt
+        colw = W - figw - 14
+        if colw < self.YAN_YANA_SOL_MIN:
+            return None
+        sol = self._dar_ogeler(g, colw)
+        if not sol:
+            return None
+        img = Image(os.path.join(self.work, 'fig', no + '.png'), width=figw, height=figh)
+        tb = Table([[sol, [img, Spacer(1, 3), Paragraph(capt, ss['cap'])]]], colWidths=[colw + 14, figw])
+        tb.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 0), ('RIGHTPADDING', (0, 0), (0, 0), 14),
+                                ('RIGHTPADDING', (1, 0), (1, 0), 0), ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                                ('LINEBELOW', (1, 0), (1, 0), 0.5, colors.HexColor('#BBBBBB'))]))
+        return tb
+
+    def _yan_yana_akista(self, flowables):
+        """flowables[0] bir denklem zinciri ya da paragraf, flowables[1] bir şekil. Şekil bu sayfaya (en çok
+        SEKIL_MIN_OLCEK'e küçülse de) sığmayacak ve ardında boşluğu dolduracak metin yoksa (başlık geliyorsa) ikisini
+        yan yana tek bloğa çevirir: sayfa altında boşluk kalmaz, şekil anlattığı denklemlerin yanında durur."""
+        f, fig = flowables[0], flowables[1]
+        yap, h, basli, yan0 = fig._sekil
+        no = getattr(fig, '_no', None)
+        if basli or yap is None or no not in self._fig_meta:
+            return False
+        if not (getattr(f, '_denklem', False) or (isinstance(f, _P) and not self._baslik_mi(f))):
+            return False
+        if len(flowables) > 2 and self._akabilir(flowables[2]):
+            return False   # ardından metin geliyor: mevcut yol onu boşluğa akıtır
+        fr = self.frame
+        if getattr(fr, '_atTop', 1):
+            return False
+        bos, W = fr._y - fr._y1p, fr._aW
+        kalan = bos - self._yukseklik(f, W)
+        if kalan < 0 or kalan < self.SEKIL_BOSLUK:
+            return False   # blok zaten sonraki sayfaya geçiyor ya da kalan boşluk küçük
+        adaylar = [yap(self.SEKIL_MIN_OLCEK, False)] + ([yap(self.SEKIL_MIN_OLCEK, True)] if not yan0 else [])
+        if any(x is not None and self._yukseklik(x, W) <= kalan for x in adaylar):
+            return False   # şekil küçültülerek sığar: mevcut yol halleder
+        blok = self._yan_yana_blok(f, no, W)
+        if blok is None or self._yukseklik(blok, W) > bos + 0.5:
+            return False
+        flowables[0:2] = [blok]
+        self._yan_yana.add(no)
+        return True
+
     def make(self):
         with open(os.path.join(self.work, 'kayit.json'), 'w', encoding='utf-8') as f:
             json.dump(self.kayit, f, ensure_ascii=False, indent=0)
         self.multiBuild(self.story)
+        if self._yan_yana:
+            print('BİLGİ: %d şekil sayfaya sığmadığı için önündeki denklemlerle yan yana alındı: %s'
+                  % (len(self._yan_yana), ', '.join(sorted(self._yan_yana))))
         if sum(self._fig_say):
             print('BİLGİ: %d şeklin açıklaması yanda, %d şeklinki altta' % (self._fig_say[1], self._fig_say[0]))
         if self._sekil_sonuc:
@@ -809,4 +906,9 @@ class Doc(BaseDocTemplate):
             print('ELLE DÜZENLENECEK DENKLEMLER (%d): ' % len(self._eq_elle) + ' | '.join(self._eq_elle))
         # denetle.py derleme çıktısını görmez: düzeltilmesi gerekenler dosyaya da yazılır
         with open(os.path.join(self.work, 'derleme.json'), 'w', encoding='utf-8') as f:
-            json.dump({'elle_denklem': self._eq_elle, 'eksik_glif': sorted(_missing)}, f, ensure_ascii=False)
+            json.dump({'elle_denklem': self._eq_elle, 'eksik_glif': sorted(_missing),
+                       'bosluk': [[no, sayfa, round(b / cm, 1)] for no, sayfa, b in self._bosluk],
+                       'bosluk_engel_cm': round(self.BOSLUK_ENGEL / cm, 1)}, f, ensure_ascii=False)
+        for no, sayfa, b in self._bosluk:
+            print('%s: s.%d altında %.1f cm boşluk (Şekil %s sığmadı, sonraki sayfaya geçti)'
+                  % ('UYARI' if b >= self.BOSLUK_ENGEL else 'BİLGİ', sayfa, b / cm, no))

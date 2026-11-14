@@ -23,7 +23,7 @@ Bir ders kitabı PDF'inin verilen sayfa aralığından, konuyu **sıfırdan öğ
 |---|---|
 | `$SK/USLUP.md` + `$SK/examples/ornek_ders_notu.py` | **Her işte**, içerik betiğini yazmadan önce, baştan sona |
 | `$SK/SEKIL.md` | `hazirla.py` `UYARI`/`ŞEKİL BAŞLIĞI BULUNAMADI` dedi, temas sayfasında kötü kesim gördün, `KENAR` satırı var ya da bir şekli elle kesmen gerekiyor |
-| `$SK/DUZEN.md` | Derleme `UYARI`/`ELLE DÜZENLENECEK` bastı, `denetle.py` `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?` dedi, sayfa görselinde düzen sorunu gördün ya da renk seçeceksin |
+| `$SK/DUZEN.md` | Derleme `UYARI`/`ELLE DÜZENLENECEK` bastı, `denetle.py` `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?`/`BOŞLUK` dedi, sayfa görselinde düzen sorunu gördün ya da renk seçeceksin |
 
 Tetikleyici durum oluştuğunda dosyayı açmadan düzeltmeye girişme: oradaki yol çoğu zaman kısadır ve tahminle yapılan düzeltme yeni sorun açar.
 
@@ -77,7 +77,7 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 5. **Derle ve denetle** (her derlemeden sonra ikisi birlikte)
    - `PYTHONPATH=$SK/scripts $PY -W ignore <work>/<konu>.py <work>/out.pdf <work>`
    - `$PY -W ignore $SK/scripts/denetle.py <work>/out.pdf <work> --kaynak $B --aralik <ilk-son> [...]` → üslup, denklem kapsamı (kaynakla ve belge içi), şekil atfı, sayfa farkı; her aracın çıktısı kendi başlığı altında, sonda `ENGEL` / `GÖZLE` / `AÇ` satırları.
-   - `ENGEL` satırlarını gider, yeniden derle, yeniden denetle. `ÖNERİ` satırlarına bak, yerindeyse düzelt. `ANILAN AMA YOK`: ya şekli ekle ya da atfı kaldır/yeniden yaz (`3-13a` gibi alt şekil atfı `3-13`'e sayılır). `VAR AMA ANILMAMIŞ` bilgi içindir: şekle metinde numarayla atıf ekle. Derleme `UYARI` bastıysa ya da `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?` varsa **DUZEN.md'yi oku**.
+   - `ENGEL` satırlarını gider, yeniden derle, yeniden denetle. `ÖNERİ` satırlarına bak, yerindeyse düzelt. `ANILAN AMA YOK`: ya şekli ekle ya da atfı kaldır/yeniden yaz (`3-13a` gibi alt şekil atfı `3-13`'e sayılır). `VAR AMA ANILMAMIŞ` bilgi içindir: şekle metinde numarayla atıf ekle. Derleme `UYARI` bastıysa ya da `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?`/`BOŞLUK` varsa **DUZEN.md'yi oku**.
    - **Ölçü, o işteki ana kaynaktır.** Kullanıcı hoca notlarını ana kaynak dediyse kitap değil onlar karşılaştırılır: `--kaynak` o dosyadır; birden çok dosyaysa her biri için `$SK/../../ortak/denklem_kapsam.py <kaynak> <work>/out.pdf --from <ilk> --to <son>` ayrıca çalıştırılır.
    - Yalnız kullanıcının kapsam dışı bıraktığı alt bölümler dışarıda kalır: denklemler `--disarida <dosya>`, şekiller `--haric <dosya>` ile, her satırda gerekçesiyle; raporda yazılır. Önemsiz görmek gerekçe değildir.
    - **Belgeden bir şey çıkarınca ona atıf yapan yerleri de güncelle:** düzeltme/hata kutusu, kapak (kaynak listesi, sayfa sayısı), içindekiler, çapraz atıflar. Çıkan içeriğe ait madde ya silinir ya da yeni yerini söyler.
@@ -88,7 +88,7 @@ Skill, Claude Code hangi klasörde açılmış olursa olsun aynı çalışır; �
 
 Hepsi sağlanmadan belge teslim edilmez ve "bitti" denmez:
 
-- [ ] `denetle.py` son çalıştırmada **ENGEL** satırı vermedi: üslup `KESİN` listesi, denklem kapsamında `YOK` ve `YALNIZ ANILMIŞ`, belge içi `BELGEDE YALNIZ ANILMIŞ`, şekil atfında `ANILAN AMA YOK` boş; `TAŞMA` yok.
+- [ ] `denetle.py` son çalıştırmada **ENGEL** satırı vermedi: üslup `KESİN` listesi, denklem kapsamında `YOK` ve `YALNIZ ANILMIŞ`, belge içi `BELGEDE YALNIZ ANILMIŞ`, şekil atfında `ANILAN AMA YOK` boş; `TAŞMA` ve 6 cm'den büyük sayfa altı boşluğu yok.
 - [ ] Denklem kapsamı çıkış kodu 2 verdiyse ya da kaynağın denklemleri numarasızsa (slayt, görsel denklem) araç güvence vermez: ana kaynağın her sayfası görüntü olarak açıldı ve her denklem betikle tek tek karşılaştırıldı.
 - [ ] Dışarıda bırakılan her denklem ve şekil kullanıcının kapsam dışı bıraktığı bir alt bölümdendir ve gerekçesi dosyada yazılıdır.
 - [ ] Şekil temas sayfalarının hepsi açıldı ve temiz (ya da şekiller envanterden geldi).
