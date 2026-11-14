@@ -1,5 +1,5 @@
 """Üslup denetimi: kurala aykırı yazımı yakalar, Türkçede doğru olan yazımı yakalamaz."""
-import json, os, shutil, sys, tempfile, unittest
+import contextlib, io, json, os, shutil, sys, tempfile, unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KOK, 'skills', 'ders-notu', 'scripts'))
@@ -190,12 +190,8 @@ class NotlibKaydi(unittest.TestCase):
         d.fig('1.1', 'şekil', terms='A = a')
         d.cozum('Ö', 'S', d.kf('1.1', 'ç', h=40), ('v', 'i'), [], [('adım', ['z = 2'])], ['z = 2'])
         d.box('ozet', ['• ö'])
-        with open(os.devnull, 'w') as f:
-            so, sys.stdout = sys.stdout, f
-            try:
-                d.make()
-            finally:
-                sys.stdout = so
+        with contextlib.redirect_stdout(io.StringIO()):   # devnull Windows'ta cp1252 açılır, 'İ' yazılamaz
+            d.make()
         kayit = json.load(open(os.path.join(work, 'kayit.json'), encoding='utf-8'))
         self.assertEqual([o['t'] for o in kayit], ['kapak', 'box', 'h1', 'p', 'eq', 'box', 'fig', 'cozum', 'box'])
         self.assertEqual(kayit[5]['icerik'][1], {'t': 'eq', 'metin': 'y = 0.5', 'no': ''})
