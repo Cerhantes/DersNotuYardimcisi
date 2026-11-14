@@ -205,6 +205,13 @@ def main(argv=None):
         print('  ' + n)
         sorun |= n.startswith(('UYARI', 'ŞEKİL BAŞLIĞI'))
     if not bulundu:
+        sys.path.insert(0, BURASI)
+        import slayt_sekil
+        slayt = sum(len(slayt_sekil.slaytlar(d[n - 1])) > 1 or d[n - 1].get_image_info() != [] for n in sayfa_listesi(araliklar))
+        if slayt:
+            print('NUMARASIZ BELGE (slayt / ders notu): şekiller resim parçalarından toplanır, her parça ayrı kesilip birleştirilir:')
+            print('  %s -W ignore %s %s %s %s' % ('$PY', os.path.join(BURASI, 'slayt_sekil.py'), a.kaynak, a.work, ' '.join(a.araliklar)))
+            print('  Ardından SEKIL.md › Numarasız slayt belgeleri.')
         return 1
     bayrak = [str(x) for kv in secim.items() for x in kv]
     print('  detect_figs.py ' + (' '.join(('"%s"' % x if ' ' in x or '\\' in x else x) for x in bayrak) or '(varsayılan bayraklar)'))

@@ -13,7 +13,7 @@ etiketi olan şeklin terim satırı denetlenir.
 Her bulgu yerini söyler: bölüm › alt bölüm › öğe ve metinden kısa bir alıntı (içerik betiğinde aratılabilir).
 Çıkış kodu: KESİN yoksa 0, varsa 1.
 """
-import argparse, json, os, re, sys
+import argparse, collections, json, os, re, sys
 
 # ---------------------------------------------------------------- metin yardımcıları
 TR = 'a-zçğıöşüâîû'
@@ -172,11 +172,22 @@ def figler(kayit):
 
 
 # ---------------------------------------------------------------- kaynaktaki şekil etiketleri
-def kaynak_etiketleri(kaynak, figs):
-    """{şekil no: [etiket kelimeleri]} — kesim alanındaki yazılı etiketler (başlık bloğu hariç)."""
+def kaynak_etiketleri(kaynak, figs, parcalar=None):
+    """{şekil no: [etiket kelimeleri]} — kesim alanındaki yazılı etiketler (başlık bloğu hariç).
+    parcalar (slayt_sekil.py'nin parcalar.json'u) verilirse yalnız kesilen parçaların içindeki kelimeler okunur:
+    birleşik kutunun parçalar arası boşluğundaki slayt yazısı şekle girmez."""
     import pymupdf as fitz
     d = fitz.open(kaynak)
     bas = re.compile(r'^\s*(FIGURE|Figure|Fig\.|FIG\.|ŞEKİL|Şekil)\s*\d')
+    # Altlık ve üst bilgi (ör. "Makina Elemanları I") şeklin kutusuna taşabilir: şekillerin bulunduğu sayfaların
+    # en az %60'ında geçen kelime etiket sayılmaz.
+    sayfa_no = sorted({pg for pg, _ in figs.values() if 0 <= pg < d.page_count})
+    tekrar = set()
+    if len(sayfa_no) >= 3:
+        say = collections.Counter()
+        for pg in sayfa_no:
+            say.update({w[4].lower() for w in d[pg].get_text('words')})
+        tekrar = {w for w, c in say.items() if c >= 0.6 * len(sayfa_no)}
     out = {}
     for no, (pg, rc) in figs.items():
         if not 0 <= pg < d.page_count:
@@ -184,12 +195,20 @@ def kaynak_etiketleri(kaynak, figs):
         p = d[pg]
         r = fitz.Rect(rc)
         kel = []
+        if parcalar and no in parcalar:
+            kutular = [fitz.Rect(k) for k in parcalar[no][1]]
+            for w in p.get_text('words'):
+                m = fitz.Point((w[0] + w[2]) / 2, (w[1] + w[3]) / 2)
+                if any(k.contains(m) for k in kutular) and w[4].lower() not in tekrar:
+                    kel.append(w[4])
+            out[no] = kel
+            continue
         for b in p.get_text('dict', clip=r)['blocks']:
             satirlar = [''.join(s['text'] for s in l['spans']).strip() for l in b.get('lines', [])]
             if satirlar and bas.match(satirlar[0]):
                 continue   # şekil başlığı (kesimden zaten silinir)
             for s in satirlar:
-                kel += s.split()
+                kel += [w for w in s.split() if w.lower() not in tekrar]
         out[no] = kel
     d.close()
     return out
@@ -323,7 +342,9 @@ def main(argv=None):
     figs_yol = os.path.join(a.work, 'figs.json')
     if a.kaynak and os.path.exists(figs_yol):
         with open(figs_yol, encoding='utf-8') as f:
-            etiketler = kaynak_etiketleri(a.kaynak, json.load(f))
+            pyol = os.path.join(a.work, 'parcalar.json')
+            parcalar = json.load(open(pyol, encoding='utf-8')) if os.path.exists(pyol) else None
+            etiketler = kaynak_etiketleri(a.kaynak, json.load(f), parcalar)
     kesin, oneri = denetle(kayit, etiketler)
     print('ÜSLUP DENETİMİ: %d KESİN, %d ÖNERİ%s' % (len(kesin), len(oneri),
           '' if etiketler is not None else ' (şekil etiketleri denetlenmedi: --kaynak verilmedi)'))

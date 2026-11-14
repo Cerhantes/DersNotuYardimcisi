@@ -1,8 +1,25 @@
 # Şekil kesimi: bayraklar, düzeltme, sorun giderme
 
-Bu dosyayı **şu durumlarda** baştan sona oku: `hazirla.py` `UYARI` ya da `ŞEKİL BAŞLIĞI BULUNAMADI` dedi, temas sayfasında
+Bu dosyayı **şu durumlarda** baştan sona oku: `hazirla.py` `UYARI`, `ŞEKİL BAŞLIĞI BULUNAMADI` ya da `NUMARASIZ BELGE` dedi, temas sayfasında
 yanlış, eksik ya da kirli bir kesim gördün, `sekil_kenar.py` `KENAR` satırı verdi veya bir şekli elle yeniden kesmen gerekiyor.
 Temas sayfaları temizse ve uyarı yoksa okumana gerek yok.
+
+## Numarasız slayt belgeleri
+
+Ders slaytlarında şekil başlığı ve numarası yoktur; bir şekil çoğu zaman gri slayt zemini üstüne ayrı ayrı yerleştirilmiş
+birkaç resimden oluşur. Bunları kapsayan **tek bir dikdörtgen kesme**: parçaların arasındaki gri zemin ve slayt yazıları da
+kesime girer. Bunun yerine her parça kendi sınırından kesilir ve beyaz zeminde slayttaki yerine konur:
+
+1. `$PY -W ignore $SK/scripts/slayt_sekil.py $B <work> <ilk-son> [...]` → her slayt için aday şekil (`<no>` = PDF sayfası +
+   `a`/`b`: sayfanın birinci/ikinci slaytı), parça listesi `<work>/parcalar.json`, temas sayfaları `sheet_*.png`.
+   Tekrar eden süsler (altıgenler, logo) ve çok küçük resimler kendiliğinden atılır.
+2. Temas sayfalarının hepsini aç. `parcalar.json`'da istenmeyen slaytı sil (süs fotoğrafı, yalnız metin), slayttaki istenmeyen
+   parçayı listeden çıkar; resim olmayan (vektör) bir çizim kaçtıysa kutusunu `[x0, y0, x1, y1]` (pt) olarak ekle.
+3. `$PY -W ignore $SK/scripts/slayt_sekil.py $B <work> --parcalar` → düzenlenmiş listeden yeniden birleştirir (eski kesimler
+   silinir). Temiz olana kadar 2–3. Sonra `envanter.py $B --sekil-kaydet <work>`.
+
+Kapakta adlandırmayı açıkla (ör. "Şekil 25b = 25. sayfanın alt slaytı"). Tabloyu metinden okunabiliyorsa `d.table` ile yeniden
+yaz; yalnız resim olarak varsa şekil olarak koy ve okunsun diye `scale` > 1 ver.
 
 ## Komutlar (hazirla.py'nin içinde çalışanlar; yeniden çalıştırmak için)
 

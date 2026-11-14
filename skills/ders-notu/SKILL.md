@@ -22,7 +22,7 @@ Bir ders kitabı PDF'inin verilen sayfa aralığından, konuyu **sıfırdan öğ
 | Dosya | Ne zaman |
 |---|---|
 | `$SK/USLUP.md` + `$SK/examples/ornek_ders_notu.py` | **Her işte**, içerik betiğini yazmadan önce, baştan sona |
-| `$SK/SEKIL.md` | `hazirla.py` `UYARI`/`ŞEKİL BAŞLIĞI BULUNAMADI` dedi, temas sayfasında kötü kesim gördün, `KENAR` satırı var ya da bir şekli elle kesmen gerekiyor |
+| `$SK/SEKIL.md` | `hazirla.py` `UYARI`/`ŞEKİL BAŞLIĞI BULUNAMADI`/`NUMARASIZ BELGE` dedi (ders slaytı: şekiller `slayt_sekil.py` ile parça parça kesilir), temas sayfasında kötü kesim gördün, `KENAR` satırı var ya da bir şekli elle kesmen gerekiyor |
 | `$SK/DUZEN.md` | Derleme `UYARI`/`ELLE DÜZENLENECEK` bastı, `denetle.py` `TAŞMA`/`BÖLÜNMÜŞ HÜCRE?`/`BOŞLUK` dedi, sayfa görselinde düzen sorunu gördün ya da renk seçeceksin |
 
 Tetikleyici durum oluştuğunda dosyayı açmadan düzeltmeye girişme: oradaki yol çoğu zaman kısadır ve tahminle yapılan düzeltme yeni sorun açar.
