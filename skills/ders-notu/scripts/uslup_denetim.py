@@ -291,7 +291,7 @@ def denetle(kayit, etiketler=None):
     turkce = set()
     for o in kayit:
         for tur, ham in metinler(o):
-            if tur == 'nesir':
+            if tur in ('nesir', 'hucre'):   # tablo hücreleri de notun Türkçe metnidir
                 turkce |= set(re.findall(r'\w+', re.sub(r'\([^)]*\)', ' ', duz(ham)).lower()))
     for f in figler(kayit):
         if etiketler is None or f['no'] not in etiketler:

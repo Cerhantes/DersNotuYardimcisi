@@ -16,7 +16,7 @@ def sekil(work, no='9.1', en=600, boy=400):
     json.dump({no: [0, [0, 0, en, boy]]}, open(os.path.join(work, 'figs.json'), 'w'))
 
 
-def derle(work, dolgu, onunde='denklem', ardinda='baslik'):
+def derle(work, dolgu, onunde='denklem', ardinda='baslik', scale=1.0):
     """Sayfanın dolgu pt'lik kısmı dolu; ardından (denklem zinciri | başlık) + büyük şekil + (başlık | paragraf)."""
     d = notlib.Doc(os.path.join(work, 'o.pdf'), 'T', 'S', 'H', work, 'K')
     d.cover(['k'], ['n'])
@@ -27,7 +27,7 @@ def derle(work, dolgu, onunde='denklem', ardinda='baslik'):
         d.eq('τ = F / A', '(1.1)')
     else:
         d.h2('1.1 Alt başlık')
-    d.fig('9.1', 'Büyük şekil.', maxh=320)
+    d.fig('9.1', 'Büyük şekil.', maxh=320, scale=scale)
     if ardinda == 'baslik':
         d.h2('1.2 Sonraki konu')
         d.p('Sonraki konunun metni.')
@@ -61,6 +61,12 @@ class YanYana(unittest.TestCase):
             for no, sayfa, cm in dr['bosluk']:
                 self.assertEqual(no, '9.1')
                 self.assertGreaterEqual(cm, notlib.Doc.SEKIL_BOSLUK / notlib.cm - 0.05)
+
+    def test_buyutulmus_sekil_yana_alinmaz(self):
+        # scale > 1: okunurluk için büyütülmüş (sayı dolu çizelge); küçültülüp yana alınmaz, boşluk kaydedilir
+        for dolgu in range(int(notlib.FH) - 520, int(notlib.FH) - 200, 15):
+            d, dr = derle(self.work, dolgu, scale=1.6)
+            self.assertFalse(d._yan_yana, 'dolgu %d' % dolgu)
 
     def test_ardinda_metin_varsa_yan_yerlesim_yok(self):
         for dolgu in range(int(notlib.FH) - 520, int(notlib.FH) - 200, 30):

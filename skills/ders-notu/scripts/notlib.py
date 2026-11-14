@@ -617,7 +617,7 @@ class Doc(BaseDocTemplate):
         if h > maxh: h = maxh; w = h * wpt / hpt
         capt = '<b><font color="%s">Şekil %s</font></b> – %s' % (self.ana, num, cap)
         if terms: capt += '<br/><font color="#777777"><i>Şekildeki terimler:</i> %s</font>' % terms
-        self._fig_meta[num] = (capt, wpt, hpt, h)
+        self._fig_meta[num] = (capt, wpt, hpt, h, scale)
         heads = self._heads()
 
         def yap(oran=1.0, yan=False):
@@ -835,7 +835,7 @@ class Doc(BaseDocTemplate):
     def _yan_yana_blok(self, g, no, W):
         """g (denklem zinciri ya da paragraf) solda, Şekil no sağda (FW·YAN_YANA_ORAN genişlikte, açıklaması altında)
         tek blok; olmuyorsa None."""
-        capt, wpt, hpt, h0 = self._fig_meta[no]
+        capt, wpt, hpt, h0, _ = self._fig_meta[no]
         figw = W * self.YAN_YANA_ORAN
         figh = min(figw * hpt / wpt, h0)
         figw = figh * wpt / hpt
@@ -863,6 +863,8 @@ class Doc(BaseDocTemplate):
         no = getattr(fig, '_no', None)
         if basli or yap is None or no not in self._fig_meta:
             return False
+        if self._fig_meta[no][4] > 1:
+            return False   # büyütülmüş şekil (ör. sayı dolu çizelge): okunurluk için küçültülüp yana alınmaz
         if not (getattr(f, '_denklem', False) or (isinstance(f, _P) and not self._baslik_mi(f))):
             return False
         if len(flowables) > 2 and self._akabilir(flowables[2]):

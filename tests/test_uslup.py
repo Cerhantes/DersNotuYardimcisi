@@ -162,6 +162,11 @@ class SekilTerimi(unittest.TestCase):
         kayit = not_(p('Her hesapta önce <b>lehim alanları</b> (joint area) belirlenir.'), self.FIG)
         self.assertEqual(kurallar(kayit, {'2.1': ['Lehim', 'alanları']}), ([], []))
 
+    def test_tablo_hucresindeki_turkce_kelime_de_sayilir(self):
+        # 'oluk', 'tavan' yalnız tabloda geçiyor (kaynak pozisyonları tablosu): yine Türkçe sayılır
+        tb = {'t': 'table', 'baslik': None, 'satirlar': [['Kod', 'Pozisyon'], ['PA', 'Köşe kaynağı, oluk pozisyonu'], ['PE', 'Alın kaynağı, tavan pozisyonu']]}
+        self.assertEqual(kurallar(not_(tb, self.FIG), {'2.1': ['oluk', 'tavan']})[0], [])
+
     def test_parantez_ici_ingilizce_turkce_sayilmaz(self):
         # 'clearance' yalnız parantez içinde geçiyor: şekildeki İngilizce etiket hâlâ terim ister
         kayit = not_(p('Buna <b>lehim aralığı</b> (joint clearance) denir.'), self.FIG)
