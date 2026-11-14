@@ -261,6 +261,11 @@ def sekil_kopya(kaynak_yer, hedef_yer, yalniz=None):
     os.makedirs(os.path.join(hedef_yer, 'fig'), exist_ok=True)
     for n in gelen:
         shutil.copy2(os.path.join(kaynak_fig, n + '.png'), os.path.join(hedef_yer, 'fig', n + '.png'))
+        parca = os.path.join(kaynak_fig, n)   # slayt_sekil.py'nin parça görüntüleri (varsa) şekille birlikte taşınır
+        hedef_parca = os.path.join(hedef_yer, 'fig', n)
+        if os.path.isdir(parca):
+            shutil.rmtree(hedef_parca, ignore_errors=True)
+            shutil.copytree(parca, hedef_parca)
     hedef_json = os.path.join(hedef_yer, 'figs.json')
     birlesik = json.load(open(hedef_json, encoding='utf-8')) if os.path.exists(hedef_json) else {}
     birlesik.update(gelen)

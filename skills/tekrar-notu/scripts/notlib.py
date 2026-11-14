@@ -273,6 +273,7 @@ class Doc(BaseDocTemplate):
         self._sekil_sonuc = {}
         self._bosluk = []        # (şekil no, sayfa, boşluk pt): sığmayıp sonraki sayfaya geçen şeklin bıraktığı boşluk
         self._yan_yana = set()   # önündeki denklemlerle yan yana alınan şekiller
+        self._dizilen = set()    # parçaları boşluğa sığacak biçimde yeniden dizilen şekiller
 
     def afterFlowable(self, fl):
         if isinstance(fl, _P) and getattr(fl, '_toc', None) is not None:
@@ -640,9 +641,59 @@ class Doc(BaseDocTemplate):
             if keep:  # keep figure together with some preceding/following paragraph text
                 flow = keep(flow)
             kt = KeepTogether(heads + list(flow))
-            kt._sekil = (yap, h, bool(heads), yan0)
-            kt._no = num   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
+            kt._sekil = (yap, h, bool(heads), yan0)   # sayfa sonunda sığmazsa filterFlowables küçültür ya da metni öne alır
+            kt._no = num
+            kt._paket = paket
             return kt
+
+        # Parçalı şekil (slayt_sekil.py fig/<no>/ yazar): sığmazsa parçaları yeniden dizen kurucu
+        olcu_yol = os.path.join(self.work, 'fig', num, 'parcalar.json')
+        olcu = json.load(open(olcu_yol)) if (keep is None and os.path.exists(olcu_yol)) else None
+        s0 = w / max(1.0, rc[2] - rc[0])   # şeklin bu nottaki ölçeği (kaynak pt başına not pt)
+
+        def paket(bos, W):
+            """Parçaları okuma sırasını koruyarak satırlara yeniden dizer; bos yüksekliğe sığan en büyük ölçekli düzen.
+            Ölçek s0'ı aşmaz ve PAKET_MIN'in altına inmez (parça kaynaktaki boyutunun en az %85'i). Olmuyorsa None."""
+            if not olcu:
+                return None
+            n, ara = len(olcu), 8
+            cap_h = Paragraph(capt, ss['cap']).wrap(W, FH)[1]
+            bas_h = sum(x.wrap(W, FH)[1] for x in heads) if heads else 0
+            en_iyi = None
+            for maske in range(1 << (n - 1)):        # her bit: o parçadan sonra satır kırılır mı
+                satirlar, sat = [], [0]
+                for k in range(1, n):
+                    if maske >> (k - 1) & 1:
+                        satirlar.append(sat)
+                        sat = [k]
+                    else:
+                        sat.append(k)
+                satirlar.append(sat)
+                s_w = min((W - ara * (len(r) - 1)) / sum(olcu[k][0] for k in r) for r in satirlar)
+                sabit = cap_h + bas_h + 4 + 8 + 10 + ara * (len(satirlar) - 1)
+                s_h = (bos - sabit) / sum(max(olcu[k][1] for k in r) for r in satirlar)
+                sc = min(s_w, s_h, s0)
+                if sc >= self.PAKET_MIN and (en_iyi is None or sc > en_iyi[0] + 1e-6):
+                    en_iyi = (sc, satirlar)
+            if en_iyi is None:
+                return None
+            sc, satirlar = en_iyi
+            ic = []
+            for r in satirlar:
+                hucre = [Image(os.path.join(self.work, 'fig', num, '%d.png' % k), width=olcu[k][0] * sc,
+                               height=olcu[k][1] * sc) for k in r]
+                t = Table([hucre], colWidths=[olcu[k][0] * sc + (ara if j < len(r) - 1 else 0) for j, k in enumerate(r)])
+                t.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                       ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('TOPPADDING', (0, 0), (-1, -1), 0),
+                                       ('BOTTOMPADDING', (0, 0), (-1, -1), ara)]))
+                ic.append([t])
+            ic.append([Paragraph(capt, ss['cap'])])
+            ct = Table(ic, colWidths=[W])
+            ct.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0), ('TOPPADDING', (0, 0), (-1, -1), 0),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -2), 0), ('BOTTOMPADDING', (0, -1), (-1, -1), 6),
+                                    ('LINEBELOW', (0, -1), (-1, -1), 0.5, colors.HexColor('#BBBBBB'))]))
+            return KeepTogether(heads + [Spacer(1, 4), ct, Spacer(1, 8)])
 
         # Açıklama yana sığıyorsa (yanda en az YAN_MIN sütun kalır ve açıklama şeklin boyunu aşmaz) yana yazılır
         sutun = FW - (w + 14) - 10
@@ -651,7 +702,12 @@ class Doc(BaseDocTemplate):
         self.story.append(yap(1.0, yan0))
 
     # ---------- şekil sığmayınca sayfa yarı boş kalmasın ----------
-    SEKIL_MIN_OLCEK = 0.8     # sığdırmak için şekil en çok bu orana küçülür
+    # Küçültme sınırları ölçümle seçildi (2026-11-14; Kaynak ve Lehim notları, iPad tam sayfa görünümünde okunurluk testi):
+    # okunurluk ≈ kaynak boyutunun %70'inde biter; boşluk kazancı normal küçültmede %75'te, yeniden dizmede %85'te doyar.
+    SEKIL_MIN_OLCEK = 0.75    # sığdırmak için şekil en çok bu orana küçülür (nottaki boyutuna göre)
+    # Parçalı şekil yeniden dizilirken parça, kaynaktaki (slayttaki) boyutunun en az bu oranında kalır. Notlar çoğunlukla
+    # tablette okunur ve şekiller 220 DPI kesilir; bu oranda sayfada ≈ 260 DPI, büyütünce net kalır.
+    PAKET_MIN = 0.85
     SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
     YAN_MIN = 5.5 * cm        # açıklamanın şeklin yanına alınması için gereken en dar sütun
 
@@ -713,6 +769,14 @@ class Doc(BaseDocTemplate):
                     flowables[0] = yeni
                     self._sonuc('küçük' if yan0 or not yan else 'küçük + yan' if oran < 1 else 'yan')
                     return
+        pk = getattr(f, '_paket', None)     # parçalı şekil: parçaları boşluğa sığacak biçimde yeniden diz
+        if pk:
+            yeni = pk(bos, W)
+            if yeni is not None and self._yukseklik(yeni, W) <= bos + 0.5:
+                flowables[0] = yeni
+                self._sonuc('parçaları yeniden dizildi')
+                self._dizilen.add(getattr(f, '_no', '?'))
+                return
         self._ertelenen.add(id(f))
         if basli:      # şeklin başlığı var: arkasındaki metin başlığın altına ait, öne alınmaz
             self._sonuc('sonraki sayfa')
@@ -890,6 +954,9 @@ class Doc(BaseDocTemplate):
         with open(os.path.join(self.work, 'kayit.json'), 'w', encoding='utf-8') as f:
             json.dump(self.kayit, f, ensure_ascii=False, indent=0)
         self.multiBuild(self.story)
+        if self._dizilen:
+            print('BİLGİ: %d parçalı şekil sayfaya sığsın diye yeniden dizildi: %s'
+                  % (len(self._dizilen), ', '.join(sorted(self._dizilen))))
         if self._yan_yana:
             print('BİLGİ: %d şekil sayfaya sığmadığı için önündeki denklemlerle yan yana alındı: %s'
                   % (len(self._yan_yana), ', '.join(sorted(self._yan_yana))))

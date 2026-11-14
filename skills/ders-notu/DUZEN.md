@@ -21,7 +21,11 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
   önceki paragraftan 1–2 satırlık artık görürsen o metin `d.p` dışında bir yolla eklenmiştir.
 - Şekil açıklaması yana sığıyorsa (yanda ≥ 5,5 cm sütun ve açıklama şeklin boyunu aşmıyor) şeklin sağına yazılır, değilse
   altta kalır; derleme sonunda `BİLGİ: n şeklin açıklaması yanda` basılır.
-- Sığmayan şekilde önce açıklama yana alınır, olmazsa şekil %80'e kadar küçülür, o da olmazsa ardındaki metin boşluğa akar
+- Notlar çoğunlukla tablette (iPad) okunur ve şekiller 220 DPI kesilir. Küçültme sınırları ölçümle seçilmiştir: tam sayfa
+  görünümünde çizim ve formüller kaynak boyutunun ≈ %70'ine kadar okunuyor; sınırlar bunun üstünde, boşluk kazancının doyduğu yerde.
+- Parçalı slayt şekli (slayt_sekil.py) sığmazsa önce parçaları okuma sırasıyla yeniden dizilir (tek satır, iki satır …);
+  hiçbir parça slayttaki boyutunun %85'inin altına inmez (`PAKET_MIN`). Derleme `BİLGİ: … yeniden dizildi` basar.
+- Sığmayan şekilde önce açıklama yana alınır, olmazsa şekil %75'e kadar küçülür (`SEKIL_MIN_OLCEK`), o da olmazsa ardındaki metin boşluğa akar
   (konu başlığını geçmez) ve şekil sonraki sayfaya geçer. Bu yüzden şekle yer bildiren atıf ("aşağıdaki şekil") yanlış olur.
 - Şeklin ardından hemen başlık geliyorsa akacak metin yoktur. Bu durumda şekil, **önündeki denklem zinciri ya da paragrafla
   yan yana** alınır: şekil sayfa genişliğinin %55'ine küçülüp sağa geçer, açıklaması altında kalır, denklemler sol sütuna
@@ -50,7 +54,7 @@ Sığmayıp sonraki sayfaya geçen her şeklin bıraktığı boşluk `derleme.js
 | İçindekilerde sayfa numaraları yanlış/boş | `d.make()` (multiBuild) kullan, `build` değil; içerik betiğinde `build` adlı değişken/fonksiyon tanımlama |
 | Başlık sayfa sonunda yalnız, şekli/tablosu sonraki sayfada | Artık otomatik (`fig`/`table`/`end_keep` önceki başlıkları kendi bloğuna alır); hâlâ oluyorsa araya başka öğe girmiştir → `h1(..., need=...)` / `h2(..., need=...)` büyüt |
 | Uzun tablo yüzünden sayfa altında büyük boşluk | Artık otomatik: sayfanın 1/3'ünden uzun tablolar satır arasından bölünür, başlık satırı tekrar eder |
-| Şekil sığmadı, sayfa altı boş kaldı | Artık otomatik (yukarıya bak): küçültme, metni akıtma, önündeki denklemlerle yan yana alma. Kalan boşluk `denetle.py`'de `BOŞLUK` satırıdır; 6 cm ve üstü ENGEL → Büyük boşluk bölümü. Derleme sonunda `BİLGİ: sayfaya sığmayan şekiller: …` hangi yolun kullanıldığını sayar |
+| Şekil sığmadı, sayfa altı boş kaldı | Artık otomatik (yukarıya bak): küçültme, parçaları yeniden dizme, metni akıtma, önündeki denklemlerle yan yana alma. Kalan boşluk `denetle.py`'de `BOŞLUK` satırıdır; 6 cm ve üstü ENGEL → Büyük boşluk bölümü. Derleme sonunda `BİLGİ: sayfaya sığmayan şekiller: …` hangi yolun kullanıldığını sayar |
 | Bir paragraf çevresinden biraz küçük yazılmış | `notlib`, genişliğe sığmayan bölünmez satır kalırsa yalnız o paragrafı en çok 1,5 pt küçültür ve `BİLGİ: n paragraf ... küçültüldü` basar; çoksa paragraftaki uzun bölünmez parçayı (uzun formül, birimli sayı zinciri) böl |
 | Şekil sayfa sonunda metninden koptu | `fig(..., keep=...)` ya da `begin_keep/end_keep` ile paragrafla birlikte tut; `maxh` küçült |
 | Denklem grubu iki sayfaya bölünmüş | `g = d.grup_bas(); ...; d.grup_son(g)` ile sar |

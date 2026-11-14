@@ -14,12 +14,12 @@ parcalar.json: {"17b": [16, [[x0, y0, x1, y1], ...]], ...}
     anahtar = PDF sayfa no + slayt harfi (a: sayfanın ilk slaytı, b: ikinci ...), değer = [sayfa idx, parça kutuları (pt)].
     Gözden geçirirken: istenmeyen slaytı sil, slayttaki istenmeyen parçayı listeden çıkar, resim olmayan (vektör)
     bir çizim için kutusunu elle ekle; sonra --parcalar ile yeniden çalıştır.
-Çıktı: <work>/fig/<no>.png, <work>/figs.json (notlib'in beklediği biçim: {no: [sayfa idx, birleşik kutu]}),
+Çıktı: <work>/fig/<no>.png (çok parçalıysa parçalar ayrıca <work>/fig/<no>/), <work>/figs.json (notlib'in beklediği biçim: {no: [sayfa idx, birleşik kutu]}),
        <work>/sheet_*.png temas sayfaları (her şeklin adı ve parça sayısıyla).
 Slayt zemini: sayfanın en az %12'sini kaplayan, beyaz olmayan dolgulu dikdörtgen. Hiç yoksa sayfanın tamamı tek slayt sayılır.
 Süs: aralıktaki sayfaların en az %30'unda tekrar eden resim (altıgen süsler, logo) ya da 500 pt²'den küçük resim.
 """
-import argparse, collections, json, os, re, sys
+import argparse, collections, json, os, re, shutil, sys
 import pymupdf as fitz
 from PIL import Image, ImageChops, ImageDraw
 
@@ -85,6 +85,17 @@ def birlestir(d, pg, kutular, yol):
         tuval = dolu
         u = fitz.Rect(u.x0 + kut[0] / s - KENAR, u.y0 + kut[1] / s - KENAR, u.x0 + kut[2] / s + KENAR, u.y0 + kut[3] / s + KENAR)
     tuval.save(yol)
+    # Parçaları ayrı ayrı da kaydet: notlib sığmayan şekli bunlarla yeniden dizebilir (bkz. notlib Doc._paketle)
+    klasor = os.path.splitext(yol)[0]
+    shutil.rmtree(klasor, ignore_errors=True)
+    if len(parcalar) > 1:
+        os.makedirs(klasor)
+        olcu = []
+        for k, r in enumerate(parcalar):
+            pm = p.get_pixmap(dpi=DPI, clip=r, alpha=False)
+            pm.save(os.path.join(klasor, '%d.png' % k))
+            olcu.append([round(r.width, 1), round(r.height, 1)])
+        json.dump(olcu, open(os.path.join(klasor, 'parcalar.json'), 'w'))
     return u
 
 
@@ -135,6 +146,8 @@ def main(argv=None):
     for f in os.listdir(fig):   # eski kesimler (silinen adaylar) temas sayfasına karışmasın
         if f.endswith('.png'):
             os.remove(os.path.join(fig, f))
+        elif os.path.isdir(os.path.join(fig, f)):
+            shutil.rmtree(os.path.join(fig, f))
     figs = {}
     for no, (pg, kutular) in parcalar.items():
         u = birlestir(d, pg, kutular, os.path.join(fig, no + '.png'))
