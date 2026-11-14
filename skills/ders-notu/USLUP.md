@@ -70,6 +70,10 @@ d.box('ornek', [
 ## Şekiller
 
 - Şekil önce paragrafta anılır ("(Şekil 2.1a)"), `d.fig` hemen o paragraftan sonra gelir.
+- **İstisna:** bir şekil birkaç paragrafta parça parça anlatılıyorsa ("üst satır …", "orta satır …", "(a) … (b) …",
+  kötü/iyi karşılaştırma çizelgeleri), şekil anlatımın **önüne**, kendisinden ilk söz eden paragraftan önce konur.
+  Okur "üst satır" dendiğinde şekli zaten görmüş olmalıdır; şekil üç paragraf sonra, hatta sonraki sayfada gelirse
+  anlatım şekilsiz okunur.
 - Altyazı = **ne gösterdiği + nereye dikkat edilmeli**. Kitabın altyazısının çevirisiyle yetinme; bir cümle yorum ekle ("…dikkat edin").
 - Şekilde İngilizce etiket varsa **hepsi** `terms='English = Türkçe; …'` içinde.
 - Boyut: tam genişlik şekil `scale=0.85`; küçük yazılı şekil `maxh=280–320`; basit şema `maxh=200–230`.
