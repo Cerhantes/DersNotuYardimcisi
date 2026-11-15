@@ -74,6 +74,9 @@ d.box('ornek', [
   kötü/iyi karşılaştırma çizelgeleri), şekil anlatımın **önüne**, kendisinden ilk söz eden paragraftan önce konur.
   Okur "üst satır" dendiğinde şekli zaten görmüş olmalıdır; şekil üç paragraf sonra, hatta sonraki sayfada gelirse
   anlatım şekilsiz okunur.
+- Slayttan parça parça kesilmiş şekilde parçaları **konumla anma** ("üst satır", "altta", "orta satır"): kütüphane satırları
+  yan yana yeniden dizebilir. Sıra ("ilk örnek", "ikinci örnek", "son örnek"), şekildeki harf ("o örneği") ya da içerik kullan.
+  Bir satırın içindeki "solda/sağda" (kötü/iyi çifti) bozulmaz, kalabilir.
 - Altyazı = **ne gösterdiği + nereye dikkat edilmeli**. Kitabın altyazısının çevirisiyle yetinme; bir cümle yorum ekle ("…dikkat edin").
 - Şekilde İngilizce etiket varsa **hepsi** `terms='English = Türkçe; …'` içinde.
 - Boyut: tam genişlik şekil `scale=0.85`; küçük yazılı şekil `maxh=280–320`; basit şema `maxh=200–230`.

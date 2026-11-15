@@ -109,5 +109,32 @@ class SlaytSekil(unittest.TestCase):
         self.assertEqual(list(parcalar), ['1a'])
 
 
+
+class Satir(unittest.TestCase):
+    """Yeniden dizmenin birimi slayttaki satırdır; birbirine binen parçalar tek parçadır."""
+    def test_ayni_satirdaki_parcalar_gruplanir(self):
+        R = fitz.Rect
+        # 20b gibi: üç satır, her satırda kötü|iyi çifti
+        p = [R(140, 448, 196, 508), R(221, 448, 284, 508), R(136, 514, 196, 550), R(216, 514, 284, 553),
+             R(112, 568, 195, 609), R(209, 568, 291, 608)]
+        g = slayt_sekil.satirla(p)
+        self.assertEqual([[r.x0 for r in s] for s in g], [[140, 221], [136, 216], [112, 209]])
+
+    def test_ust_uste_satirlar_ayri_kalir(self):
+        R = fitz.Rect
+        # 17b gibi: satırlar yalnız kenarda 1 pt değiyor
+        p = [R(121, 449, 290, 506), R(115, 505, 294, 567), R(129, 566, 315, 652)]
+        self.assertEqual(len(slayt_sekil.satirla(p)), 3)
+
+    def test_binen_parcalar_birlesir(self):
+        R = fitz.Rect
+        # 10a gibi: ikinci resim birincinin köşesine biniyor (kesişim küçüğün %20'si)
+        p = slayt_sekil.kaynastir([R(95, 101, 450, 220), R(300, 189, 450, 339)])
+        self.assertEqual(len(p), 1)
+        self.assertEqual(tuple(p[0]), (95, 101, 450, 339))
+        # yalnız kenarda değenler birleşmez
+        self.assertEqual(len(slayt_sekil.kaynastir([R(121, 449, 290, 506), R(115, 505, 294, 567)])), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -65,18 +65,59 @@ def adaylar(d, nolar):
     return out
 
 
-def birlestir(d, pg, kutular, yol):
-    """Parçaları beyaz tuvalde slayttaki yerlerine yapıştırır, boş kenarı kırpar. Döner: birleşik kutu (pt)."""
-    p = d[pg]
-    parcalar = [fitz.Rect(k) & p.rect for k in kutular]
+def kaynastir(parcalar, oran=0.10):
+    """Birbirine binen parçaları tek parçada birleştirir (kesişim, küçük parçanın alanının oran'ından büyükse).
+    Binen parçalar ayrı ayrı yeniden dizilirse kesişimdeki çizim iki kez görünür ve şeklin bütünlüğü bozulur."""
+    out = [fitz.Rect(r) for r in parcalar]
+    degisti = True
+    while degisti:
+        degisti = False
+        for i in range(len(out)):
+            for j in range(i + 1, len(out)):
+                k = out[i] & out[j]
+                kucuk = min(out[i].width * out[i].height, out[j].width * out[j].height)
+                if not k.is_empty and k.width * k.height > oran * kucuk:
+                    out[i] |= out.pop(j)
+                    degisti = True
+                    break
+            if degisti:
+                break
+    return sorted(out, key=lambda r: (round(r.y0), r.x0))
+
+
+def satirla(parcalar, oran=0.3):
+    """Slaytta aynı satırdaki parçaları (dikeyde küçüğün boyunun oran'ından fazla örtüşenler) gruplar; okuma sırasıyla.
+    Yeniden dizmenin birimi satırdır: bir satırdaki kötü/iyi çifti gibi yan yana örnekler birbirinden ayrılmaz."""
+    gruplar = []
+    for r in sorted(parcalar, key=lambda r: r.y0):
+        g = gruplar[-1] if gruplar else None
+        if g is not None:
+            y0, y1 = min(x.y0 for x in g), max(x.y1 for x in g)
+            if min(y1, r.y1) - max(y0, r.y0) > oran * min(r.height, y1 - y0):
+                g.append(r)
+                continue
+        gruplar.append([r])
+    return [sorted(g, key=lambda r: r.x0) for g in gruplar]
+
+
+def tuvale(p, parcalar, s):
+    """Parçaları beyaz tuvalde slayttaki yerlerine yapıştırır. Döner: (tuval, birleşik kutu)."""
     u = fitz.Rect(parcalar[0])
     for r in parcalar[1:]:
         u |= r
-    s = DPI / 72
     tuval = Image.new('RGB', (max(1, round(u.width * s)), max(1, round(u.height * s))), 'white')
     for r in parcalar:
         pm = p.get_pixmap(dpi=DPI, clip=r, alpha=False)
         tuval.paste(Image.frombytes('RGB', (pm.width, pm.height), pm.samples), (round((r.x0 - u.x0) * s), round((r.y0 - u.y0) * s)))
+    return tuval, u
+
+
+def birlestir(d, pg, kutular, yol):
+    """Parçaları beyaz tuvalde slayttaki yerlerine yapıştırır, boş kenarı kırpar. Döner: birleşik kutu (pt)."""
+    p = d[pg]
+    parcalar = [fitz.Rect(k) & p.rect for k in kutular]
+    s = DPI / 72
+    tuval, u = tuvale(p, parcalar, s)
     kut = ImageChops.difference(tuval, Image.new('RGB', tuval.size, 'white')).convert('L').point(lambda v: 255 if v > 12 else 0).getbbox()
     if kut:
         m = round(KENAR * s)
@@ -85,16 +126,17 @@ def birlestir(d, pg, kutular, yol):
         tuval = dolu
         u = fitz.Rect(u.x0 + kut[0] / s - KENAR, u.y0 + kut[1] / s - KENAR, u.x0 + kut[2] / s + KENAR, u.y0 + kut[3] / s + KENAR)
     tuval.save(yol)
-    # Parçaları ayrı ayrı da kaydet: notlib sığmayan şekli bunlarla yeniden dizebilir (bkz. notlib Doc._paketle)
+    # Satırları ayrı ayrı da kaydet: notlib şekli bunlarla yeniden dizebilir (bkz. notlib Doc.fig › paket)
     klasor = os.path.splitext(yol)[0]
     shutil.rmtree(klasor, ignore_errors=True)
-    if len(parcalar) > 1:
+    satirlar = satirla(kaynastir(parcalar))
+    if len(satirlar) > 1:
         os.makedirs(klasor)
         olcu = []
-        for k, r in enumerate(parcalar):
-            pm = p.get_pixmap(dpi=DPI, clip=r, alpha=False)
-            pm.save(os.path.join(klasor, '%d.png' % k))
-            olcu.append([round(r.width, 1), round(r.height, 1)])
+        for k, g in enumerate(satirlar):
+            st, gu = tuvale(p, g, s)
+            st.save(os.path.join(klasor, '%d.png' % k))
+            olcu.append([round(gu.width, 1), round(gu.height, 1)])
         json.dump(olcu, open(os.path.join(klasor, 'parcalar.json'), 'w'))
     return u
 

@@ -219,6 +219,7 @@ class Doc(BaseDocTemplate):
         self.title_, self.subtitle = title, subtitle
         self._hn = 0
         self._fig_say = [0, 0]   # [açıklaması altta, yanda]
+        self._bastan_dizilen = set()  # slayt dizilişi yer kaplattığı için baştan yeniden dizilen şekiller
         self._fig_meta = {}      # şekil no -> (açıklama, en, boy): yan yerleşim için
         self._eq_kucuk = []       # tek satıra sığsın diye küçültülen denklemlerin oranları
         self._eq_bolunen = []     # bölünen denklemlerin satır sayıları
@@ -675,11 +676,14 @@ class Doc(BaseDocTemplate):
                 sabit = cap_h + bas_h + 4 + 8 + 10 + ara * (len(satirlar) - 1) + 2 * kp * len(satirlar)
                 s_h = (bos - sabit) / sum(max(olcu[k][1] for k in r) for r in satirlar)
                 sc = min(s_w, s_h, s0)
-                if sc >= self.PAKET_MIN and (en_iyi is None or sc > en_iyi[0] + 1e-6):
-                    en_iyi = (sc, satirlar)
+                yuk = sabit + sc * sum(max(olcu[k][1] for k in r) for r in satirlar)
+                # en büyük ölçek; eşit ölçekte (ör. ikisi de s0'a dayanmış) daha alçak düzen
+                if sc >= self.PAKET_MIN and (en_iyi is None or sc > en_iyi[0] + 1e-6
+                                             or (sc > en_iyi[0] - 1e-6 and yuk < en_iyi[2])):
+                    en_iyi = (sc, satirlar, yuk)
             if en_iyi is None:
                 return None
-            sc, satirlar = en_iyi
+            sc, satirlar, _ = en_iyi
             ic = []
             for r in satirlar:
                 hucre = []
@@ -708,7 +712,19 @@ class Doc(BaseDocTemplate):
         sutun = FW - (w + 14) - 10
         yan0 = sutun + 10 >= self.YAN_MIN and Paragraph(capt, _YANCAP).wrap(sutun, 10000)[1] <= h
         self._fig_say[yan0] += 1
-        self.story.append(yap(1.0, yan0))
+        ilk = yap(1.0, yan0)
+        # Parçalı şekil, slayttaki dizilişi sayfada gereksiz yer kaplatıyorsa (ör. üst üste dar satırlar, yanları boş)
+        # sığma sorunu olmasa da baştan yeniden dizilir: yeni düzen en çok PAKET_KAZANC kadar yüksek olmalı; parçalar
+        # kaynaktaki boyutlarının PAKET_MIN'inin altına inmez (okunurluk sınırı).
+        if olcu and len(olcu) > 1:
+            H0 = sum(x.wrap(FW, FH)[1] for x in ilk._content)
+            yeni = paket(self.PAKET_KAZANC * H0, FW)
+            if yeni is not None:
+                yeni._sekil = (None, h, bool(heads), True)
+                yeni._no, yeni._paket = num, paket
+                self._bastan_dizilen.add(num)
+                ilk = yeni
+        self.story.append(ilk)
 
     # ---------- şekil sığmayınca sayfa yarı boş kalmasın ----------
     # Küçültme sınırları ölçümle seçildi (2026-11-14; Kaynak ve Lehim notları, iPad tam sayfa görünümünde okunurluk testi):
@@ -718,6 +734,10 @@ class Doc(BaseDocTemplate):
     # Parçalı şekil yeniden dizilirken parça, kaynaktaki (slayttaki) boyutunun en az bu oranında kalır. Notlar çoğunlukla
     # tablette okunur ve şekiller 220 DPI kesilir; bu oranda sayfada ≈ 290 DPI, büyütünce net kalır.
     PAKET_MIN = 0.75
+    # Baştan yeniden dizme (şekil sığsa da): Kaynak notunun 21 parçalı şeklinde ölçüldü (2026-11-15). Üst üste dar
+    # satırlardan oluşan konstrüktif esas şekilleri tek sıraya dizilince %40–50 alçalıyor; slayttaki düzeni zaten sıkı
+    # olan şekiller (çizelgeler, yan yana iki tablo) %15–25'ten fazla kazandırmıyor ve olduğu gibi kalıyor.
+    PAKET_KAZANC = 0.70       # yeni düzen eski yüksekliğin en çok %70'i olmalı
     SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
     YAN_MIN = 5.5 * cm        # açıklamanın şeklin yanına alınması için gereken en dar sütun
 
@@ -967,6 +987,9 @@ class Doc(BaseDocTemplate):
         if self._dizilen:
             print('BİLGİ: %d parçalı şekil sayfaya sığsın diye yeniden dizildi: %s'
                   % (len(self._dizilen), ', '.join(sorted(self._dizilen))))
+        if self._bastan_dizilen:
+            print('BİLGİ: %d parçalı şekil daha az yer kaplasın diye baştan yeniden dizildi: %s'
+                  % (len(self._bastan_dizilen), ', '.join(sorted(self._bastan_dizilen))))
         if self._yan_yana:
             print('BİLGİ: %d şekil sayfaya sığmadığı için önündeki denklemlerle yan yana alındı: %s'
                   % (len(self._yan_yana), ', '.join(sorted(self._yan_yana))))
@@ -987,7 +1010,8 @@ class Doc(BaseDocTemplate):
         with open(os.path.join(self.work, 'derleme.json'), 'w', encoding='utf-8') as f:
             json.dump({'elle_denklem': self._eq_elle, 'eksik_glif': sorted(_missing),
                        'bosluk': [[no, sayfa, round(b / cm, 1)] for no, sayfa, b in self._bosluk],
-                       'bosluk_engel_cm': round(self.BOSLUK_ENGEL / cm, 1)}, f, ensure_ascii=False)
+                       'bosluk_engel_cm': round(self.BOSLUK_ENGEL / cm, 1),
+                       'dizilen': sorted(self._dizilen | self._bastan_dizilen)}, f, ensure_ascii=False)
         for no, sayfa, b in self._bosluk:
             print('%s: s.%d altında %.1f cm boşluk (Şekil %s sığmadı, sonraki sayfaya geçti)'
                   % ('UYARI' if b >= self.BOSLUK_ENGEL else 'BİLGİ', sayfa, b / cm, no))

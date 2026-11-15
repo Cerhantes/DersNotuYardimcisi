@@ -23,9 +23,14 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
   altta kalır; derleme sonunda `BİLGİ: n şeklin açıklaması yanda` basılır.
 - Notlar çoğunlukla tablette (iPad) okunur ve şekiller 220 DPI kesilir. Küçültme sınırları ölçümle seçilmiştir: tam sayfa
   görünümünde çizim ve formüller kaynak boyutunun ≈ %70'ine kadar okunuyor; sınırlar bunun üstünde, boşluk kazancının doyduğu yerde.
-- Parçalı slayt şekli (slayt_sekil.py) sığmazsa önce parçaları okuma sırasıyla yeniden dizilir (tek satır, iki satır …);
-  hiçbir parça slayttaki boyutunun %75'inin altına inmez (`PAKET_MIN`). Her parça ince çerçeveli bir kutuya girer:
-  yan yana gelen parçalardan (ör. kötü/iyi satırları) hangilerinin bir arada olduğu kutudan okunur. Derleme `BİLGİ: … yeniden dizildi` basar.
+- Parçalı slayt şeklinin birimi slayttaki satırdır (SEKIL.md). Satırlar okuma sırasıyla yeniden dizilir (tek sıra, iki sıra …);
+  hiçbir satır slayttaki boyutunun %75'inin altına inmez (`PAKET_MIN`). Her satır ince çerçeveli bir kutuya girer: hangi
+  çizimlerin bir arada olduğu kutudan okunur. İki durumda olur:
+  - **Baştan:** slayttaki diziliş sayfada gereksiz yer kaplatıyorsa (üst üste dar satırlar, yanları boş) şekil sığsa da
+    yeniden dizilir; yeni düzen eskisinin en çok %70'i yükseklikte olmalı (`PAKET_KAZANC`). `BİLGİ: … baştan yeniden dizildi`.
+  - **Sığmayınca:** sayfa sonunda küçültme yetmezse. `BİLGİ: … sayfaya sığsın diye yeniden dizildi`.
+  Yeniden dizilen şeklin açıklamasında ve anlatımında konum sözü ("üst satır", "altta") kalırsa `denetle.py` `KONUM SÖZÜ`
+  ile GÖZLE satırı verir: "ilk örnek", "son örnek", şekildeki harf (n, o, q) ya da içerikle an (USLUP.md › Şekiller).
 - Sığmayan şekilde önce açıklama yana alınır, olmazsa şekil %75'e kadar küçülür (`SEKIL_MIN_OLCEK`), o da olmazsa ardındaki metin boşluğa akar
   (konu başlığını geçmez) ve şekil sonraki sayfaya geçer. Bu yüzden şekle yer bildiren atıf ("aşağıdaki şekil") yanlış olur.
 - Şeklin ardından hemen başlık geliyorsa akacak metin yoktur. Bu durumda şekil, **önündeki denklem zinciri ya da paragrafla

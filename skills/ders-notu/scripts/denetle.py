@@ -31,6 +31,39 @@ def calistir(baslik, betik, *arg):
     return r.returncode, cikti
 
 
+KONUM = re.compile(r'\b(?:(?:üst|alt|orta|ilk|ikinci|üçüncü|son)\w*\s+(?:satır|kısm|kısım)\w*|satır(?:ı|ları|larında)\b'
+                   r'|üstte\b|altta\b|ortada\b|en alttaki|en üstteki)', re.I)
+
+
+def konum_sozleri(work, dizilen):
+    """Yeniden dizilen şeklin parçaları artık slayttaki yerinde değil: açıklamasında ya da onu anlatan paragraflarda
+    (şekli numarasıyla anan ya da hemen ardından gelen üç paragraf) "üst satır", "altta" gibi konum sözü kalmamalı."""
+    yol = os.path.join(work, 'kayit.json')
+    if not dizilen or not os.path.exists(yol):
+        return []
+    with open(yol, encoding='utf-8') as f:
+        kayit = json.load(f)
+    out, son, kalan = [], None, 0
+    for e in kayit:
+        if e.get('t') == 'fig':
+            son, kalan = (e['no'], 3) if e['no'] in dizilen else (None, 0)
+            if son:
+                out += [(son, m.group(0)) for m in KONUM.finditer(e.get('cap') or '')]
+            continue
+        if e.get('t', '').startswith('h'):
+            son, kalan = None, 0
+        if e.get('t') != 'p':
+            continue
+        metin = e.get('metin', '')
+        anilan = [n for n in dizilen if re.search(r'Şekil %s(?![0-9a-z])' % re.escape(n), metin)]
+        if son and kalan > 0:
+            anilan.append(son)
+            kalan -= 1
+        for n in dict.fromkeys(anilan):
+            out += [(n, m.group(0)) for m in KONUM.finditer(metin)]
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('pdf'); ap.add_argument('work')
@@ -69,6 +102,13 @@ def main(argv=None):
             engel.append('sayfa altında büyük boşluk: %s (DUZEN.md › Büyük boşluk)' % ', '.join(buyuk))
         if not dr.get('elle_denklem') and not dr.get('eksik_glif') and not dr.get('bosluk'):
             print('temiz')
+
+        konum = konum_sozleri(a.work, dr.get('dizilen', []))
+        for no, metin in konum:
+            print('KONUM SÖZÜ: Şekil %s yeniden dizildi, metin parçaları yerleriyle anıyor: "%s"' % (no, metin))
+        if konum:
+            gozle.append('yeniden dizilen şekil konumla anılmış (%s): "üst satır", "altta" yerine "ilk örnek", harf ya da içerik '
+                         'kullan (USLUP.md › Şekiller)' % ', '.join(sorted({n for n, _ in konum})))
 
     arg = [a.work] + (['--kaynak', a.kaynak] if a.kaynak else [])
     kod, c = calistir('1. ÜSLUP', os.path.join(BURASI, 'uslup_denetim.py'), *arg)

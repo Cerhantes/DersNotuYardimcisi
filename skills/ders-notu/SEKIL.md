@@ -18,6 +18,10 @@ kesime girer. Bunun yerine her parça kendi sınırından kesilir ve beyaz zemin
 3. `$PY -W ignore $SK/scripts/slayt_sekil.py $B <work> --parcalar` → düzenlenmiş listeden yeniden birleştirir (eski kesimler
    silinir). Temiz olana kadar 2–3. Sonra `envanter.py $B --sekil-kaydet <work>`.
 
+Birleşik şeklin yanında slayttaki **satırları** da ayrı ayrı kaydedilir (`fig/<no>/`): notlib şekli bunlarla yeniden dizebilir
+(DUZEN.md). Satır = slaytta dikeyde örtüşen parçalar; bir satırdaki kötü/iyi çifti hiçbir zaman ayrılmaz. Birbirine binen
+parçalar (kesişim küçüğün %10'undan büyük) tek parça sayılır: ayrı dizilirse kesişimdeki çizim iki kez görünür.
+
 Kapakta adlandırmayı açıkla (ör. "Şekil 25b = 25. sayfanın alt slaytı"). Tabloyu metinden okunabiliyorsa `d.table` ile yeniden
 yaz; yalnız resim olarak varsa şekil olarak koy ve okunsun diye `scale` > 1 ver.
 

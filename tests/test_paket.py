@@ -1,4 +1,5 @@
-"""Parçalı şekil sığmazsa parçaları okuma sırasıyla yeniden dizilir; hiçbir parça kaynak boyutunun PAKET_MIN'inin altına inmez."""
+"""Parçalı şekil, slayttaki dizilişi yer kaplatıyorsa baştan, sayfa sonunda sığmıyorsa o anda parçaları okuma sırasıyla
+yeniden dizilir; hiçbir parça kaynak boyutunun PAKET_MIN'inin altına inmez."""
 import contextlib, io, json, os, shutil, sys, tempfile, unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,10 +39,14 @@ def derle(work, dolgu, maxh=270, parcali=True):
 
 
 class Paket(unittest.TestCase):
+    """Sığmayınca yeniden dizme. Baştan dizme kapatılır (PAKET_KAZANC = 0): şekil slayttaki dizilişiyle girer."""
     def setUp(self):
         self.work = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.work)
         parcali_sekil(self.work)
+        eski = notlib.Doc.PAKET_KAZANC
+        notlib.Doc.PAKET_KAZANC = 0
+        self.addCleanup(setattr, notlib.Doc, 'PAKET_KAZANC', eski)
 
     def tara(self, **k):
         return [derle(self.work, dolgu, **k) for dolgu in range(int(notlib.FH) - 330, int(notlib.FH) - 120, 12)]
@@ -75,17 +80,84 @@ class Paket(unittest.TestCase):
                 break
         else:
             self.fail('yeniden dizilen konum yok')
-        import pymupdf as fitz
-        sayfa = fitz.open(os.path.join(self.work, 'o.pdf'))
-        resimler = []
-        for p in sayfa:
-            for im in p.get_image_info(xrefs=True):
-                r = fitz.Rect(im['bbox'])
-                pix = fitz.Pixmap(sayfa, im['xref'])
-                renk = pix.pixel(pix.width // 2, pix.height // 2)[0]
-                resimler.append((p.number, round((r.y0 + r.y1) / 2 / 10), r.x0, renk))   # satır: dikey orta nokta
-        parca = [x for x in resimler if x[3] in (40, 100, 160)]
-        self.assertEqual([x[3] for x in sorted(parca)], [40, 100, 160])
+        self.assertEqual(okuma_sirasi(self.work), [40, 100, 160])
+
+
+class Bastan(unittest.TestCase):
+    """Üst üste dar satırlardan oluşan şekil (17b) sayfaya sığsa da baştan yan yana dizilir."""
+    def setUp(self):
+        self.work = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.work)
+        parcali_sekil(self.work)
+
+    def test_dar_satirlar_bastan_yan_yana_dizilir(self):
+        d, dr = derle(self.work, 0)          # sayfanın başında, bol yer var
+        self.assertEqual(d._bastan_dizilen, {'9.1'})
+        self.assertEqual(dr['dizilen'], ['9.1'])
+        self.assertEqual(okuma_sirasi(self.work), [40, 100, 160])
+
+    def test_kazanc_yetmezse_slayt_dizilisi_kalir(self):
+        # tek satıra yan yana sığmayacak kadar geniş iki parça: yeniden dizmek yer kazandırmaz
+        parcali_sekil(self.work, olcu=[[420, 60], [420, 60]])
+        d, dr = derle(self.work, 0)
+        self.assertFalse(d._bastan_dizilen)
+
+    def test_kaynak_boyutunun_altina_inmez(self):
+        eski = notlib.Doc.PAKET_MIN
+        notlib.Doc.PAKET_MIN = 1.3
+        try:
+            d, dr = derle(self.work, 0)
+            self.assertFalse(d._bastan_dizilen)
+        finally:
+            notlib.Doc.PAKET_MIN = eski
+
+
+def okuma_sirasi(work):
+    import pymupdf as fitz
+    sayfa = fitz.open(os.path.join(work, 'o.pdf'))
+    resimler = []
+    for p in sayfa:
+        for im in p.get_image_info(xrefs=True):
+            r = fitz.Rect(im['bbox'])
+            pix = fitz.Pixmap(sayfa, im['xref'])
+            renk = pix.pixel(pix.width // 2, pix.height // 2)[0]
+            resimler.append((p.number, round((r.y0 + r.y1) / 2 / 10), r.x0, renk))   # satır: dikey orta nokta
+    parca = [x for x in resimler if x[3] in (40, 100, 160)]
+    return [x[3] for x in sorted(parca)]
+
+
+
+class KonumSozu(unittest.TestCase):
+    """denetle.py: yeniden dizilen şeklin açıklaması ve anlatımında "üst satır", "altta" gibi konum sözü kalmamalı."""
+    def setUp(self):
+        self.work = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.work)
+        sys.path.insert(0, os.path.join(KOK, 'skills', 'ders-notu', 'scripts'))
+        import denetle
+        self.k = denetle.konum_sozleri
+
+    def yaz(self, kayit):
+        json.dump(kayit, open(os.path.join(self.work, 'kayit.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+
+    def test_yakalar(self):
+        self.yaz([{'t': 'fig', 'no': '20b', 'cap': 'üstte kiriş ucu, altta flanşlar'},
+                  {'t': 'p', 'metin': 'Kiriş ucu (Şekil 20b, üst satır) keskin köşe bırakır.'},
+                  {'t': 'p', 'metin': 'Orta satır çekmeden kaçınmayı söyler.'},
+                  {'t': 'h3', 'metin': 'Sonraki'},
+                  {'t': 'p', 'metin': 'Tablonun ilk satırı başka bir şeydir.'}])
+        bulunan = [m for _, m in self.k(self.work, ['20b'])]
+        self.assertEqual(bulunan, ['üstte', 'altta', 'üst satır', 'Orta satır'])
+
+    def test_dizilmeyen_sekil_serbest(self):
+        self.yaz([{'t': 'fig', 'no': '20b', 'cap': 'üstte kiriş ucu'},
+                  {'t': 'p', 'metin': 'Orta satır çekmeden kaçınmayı söyler.'}])
+        self.assertEqual(self.k(self.work, []), [])
+        self.assertEqual(self.k(self.work, ['17b']), [])
+
+    def test_hem_alttan_hem_ustten_konum_sozu_degil(self):
+        self.yaz([{'t': 'fig', 'no': '20b', 'cap': 'ilk örnekte kiriş ucu'},
+                  {'t': 'p', 'metin': 'Kaynak noktasına hem alttan hem üstten yanaşacak yer bulunmalıdır; son örnek budur.'}])
+        self.assertEqual(self.k(self.work, ['20b']), [])
 
 
 if __name__ == '__main__':
