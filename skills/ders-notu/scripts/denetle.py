@@ -35,6 +35,36 @@ KONUM = re.compile(r'\b(?:(?:üst|alt|orta|ilk|ikinci|üçüncü|son)\w*\s+(?:sa
                    r'|üstte\b|altta\b|ortada\b|en alttaki|en üstteki)', re.I)
 
 
+OLCULEN_ESIK = 4.5   # cm: bu ve üstü sayfa altı boşluk (yeni h1 bölümünden önce değilse) gözle bakılır
+
+
+def olculen_bosluklar(pdf, esik=OLCULEN_ESIK):
+    """PDF'te her sayfanın altında kalan boş yüksekliği ölçer (cm). derleme.json yalnız şekil kaynaklı boşlukları
+    kaydeder; başlık, kutu, formül grubu ya da bölünemeyen paragraf yüzünden kalan boşluk burada yakalanır.
+    Sonraki sayfa yeni bir h1 bölümüyle başlıyorsa boşluk tasarım gereğidir, sayılmaz. Döner: [(sayfa, cm)]."""
+    import pymupdf as fitz
+    cm = 72 / 2.54
+    d = fitz.open(pdf)
+    out = []
+    for i in range(2, len(d) - 1):           # kapak, içindekiler ve son sayfa hariç
+        p, q = d[i], d[i + 1]
+        H = p.rect.height
+        ys = [b[3] for b in p.get_text('blocks') if 70 < b[1] < H - 60]
+        ys += [im['bbox'][3] for im in p.get_image_info() if im['bbox'][1] < H - 60]
+        ys += [dr['rect'].y1 for dr in p.get_drawings() if 70 < dr['rect'].y1 < H - 60 and dr['rect'].height < 0.9 * H]
+        if not ys:
+            continue
+        bos = (H - 2.0 * cm - max(ys)) / cm
+        if bos < esik:
+            continue
+        spans = [s for b in q.get_text('dict')['blocks'] if b['type'] == 0 for l in b['lines'] for s in l['spans']
+                 if 55 < s['bbox'][1] < H - 60 and s['text'].strip()]
+        if spans and min(spans, key=lambda s: s['bbox'][1])['size'] > 15:
+            continue                             # sonraki sayfa yeni bölüm (h1)
+        out.append((i + 1, round(bos, 1)))
+    return out
+
+
 def konum_sozleri(work, dizilen):
     """Yeniden dizilen şeklin parçaları artık slayttaki yerinde değil: açıklamasında ya da onu anlatan paragraflarda
     (şekli numarasıyla anan ya da hemen ardından gelen üç paragraf) "üst satır", "altta" gibi konum sözü kalmamalı."""
@@ -144,6 +174,17 @@ def main(argv=None):
         gozle.append('BÖLÜNMÜŞ HÜCRE? satırındaki tablolara bak')
     m = re.search(r'AÇILACAK: (.*)', c)
     acilacak = m.group(1) if m and not m.group(1).startswith('yok') else ''
+
+    print('\n=== 5. ÖLÇÜLEN BOŞLUK (sayfa altı, ≥ %.1f cm, yeni bölümden önce değil)' % OLCULEN_ESIK)
+    olc = olculen_bosluklar(a.pdf)
+    for sayfa, b in olc:
+        print('BOŞLUK (ölçülen): s.%d altında %.1f cm' % (sayfa, b))
+    if not olc:
+        print('temiz')
+    else:
+        gozle.append('ölçülen sayfa altı boşluğu: %s → sayfaya bak; nedeni başlık, kutu, formül grubu ya da şekilse '
+                     'DUZEN.md › Büyük boşluk' % ', '.join('s.%d' % s for s, _ in olc))
+        acilacak = (acilacak + ' ' if acilacak else '') + ' '.join('rv%d.png' % s for s, _ in olc)
 
     print('\n=== SONUÇ')
     if not a.kaynak:

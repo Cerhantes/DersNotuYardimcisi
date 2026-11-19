@@ -31,6 +31,14 @@ Ana renk **konudan konuya değişir**; PDF'ler tek bir koyu temaya dönmez. Otom
   - **Sığmayınca:** sayfa sonunda küçültme yetmezse. `BİLGİ: … sayfaya sığsın diye yeniden dizildi`.
   Yeniden dizilen şeklin açıklamasında ve anlatımında konum sözü ("üst satır", "altta") kalırsa `denetle.py` `KONUM SÖZÜ`
   ile GÖZLE satırı verir: "ilk örnek", "son örnek", şekildeki harf (n, o, q) ya da içerikle an (USLUP.md › Şekiller).
+- Şekilli grup (`grup_bas`/`grup_son` içinde tek şekil) sayfa sonunda şekil gibi sığdırılır: önce şekil küçülür ya da
+  açıklaması yana alınır, yetmezse formüller solda şekil sağda yan yana dizilir; olmazsa grup bütün olarak taşınır.
+- Ardından gelen şekil boşluğa sığıyorsa öne geçer, sığmayan şekil sonraki sayfanın başına gider.
+- Başlık ve ardındaki paragraf: başlık ile paragrafın ilk iki satırı sığıyorsa başlık sayfada kalır, paragraf bölünür.
+  h2 en az 3,5 cm, h3 en az 2,5 cm yer ister (dört notta ölçülerek seçildi).
+- Uzun özet ve kısa örnek kutuları madde sınırında sayfaya bölünebilir.
+- `denetle.py` 5. adım sayfa altı boşluğunu PDF'ten ölçer (≥ 4,5 cm, yeni h1'den önceki hariç) ve GÖZLE verir:
+  derleme kaydına düşmeyen boşlukları (başlık, kutu, formül grubu) da yakalar.
 - Sığmayan şekilde önce açıklama yana alınır, olmazsa şekil %75'e kadar küçülür (`SEKIL_MIN_OLCEK`), o da olmazsa ardındaki metin boşluğa akar
   (konu başlığını geçmez) ve şekil sonraki sayfaya geçer. Bu yüzden şekle yer bildiren atıf ("aşağıdaki şekil") yanlış olur.
 - Şeklin ardından hemen başlık geliyorsa akacak metin yoktur. Bu durumda şekil, **önündeki denklem zinciri ya da paragrafla

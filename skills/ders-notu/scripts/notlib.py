@@ -203,12 +203,33 @@ def Paragraph(t, *a, **k):
     return p
 
 
+class _BaslikBirlikte(KeepTogether):
+    """Başlık + ardındaki paragraf (reportlab keepWithNext'le kurar). Bütünü sığmayınca reportlab ikisini birden sonraki
+    sayfaya atar ve sayfa altında, paragraf uzunsa çok büyük boşluk kalır. Burada başlık ve paragrafın en az ilk
+    MIN_HEAD satırı bu sayfaya sığıyorsa grup açılır: başlık yerleşir, paragraf normal kurallarla bölünür."""
+    def split(self, aW, aH):
+        S = KeepTogether.split(self, aW, aH)
+        C = self._content
+        if not S or S[0] in C or len(C) < 2:
+            return S                                  # sayfa atlatılmıyor
+        son, bas = C[-1], C[:-1]
+        if not (isinstance(son, _BP) and not Doc._baslik_mi(son)
+                and all(Doc._baslik_mi(x) or isinstance(x, Spacer) for x in bas)):
+            return S
+        canv = getattr(self, 'canv', None)
+        hb = _listWrapOn(bas, aW, canv)[1] + son.getSpaceBefore()
+        if son.split(aW, aH - hb - 1.5):              # ilk satırları sığıyor: başlık bu sayfada kalır
+            return list(C)
+        return S
+
+
 class Doc(BaseDocTemplate):
+
     def __init__(self, out, title, subtitle, header, work, source, renk=None):
         """out: çıktı PDF; header: sayfa üstü sol yazı; work: crop_figs.py çalışma klasörü (figs.json + fig/);
         source: sayfa üstü sağ yazı, ör. 'Kaynak: <Yazar>, <Kitap adı>';
         renk: tema.PALET'ten bir ad = tek renkli belge; None = her h1 sıradaki rengi alır"""
-        super().__init__(out, pagesize=A4, leftMargin=LM, rightMargin=RM, topMargin=TM, bottomMargin=BM,
+        super().__init__(out, keepTogetherClass=_BaslikBirlikte, pagesize=A4, leftMargin=LM, rightMargin=RM, topMargin=TM, bottomMargin=BM,
                          title=title, author='Ders notu – ' + source)
         self.header, self.source, self.work = header, source, work
         self.figs = json.load(open(os.path.join(work, 'figs.json')))
@@ -275,8 +296,13 @@ class Doc(BaseDocTemplate):
         self._bosluk = []        # (şekil no, sayfa, boşluk pt): sığmayıp sonraki sayfaya geçen şeklin bıraktığı boşluk
         self._yan_yana = set()   # önündeki denklemlerle yan yana alınan şekiller
         self._dizilen = set()    # parçaları boşluğa sığacak biçimde yeniden dizilen şekiller
+        self._sigdirilan = {}    # id(şekil tablosu) -> (no, beklenen sayfa, boşluk): sığdırılan şeklin kayma denetimi
 
     def afterFlowable(self, fl):
+        # sığdırılan şekil yine de sonraki sayfaya kaydıysa boşluğu kaydet (denetle.py görsün)
+        bek = self._sigdirilan.pop(id(fl), None)
+        if bek and self.page != bek[1]:
+            self._bosluk.append(bek)
         if isinstance(fl, _P) and getattr(fl, '_toc', None) is not None:
             lvl = fl._toc
             txt = fl.getPlainText()
@@ -320,14 +346,14 @@ class Doc(BaseDocTemplate):
         else: self.story.append(CondPageBreak(need * cm))
         self.story.append(self._hp(t, self._renkli('h1'), 0))
 
-    def h2(self, t, need=6):
+    def h2(self, t, need=3.5):
         self._kaydet('h2', metin=t)
         self.story.append(CondPageBreak(need * cm))
         self.story.append(self._hp(t, self._renkli('h2'), 1))
 
     def h3(self, t):
         self._kaydet('h3', metin=t)
-        self.story.append(CondPageBreak(3.5 * cm))
+        self.story.append(CondPageBreak(2.5 * cm))
         self.story.append(Paragraph(t, self._renkli('h3')))
 
     def p(self, *ts):
@@ -522,11 +548,35 @@ class Doc(BaseDocTemplate):
         return len(s)
 
     def grup_son(self, g):
-        parca = []
+        parca, sekil = [], []
         for f in self.story[g:]:   # iç içe KeepTogether sayfaya sığmaz sayılıp boşuna sayfa atlatır: düzleştir
+            if getattr(f, '_sekil', None) and f._sekil[0]:
+                sekil.append((len(parca), len(f._content), f))
             parca.extend(f._content if isinstance(f, KeepTogether) else [f])
         del self.story[g:]
-        self.story.append(KeepTogether(self._heads() + parca))
+        heads = self._heads()
+        kt = KeepTogether(heads + parca)
+        if len(sekil) == 1:
+            # Grubun tek şekli varsa grup da sayfa sonunda şekil gibi sığdırılır: şekil küçülür ya da açıklaması yana
+            # alınır, formüller ve metin olduğu gibi kalır. Sığmazsa grup bütün olarak taşınır (metin öne akmaz).
+            i, n, f = sekil[0]
+            yap0, h, _, yan0 = f._sekil
+            once, sonra = parca[:i], parca[i + n:]
+
+            def yap(oran=1.0, yan=False):
+                yeni = yap0(oran, yan)
+                return None if yeni is None else KeepTogether(heads + once + list(yeni._content) + sonra)
+            kt._sekil = (yap, h, True, yan0)
+            kt._no = no = getattr(f, '_no', None)
+
+            def grup_yan(W):
+                """Küçültme yetmezse: grubun şekilden önceki metni ve formülleri solda, şekil sağda (bkz. _yan_yana_blok)."""
+                if not once or self._fig_meta.get(no, (0, 0, 0, 0, 1))[4] > 1:
+                    return None
+                blok = self._yan_yana_blok(KeepTogether(once), no, W)
+                return None if blok is None else KeepTogether(heads + [blok] + sonra)
+            kt._grup_yan = grup_yan
+        self.story.append(kt)
 
     def _boxflow(self, kind, body, title=None):
         bg, fg, lab = BOXES[kind]
@@ -535,6 +585,16 @@ class Doc(BaseDocTemplate):
         for b in (body if isinstance(body, list) else [body]):
             if isinstance(b, str): inner.append(Paragraph(b, ss['boxb']))
             else: inner.append(b)
+        if kind in ('ozet', 'ornek') and len(inner) >= 5:
+            # Uzun özet ve kısa örnek kutusu madde (adım) sınırında sayfaya bölünebilir (başlık yeni sayfada tekrar eder): bütün olarak
+            # taşınırsa sayfa altında büyük boşluk kalıyordu.
+            t = Table([[x] for x in inner], colWidths=[FW], repeatRows=1)
+            t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(bg)),
+                                   ('LINEBEFORE', (0, 0), (0, -1), 3.5, colors.HexColor(fg)),
+                                   ('LEFTPADDING', (0, 0), (-1, -1), 10), ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                                   ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                                   ('TOPPADDING', (0, 0), (-1, 0), 6), ('BOTTOMPADDING', (0, -1), (-1, -1), 5)]))
+            return t
         t = Table([[inner]], colWidths=[FW])
         t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(bg)),
                                ('LINEBEFORE', (0, 0), (0, -1), 3.5, colors.HexColor(fg)),
@@ -739,7 +799,16 @@ class Doc(BaseDocTemplate):
     # olan şekiller (çizelgeler, yan yana iki tablo) %15–25'ten fazla kazandırmıyor ve olduğu gibi kalıyor.
     PAKET_KAZANC = 0.70       # yeni düzen eski yüksekliğin en çok %70'i olmalı
     SEKIL_BOSLUK = 3 * cm     # bundan küçük boşluk için uğraşılmaz
+    # Sığma payı: reportlab bloğu kendi hesabıyla (önceki öğenin aralığı, yuvarlama) yerleştirir; frame._y − _y1p'den
+    # birkaç onda bir punto daha az yer bulabilir. Pay olmadan "sığdı" sanılan şekil sayfa kırar ve boşluk kaydedilmeden
+    # kalır (Cıvata notu Şekil 16b: blok 140,0 pt, ölçülen yer 140,0, reportlab'ın verdiği 139,7).
+    SIGMA_PAYI = 1.5
     YAN_MIN = 5.5 * cm        # açıklamanın şeklin yanına alınması için gereken en dar sütun
+
+    def _izle(self, yeni, f, bos):
+        for x in getattr(yeni, '_content', [yeni]):
+            if isinstance(x, Table):
+                self._sigdirilan[id(x)] = (getattr(f, '_no', None), self.page, bos)
 
     def _sonuc(self, ne):
         self._sekil_sonuc[ne] = self._sekil_sonuc.get(ne, 0) + 1
@@ -776,7 +845,7 @@ class Doc(BaseDocTemplate):
             return
         W = fr._aW
         H = self._yukseklik(f, W)
-        if H <= bos + 0.5:
+        if H <= bos - self.SIGMA_PAYI:
             return
         yap, h, basli, yan0 = sk    # yap None: yalnız akıtılır (ör. yan yana iki şekil)
         # Açıklaması alttaysa: 1) yana al, 2) küçült, 3) küçült + yana al. Zaten yandaysa yalnız 3.
@@ -795,17 +864,28 @@ class Doc(BaseDocTemplate):
                 oran -= 0.02
             for oran, yan in adaylar:
                 yeni = yap(oran, yan)
-                if yeni is not None and self._yukseklik(yeni, W) <= bos + 0.5:
+                if yeni is not None and self._yukseklik(yeni, W) <= bos - self.SIGMA_PAYI:
                     flowables[0] = yeni
+                    self._izle(yeni, f, bos)
                     self._sonuc('küçük' if yan0 or not yan else 'küçük + yan' if oran < 1 else 'yan')
                     return
         pk = getattr(f, '_paket', None)     # parçalı şekil: parçaları boşluğa sığacak biçimde yeniden diz
         if pk:
             yeni = pk(bos, W)
-            if yeni is not None and self._yukseklik(yeni, W) <= bos + 0.5:
+            if yeni is not None and self._yukseklik(yeni, W) <= bos - self.SIGMA_PAYI:
                 flowables[0] = yeni
+                self._izle(yeni, f, bos)
                 self._sonuc('parçaları yeniden dizildi')
                 self._dizilen.add(getattr(f, '_no', '?'))
+                return
+        gy = getattr(f, '_grup_yan', None)   # şekilli grup: formüller solda, şekil sağda
+        if gy:
+            yeni = gy(W)
+            if yeni is not None and self._yukseklik(yeni, W) <= bos - self.SIGMA_PAYI:
+                flowables[0] = yeni
+                self._izle(yeni, f, bos)
+                self._sonuc('grup yan yana')
+                self._yan_yana.add(getattr(f, '_no', '?'))
                 return
         self._ertelenen.add(id(f))
         if basli:      # şeklin başlığı var: arkasındaki metin başlığın altına ait, öne alınmaz
@@ -814,6 +894,15 @@ class Doc(BaseDocTemplate):
             return
         # 2) sonraki metni boşluğa akıt, şekil sonraki sayfanın başına geçsin
         kalan, i = bos, 1
+        # Ardından başka bir şekil geliyorsa (aynı paragrafın andığı iki şekil) ve o boşluğa sığıyorsa öne geçer;
+        # sığmayan şekil sonraki sayfanın başına gider. İkisi de aynı paragrafın hemen arkasında kalır.
+        if len(flowables) > 1:
+            g = flowables[1]
+            gs = getattr(g, '_sekil', None)
+            if gs and not gs[2] and id(g) not in self._ertelenen and self._yukseklik(g, W) <= bos - self.SIGMA_PAYI:
+                flowables[0:2] = [g, f]
+                self._sonuc('sonraki şekil öne geçti')
+                return
         while i < len(flowables) and kalan > 0 and self._akabilir(flowables[i]):
             g = flowables[i]
             hg = self._yukseklik(g, W)
@@ -974,7 +1063,7 @@ class Doc(BaseDocTemplate):
         if any(x is not None and self._yukseklik(x, W) <= kalan for x in adaylar):
             return False   # şekil küçültülerek sığar: mevcut yol halleder
         blok = self._yan_yana_blok(f, no, W)
-        if blok is None or self._yukseklik(blok, W) > bos + 0.5:
+        if blok is None or self._yukseklik(blok, W) > bos - self.SIGMA_PAYI:
             return False
         flowables[0:2] = [blok]
         self._yan_yana.add(no)
